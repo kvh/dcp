@@ -1,12 +1,41 @@
-# dcp - data copy
+# dcp - Like cp, but for structured data
 
-dcp is a python library and command line tool for copying datasets efficiently across formats and storages while preserving structure and logical data types. It uses Semantica Schemas and Apache Arrow under the hood as the "lingua franca" of data structure and format, and can copy data between dozens of data formats (JSON, CSV, database table, pandas, arrow, parquet, etc) on many different storage engines (postgres, S3, local file, python memory, etc) as efficiently and with as high fidelity as the formats and engines can support.
+dcp is a python library and command line tool for copying datasets efficiently
+across formats and storages while preserving structure and logical data types,
+and smoothly handling conversion issues. It uses Semantic Schemas and Apache
+Arrow under the hood as the "lingua franca" of data structure and format, and
+can copy data between dozens of data formats (JSON, CSV, database table, pandas,
+arrow, parquet, etc) on many different storage engines (postgres, S3, local
+file, python memory, etc) as efficiently and with as high fidelity as the formats
+and engines allow.
 
-Copying data between formats and storages is actually a many-step process loaded with pitfalls, dcp handles these challenges for you and gives you control over how to deal with type errors, truncations, downcasts, etc. dcp supports not just a copy operation, but other related operations like inferring the schema of a dataset, conforming a dataset to a schema, and creating empty objects of a specified schema.
+Copying data between formats and storages is a many-step process loaded
+with pitfalls and gotchas, dcp handles these challenges for you and gives you
+control over how to deal with type errors, truncations, and downcasts.
+
+In addition, dcp supports other related operations
+like inferring the schema of a dataset, conforming a dataset to a schema, and
+creating empty objects of a specified schema.
 
 `pip install dcp` or `poetry add dcp`
 
+Command line quick usage:
+
+`dcp orders.csv mysql://localhost:3306/mydb`
+
+This command will load the `orders.csv` file into a mysql table (by default of the same name `orders`)
+on the given database, inferring the right schema from the data in the CSV.
+
+A more complex transfer:
+
+`dcp -n orders -s mysql://localhost:3306/mydb --to s3://mybucket.s3/pth --to-name=orders.csv`
+
+This will export your `orders` table to a file on S3 (in the "default" format for
+the StorageEngine since none was specified, in the case of S3 a CSV).
+
 ## Usage
+
+The python API gives you more powerful tools for more complex operations:
 
 ```python
 
@@ -37,7 +66,7 @@ dcp.copy(
 
 data_format = dcp.infer_format("records", storage='file:///tmp/dcp')
 print(data_format)
-# >>> CsvFileFormat(name="csv")
+# >>> CsvFileFormat
 
 dcp.copy(
     from_name='records',
@@ -61,7 +90,8 @@ Copying data with dcp involves the following steps:
 - For each conversion:
   - load data from source storage into memory if not already there
   - convert in-memory bytes to format that can be worked on if not already
-  - potentially, put data on storage in temporary format for conversion (eg in case of database table, we use the databases own query language to do conversion)
+  - potentially, put data on storage in temporary format for conversion
+    (eg in case of database table, we use the databases own query language to do conversion)
   - convert in-memory bytes to destination format
     - create empty structure with correct schema on storage
     - fill structure with data

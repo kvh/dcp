@@ -16,6 +16,7 @@ Records = List[Dict[str, Any]]
 
 class RecordsFormat(DataFormatBase[Records]):
     natural_storage_class = MemoryStorageClass
+    nickname = "records"
 
 
 try:
@@ -27,6 +28,7 @@ except ImportError:
 class DataFrameFormat(DataFormatBase[DataFrame]):
     natural_storage_class = MemoryStorageClass
     natural_storage_engine = LocalPythonStorageEngine
+    nickname = "dataframe"
 
 
 try:
@@ -39,6 +41,7 @@ except ImportError:
 
 class ArrowTableFormat(DataFormatBase[ArrowTable]):
     natural_storage_class = MemoryStorageClass
+    nickname = "arrow"
 
 
 ArrowFile = TypeVar("ArrowFile")
@@ -46,6 +49,7 @@ ArrowFile = TypeVar("ArrowFile")
 
 class ArrowFileFormat(DataFormatBase[ArrowFile]):
     natural_storage_class = FileSystemStorageClass
+    nickname = "arrowfile"
 
 
 # TODO: abstract type?
@@ -55,6 +59,7 @@ DatabaseCursor = TypeVar("DatabaseCursor")
 class DatabaseCursorFormat(DataFormatBase[DatabaseCursor]):
     natural_storage_class = MemoryStorageClass
     storable = False
+    nickname = "cursor"
 
 
 DatabaseTable = TypeVar("DatabaseTable")
@@ -62,6 +67,7 @@ DatabaseTable = TypeVar("DatabaseTable")
 
 class DatabaseTableFormat(DataFormatBase[DatabaseTable]):
     natural_storage_class = DatabaseStorageClass
+    nickname = "table"
 
 
 class FileObject(IOBase):
@@ -82,6 +88,7 @@ CsvFile = TypeVar("CsvFile")
 
 class CsvFileFormat(DataFormatBase[CsvFile]):
     natural_storage_class = FileSystemStorageClass
+    nickname = "csv"
 
 
 class JsonLinesFileObject(FileObject):
@@ -98,3 +105,4 @@ JsonLinesFile = TypeVar("JsonLinesFile")
 
 class JsonLinesFileFormat(DataFormatBase[JsonLinesFile]):
     natural_storage_class = FileSystemStorageClass
+    nickname = "jsonl"

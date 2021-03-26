@@ -28,6 +28,7 @@ class DataFormatBase(Generic[T]):
     natural_storage_class: StorageClass
     natural_storage_engine: Optional[StorageEngine] = None
     storable: bool = True
+    nickname: str = None
 
     def __init__(self):
         raise NotImplementedError("Do not instantiate DataFormat classes")

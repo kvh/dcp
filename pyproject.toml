@@ -7,9 +7,9 @@ version = "0.1.0"
 
 [tool.poetry.dependencies]
 PyYAML = "^5.4.1"
-python = "^3.7"
 SQLAlchemy = "^1.4.3"
 loguru = "^0.5.3"
+python = "^3.7"
 
 [tool.poetry.dev-dependencies]
 black = "^19.10b0"
@@ -23,6 +23,7 @@ pre-commit = "^2.1.1"
 pydeps = "^1.9.0"
 pytest = "^4.6"
 pytest-cov = "^2.8.1"
+semantic-schemas = {path = "../schemas/python", develop = true}
 
 [tool.black]
 exclude = '''
