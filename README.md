@@ -1,6 +1,6 @@
 # dcp - data copy
 
-dcp is a python library and command line tool for copying datasets efficiently across formats and storages while preserving structure and logical data types. It uses Semantypes and Apache Arrow under the hood as the "lingua franca" of data structure and format, and can copy data between dozens of data formats (JSON, CSV, database table, pandas, arrow, parquet, etc) on many different storage engines (postgres, S3, local file, python memory, etc) as efficiently and with as high fidelity as the formats and engines can support.
+dcp is a python library and command line tool for copying datasets efficiently across formats and storages while preserving structure and logical data types. It uses Semantica Schemas and Apache Arrow under the hood as the "lingua franca" of data structure and format, and can copy data between dozens of data formats (JSON, CSV, database table, pandas, arrow, parquet, etc) on many different storage engines (postgres, S3, local file, python memory, etc) as efficiently and with as high fidelity as the formats and engines can support.
 
 Copying data between formats and storages is actually a many-step process loaded with pitfalls, dcp handles these challenges for you and gives you control over how to deal with type errors, truncations, downcasts, etc. dcp supports not just a copy operation, but other related operations like inferring the schema of a dataset, conforming a dataset to a schema, and creating empty objects of a specified schema.
 

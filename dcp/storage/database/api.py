@@ -1,20 +1,13 @@
 from __future__ import annotations
+from dcp.utils.common import DcpJsonEncoder
 
 import json
 import os
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Tuple, Type
 
-import sqlalchemy
 from loguru import logger
-from snapflow.core.typing.inference import infer_schema_from_db_table
-from snapflow.schema.base import Schema
-from snapflow.storage.data_formats.records import Records
-from snapflow.storage.db.schema import SchemaMapper
-from snapflow.storage.db.utils import conform_columns_for_insert
-from snapflow.storage.storage import Storage, StorageApi
-from snapflow.utils.common import SnapflowJSONEncoder, rand_str
-from snapflow.utils.data import conform_records_for_insert
+import sqlalchemy
 from sqlalchemy import MetaData
 from sqlalchemy.engine import Connection, Engine, ResultProxy
 from sqlalchemy.exc import OperationalError, ProgrammingError
@@ -24,6 +17,8 @@ if TYPE_CHECKING:
     pass
 
 
+# Track what engines we've created for what urls
+# so we don't have unnecessary dupes
 _sa_engines: Dict[str, Engine] = {}
 
 
@@ -37,15 +32,13 @@ def dispose_all(keyword: Optional[str] = None):
 
 class DatabaseApi:
     def __init__(
-        self,
-        url: str,
-        json_serializer: Callable = None,
+        self, url: str, json_serializer: Callable = None,
     ):
         self.url = url
         self.json_serializer = (
             json_serializer
             if json_serializer is not None
-            else lambda o: json.dumps(o, cls=SnapflowJSONEncoder)
+            else lambda o: json.dumps(o, cls=DcpJsonEncoder)
         )
         self.eng: Optional[sqlalchemy.engine.Engine] = None
 
@@ -59,9 +52,7 @@ class DatabaseApi:
         if key in _sa_engines:
             return _sa_engines[key]
         self.eng = sqlalchemy.create_engine(
-            self.url,
-            json_serializer=self.json_serializer,
-            echo=False,
+            self.url, json_serializer=self.json_serializer, echo=False,
         )
         _sa_engines[key] = self.eng
         return self.eng
@@ -91,9 +82,7 @@ class DatabaseApi:
         if self.exists(name):
             return name
         ddl = SchemaMapper().create_table_statement(
-            schema=schema,
-            dialect=self.get_engine().dialect,
-            table_name=name,
+            schema=schema, dialect=self.get_engine().dialect, table_name=name,
         )
         self.execute_sql(ddl)
         return name
@@ -150,9 +139,7 @@ class DatabaseApi:
         self.execute_sql(insert_sql)
 
     def create_table_from_sql(
-        self,
-        name: str,
-        sql: str,
+        self, name: str, sql: str,
     ):
         sql = self.clean_sub_sql(sql)
         create_sql = f"""
@@ -206,8 +193,7 @@ class DatabaseApi:
 
 class DatabaseStorageApi(DatabaseApi, StorageApi):
     def __init__(
-        self,
-        storage: Storage,
+        self, storage: Storage,
     ):
         super().__init__(storage.url)
         self.storage = storage

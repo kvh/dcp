@@ -51,6 +51,8 @@ class MemoryStorageClass(StorageClass):
 
     @classmethod
     def get_api_cls(cls) -> Type[StorageApi]:
+        from dcp.storage.memory.engines.python import PythonStorageApi
+
         return PythonStorageApi
 
 
@@ -60,7 +62,7 @@ class FileSystemStorageClass(StorageClass):
 
     @classmethod
     def get_api_cls(cls) -> Type[StorageApi]:
-        from dcp.storage.file_system.file_system import FileSystemStorageApi
+        from dcp.storage.file_system.engines.local import FileSystemStorageApi
 
         return FileSystemStorageApi
 
@@ -107,7 +109,7 @@ class SqliteStorageEngine(StorageEngine):
 
     @classmethod
     def get_api_cls(cls) -> Type[StorageApi]:
-        from dcp.storage.database.sqlite import SqliteDatabaseStorageApi
+        from dcp.storage.database.engines.sqlite import SqliteDatabaseStorageApi
 
         return SqliteDatabaseStorageApi
 
@@ -118,7 +120,7 @@ class PostgresStorageEngine(StorageEngine):
 
     @classmethod
     def get_api_cls(cls) -> Type[StorageApi]:
-        from dcp.storage.database.postgres import PostgresDatabaseStorageApi
+        from dcp.storage.database.engines.postgres import PostgresDatabaseStorageApi
 
         return PostgresDatabaseStorageApi
 
@@ -129,7 +131,7 @@ class MysqlStorageEngine(StorageEngine):
 
     @classmethod
     def get_api_cls(cls) -> Type[StorageApi]:
-        from dcp.storage.database.mysql import MysqlDatabaseStorageApi
+        from dcp.storage.database.engines.mysql import MysqlDatabaseStorageApi
 
         return MysqlDatabaseStorageApi
 

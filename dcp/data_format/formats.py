@@ -2,8 +2,6 @@ from __future__ import annotations
 from io import IOBase
 from typing import Any, Dict, List, TypeVar
 
-from pandas import DataFrame
-import pyarrow as pa
 
 from dcp.storage.base import (
     DatabaseStorageClass,
@@ -20,12 +18,23 @@ class RecordsFormat(DataFormatBase[Records]):
     natural_storage_class = MemoryStorageClass
 
 
+try:
+    from pandas import DataFrame
+except ImportError:
+    DataFrame = TypeVar("DataFrame")
+
+
 class DataFrameFormat(DataFormatBase[DataFrame]):
     natural_storage_class = MemoryStorageClass
     natural_storage_engine = LocalPythonStorageEngine
 
 
-ArrowTable = pa.Table
+try:
+    import pyarrow as pa
+
+    ArrowTable = pa.Table
+except ImportError:
+    ArrowTable = TypeVar("ArrowTable")
 
 
 class ArrowTableFormat(DataFormatBase[ArrowTable]):
