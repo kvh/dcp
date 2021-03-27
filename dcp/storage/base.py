@@ -1,6 +1,4 @@
 from __future__ import annotations
-from dcp.data_format.formats import ArrowFileFormat, DatabaseTableFormat, RecordsFormat
-from dcp.data_format.base import ALL_DATA_FORMATS, DataFormat, DataFormatBase
 
 import enum
 import os
@@ -11,7 +9,7 @@ from urllib.parse import urlparse
 
 
 if TYPE_CHECKING:
-    pass
+    from dcp.data_format.base import DataFormat
 
 
 ALL_STORAGE_CLASSES = []
@@ -19,7 +17,7 @@ ALL_STORAGE_ENGINES = []
 
 
 class StorageClass:
-    natural_format: DataFormat
+    # natural_format: DataFormat
     # supported_formats: List[DataFormat] = []
 
     def __init__(self):
@@ -35,7 +33,7 @@ class StorageClass:
 
 
 class DatabaseStorageClass(StorageClass):
-    natural_format = DatabaseTableFormat
+    # natural_format = DatabaseTableFormat
     # supported_formats = [DatabaseTableFormat]
 
     @classmethod
@@ -46,7 +44,7 @@ class DatabaseStorageClass(StorageClass):
 
 
 class MemoryStorageClass(StorageClass):
-    natural_format = RecordsFormat
+    # natural_format = RecordsFormat
     # supported_formats = [DataFormatBase]
 
     @classmethod
@@ -57,7 +55,7 @@ class MemoryStorageClass(StorageClass):
 
 
 class FileSystemStorageClass(StorageClass):
-    natural_format = ArrowFileFormat
+    # natural_format = ArrowFileFormat
     # supported_formats = [FileDataFormatBase]
 
     @classmethod
@@ -100,7 +98,8 @@ class StorageEngine:
 
     @classmethod
     def get_natural_format(cls) -> DataFormat:
-        return cls.storage_class.natural_format
+        raise NotImplementedError
+        # return cls.storage_class.natural_format
 
 
 class SqliteStorageEngine(StorageEngine):

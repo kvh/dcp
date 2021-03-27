@@ -25,8 +25,8 @@ ALL_DATA_FORMATS = []
 
 
 class DataFormatBase(Generic[T]):
-    natural_storage_class: StorageClass
-    natural_storage_engine: Optional[StorageEngine] = None
+    natural_storage_class: Type[StorageClass]
+    natural_storage_engine: Optional[Type[StorageEngine]] = None
     storable: bool = True
     nickname: str = None
 
@@ -38,11 +38,11 @@ class DataFormatBase(Generic[T]):
         ALL_DATA_FORMATS.append(cls)
 
     @classmethod
-    def get_natural_storage_class(cls) -> StorageClass:
+    def get_natural_storage_class(cls) -> Type[StorageClass]:
         return cls.natural_storage_class
 
     @classmethod
-    def get_natural_storage_engine(cls) -> Optional[StorageEngine]:
+    def get_natural_storage_engine(cls) -> Optional[Type[StorageEngine]]:
         return cls.natural_storage_engine
 
     @classmethod
