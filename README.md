@@ -1,25 +1,52 @@
-# dcp - Like cp, but for structured data
+# dcp - data copy
 
-dcp is a python library and command line tool for copying datasets efficiently
-across formats and storages while preserving structure and logical data types,
-and smoothly handling conversion issues. It uses Semantic Schemas and Apache
-Arrow under the hood as the "lingua franca" of data structure and format, and
-can copy data between dozens of data formats (JSON, CSV, database table, pandas,
-arrow, parquet, etc) on many different storage engines (postgres, S3, local
-file, python memory, etc) as efficiently and with as high fidelity as the formats
-and engines allow.
+"Like cp, but for structured data"
 
-Copying data between formats and storages is a many-step process loaded
-with pitfalls and gotchas, dcp handles these challenges for you and gives you
-control over how to deal with type errors, truncations, and downcasts.
+dcp is a python library and command line tool that provides
+a **fast** way to _safely_ copy structured data between any two points,
+whether copying a csv to a mysql table or an in-memory dataframe to an S3
+jsonl file.
 
-In addition, dcp supports other related operations
+**Fast**
+
+To copy data most efficiently, dcp estimates the memory, cpu, and wire
+costs of any copy operation and optimizes for the _lowest cost copy path_
+for the given available storages. It tries to use best-in-class
+underlying client libraries, and employs parallelization and
+compression to the extent possible for an operation.
+
+_Safe_
+
+dcp uses Semantic Schemas under the hood as the "lingua franca" of
+structured data, allowing for careful preservation of data types and
+values across many formats and storage engines. Error handling behavior
+is configurable so when type conversion errors are encountered -- a
+value is truncated or cannot be cast -- dcp can fail, relax the datatype,
+or set the value null depending on what makes most sense for a given situation.
+
+**Currently supported formats:**
+
+- JSON
+- CSV file
+- Database table
+- Pandas dataframe
+- Apache arrow
+
+**Currently supported storage engines:**
+
+- DBs: postgres, mysql, sqlite
+- File systems: local, S3 (coming soon)
+- Memory: python
+
+In addition, dcp supports related operations
 like inferring the schema of a dataset, conforming a dataset to a schema, and
 creating empty objects of a specified schema.
 
+## Usage
+
 `pip install dcp` or `poetry add dcp`
 
-Command line quick usage:
+### Command line:
 
 `dcp orders.csv mysql://localhost:3306/mydb`
 
@@ -33,11 +60,13 @@ A more complex transfer:
 This will export your `orders` table to a file on S3 (in the "default" format for
 the StorageEngine since none was specified, in the case of S3 a CSV).
 
-## Usage
+### Python library
 
 The python API gives you more powerful tools for more complex operations:
 
 ```python
+import dcp
+from dcp import Storage
 
 records = [{"f1":"hello", "f2": "world"}]
 fields = dcp.infer_fields(records)
@@ -80,7 +109,7 @@ dcp.copy(
 assert Storage('postgres://localhost:5432/mydb').get_api().exists("records")
 ```
 
-dcp gives you control over
+# [WIP] notes
 
 ### How it works
 
