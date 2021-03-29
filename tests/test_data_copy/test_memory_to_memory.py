@@ -70,7 +70,8 @@ to_formats = [rf, dff, af]
 
 
 @pytest.mark.parametrize(
-    "from_fmt,to_fmt", product(from_formats, to_formats),
+    "from_fmt,to_fmt",
+    product(from_formats, to_formats),
 )
 def test_mem_to_mem(from_fmt, to_fmt):
     from_fmt, obj = from_fmt

@@ -3,20 +3,15 @@ from __future__ import annotations
 from collections import abc
 from dataclasses import dataclass
 from io import IOBase
-from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, Tuple, Type, Union
 
 from pandas.core.frame import DataFrame
-from semtypes import Schema, SchemaLike
-from snapflow.utils.data import (
-    SampleableCursor,
-    SampleableGenerator,
-    SampleableIO,
-    SampleableIterator,
-)
-from sqlalchemy.engine.result import ResultProxy
+from schemas import Schema
+from schemas.base import SchemaKey, schema_like_to_key
+
 
 if TYPE_CHECKING:
-    from snapflow.storage.data_formats import DataFormat
+    from dcp.data_format.base import DataFormat
 
 
 @dataclass
@@ -27,7 +22,7 @@ class MemoryRecordsObject:
     _data_format: Optional[DataFormat] = None
     _record_count: Optional[int] = None
     # _closeable_resource: Optional[Any] = none  # TODO: when / how to use?
-    nominal_schema: Optional[SchemaLike] = None
+    nominal_schema_key: Optional[SchemaKey] = None
     closeable: Optional[Callable] = None
 
     @property
@@ -86,17 +81,17 @@ def as_records(
     records_object: Any,
     data_format: DataFormat = None,
     record_count: int = None,
-    schema: SchemaLike = None,
+    schema: Union[Schema, SchemaKey] = None,
 ) -> MemoryRecordsObject:
     if isinstance(records_object, MemoryRecordsObject):
         # No nesting
         return records_object
     mdr = MemoryRecordsObject(
-        records_object=wrap_records_object(records_object),
+        records_object=records_object,  # TODO: wrap_records_object(records_object),
         _raw_records_object=records_object,
         _data_format=data_format,
         _record_count=record_count,
-        nominal_schema=schema,
+        nominal_schema_key=schema_like_to_key(schema) if schema else None,
     )
     return mdr
 

@@ -24,12 +24,7 @@ from typing import (
 
 from loguru import logger
 from pandas import Timestamp, isnull
-from snapflow.utils.common import SnapflowJSONEncoder, title_to_snake_case
-from snapflow.utils.typing import T
 from sqlalchemy.engine.result import ResultProxy
-
-if TYPE_CHECKING:
-    from snapflow.storage.data_formats import Records
 
 
 def records_as_dict_of_lists(dl: List[Dict]) -> Dict[str, List]:
@@ -41,54 +36,6 @@ def records_as_dict_of_lists(dl: List[Dict]) -> Dict[str, List]:
             else:
                 series[k] = [v]
     return series
-
-
-def is_nullish(
-    o: Any, null_strings=set(["None", "null", "na", "", "NULL", "NA", "N/A"])
-) -> bool:
-    # TOOD: is "na" too aggressive?
-    if o is None:
-        return True
-    if isinstance(o, str):
-        if o in null_strings:
-            return True
-    if isinstance(o, Iterable):
-        # No basic python object is "nullish", even if empty
-        return False
-    if isnull(o):
-        return True
-    return False
-
-
-def is_boolish(o: Any, bool_strings=["True", "true", "False", "false"]) -> bool:
-    if o is None:
-        return False
-    if isinstance(o, bool):
-        return True
-    if isinstance(o, str):
-        return o in bool_strings
-    return False
-
-
-def is_numberish(obj: Any) -> bool:
-    if (
-        isinstance(obj, float)
-        or isinstance(obj, int)
-        or isinstance(obj, decimal.Decimal)
-    ):
-        return True
-    if isinstance(obj, str):
-        try:
-            int(obj)
-            return True
-        except (TypeError, ValueError):
-            pass
-        try:
-            float(obj)
-            return True
-        except (TypeError, ValueError):
-            pass
-    return False
 
 
 class SnapflowCsvDialect(csv.Dialect):
@@ -215,7 +162,7 @@ def conform_records_for_insert(
             o = r.get(c)
             # TODO: this is some magic buried down here. no bueno
             if adapt_objects_to_json and (isinstance(o, list) or isinstance(o, dict)):
-                o = json.dumps(o, cls=SnapflowJSONEncoder)
+                o = json.dumps(o, cls=DcpJSONEncoder)
             if conform_datetimes:
                 if isinstance(o, Timestamp):
                     o = o.to_pydatetime()

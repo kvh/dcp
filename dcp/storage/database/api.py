@@ -1,13 +1,13 @@
 from __future__ import annotations
-from dcp.utils.common import DcpJsonEncoder
 
 import json
 import os
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Tuple, Type
 
-from loguru import logger
 import sqlalchemy
+from dcp.utils.common import DcpJsonEncoder
+from loguru import logger
 from sqlalchemy import MetaData
 from sqlalchemy.engine import Connection, Engine, ResultProxy
 from sqlalchemy.exc import OperationalError, ProgrammingError
@@ -32,7 +32,9 @@ def dispose_all(keyword: Optional[str] = None):
 
 class DatabaseApi:
     def __init__(
-        self, url: str, json_serializer: Callable = None,
+        self,
+        url: str,
+        json_serializer: Callable = None,
     ):
         self.url = url
         self.json_serializer = (
@@ -52,7 +54,9 @@ class DatabaseApi:
         if key in _sa_engines:
             return _sa_engines[key]
         self.eng = sqlalchemy.create_engine(
-            self.url, json_serializer=self.json_serializer, echo=False,
+            self.url,
+            json_serializer=self.json_serializer,
+            echo=False,
         )
         _sa_engines[key] = self.eng
         return self.eng
@@ -82,7 +86,9 @@ class DatabaseApi:
         if self.exists(name):
             return name
         ddl = SchemaMapper().create_table_statement(
-            schema=schema, dialect=self.get_engine().dialect, table_name=name,
+            schema=schema,
+            dialect=self.get_engine().dialect,
+            table_name=name,
         )
         self.execute_sql(ddl)
         return name
@@ -139,7 +145,9 @@ class DatabaseApi:
         self.execute_sql(insert_sql)
 
     def create_table_from_sql(
-        self, name: str, sql: str,
+        self,
+        name: str,
+        sql: str,
     ):
         sql = self.clean_sub_sql(sql)
         create_sql = f"""
@@ -193,7 +201,8 @@ class DatabaseApi:
 
 class DatabaseStorageApi(DatabaseApi, StorageApi):
     def __init__(
-        self, storage: Storage,
+        self,
+        storage: Storage,
     ):
         super().__init__(storage.url)
         self.storage = storage

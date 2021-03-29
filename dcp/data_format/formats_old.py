@@ -1,8 +1,7 @@
 from __future__ import annotations
+
 from io import IOBase
 from typing import Any, Dict, List, TypeVar
-
-import dcp.storage.base as storage
 
 # from dcp.storage.base import (
 #     DatabaseStorageClass,
@@ -11,25 +10,6 @@ import dcp.storage.base as storage
 #     MemoryStorageClass,
 # )
 from dcp.data_format.base import DataFormatBase
-
-Records = List[Dict[str, Any]]
-
-
-class RecordsFormat(DataFormatBase[Records]):
-    natural_storage_class = storage.MemoryStorageClass
-    nickname = "records"
-
-
-try:
-    from pandas import DataFrame
-except ImportError:
-    DataFrame = TypeVar("DataFrame")
-
-
-class DataFrameFormat(DataFormatBase[DataFrame]):
-    natural_storage_class = storage.MemoryStorageClass
-    natural_storage_engine = storage.LocalPythonStorageEngine
-    nickname = "dataframe"
 
 
 try:

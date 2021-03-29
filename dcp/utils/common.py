@@ -186,6 +186,54 @@ def ensure_bool(x: Optional[Union[str, bool]]) -> Optional[bool]:
     raise TypeError(x)
 
 
+def is_nullish(
+    o: Any, null_strings=set(["None", "null", "na", "", "NULL", "NA", "N/A"])
+) -> bool:
+    # TOOD: is "na" too aggressive?
+    if o is None:
+        return True
+    if isinstance(o, str):
+        if o in null_strings:
+            return True
+    if isinstance(o, Iterable):
+        # No basic python object is "nullish", even if empty
+        return False
+    if isnull(o):
+        return True
+    return False
+
+
+def is_boolish(o: Any, bool_strings=["True", "true", "False", "false"]) -> bool:
+    if o is None:
+        return False
+    if isinstance(o, bool):
+        return True
+    if isinstance(o, str):
+        return o in bool_strings
+    return False
+
+
+def is_numberish(obj: Any) -> bool:
+    if (
+        isinstance(obj, float)
+        or isinstance(obj, int)
+        or isinstance(obj, decimal.Decimal)
+    ):
+        return True
+    if isinstance(obj, str):
+        try:
+            int(obj)
+            return True
+        except (TypeError, ValueError):
+            pass
+        try:
+            float(obj)
+            return True
+        except (TypeError, ValueError):
+            pass
+    return False
+
+
 def is_aware(d: Union[datetime, time]) -> bool:
     return d.tzinfo is not None and d.tzinfo.utcoffset(None) is not None
 

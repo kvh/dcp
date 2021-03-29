@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import urlparse
 
-
 if TYPE_CHECKING:
     from dcp.data_format.base import DataFormat
 
@@ -195,4 +194,3 @@ class StorageApi:
 
     def remove_alias(self, alias: str):
         raise NotImplementedError
-

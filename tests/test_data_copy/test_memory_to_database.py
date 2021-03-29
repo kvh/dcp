@@ -56,7 +56,12 @@ records_itr = (lambda: ([r] for r in records),)[0]
 
 
 @pytest.mark.parametrize(
-    "url", ["sqlite://", "postgresql://localhost", "mysql://",],
+    "url",
+    [
+        "sqlite://",
+        "postgresql://localhost",
+        "mysql://",
+    ],
 )
 def test_records_to_db(url):
     s: Storage = Storage.from_url(url)
@@ -85,7 +90,12 @@ def test_records_to_db(url):
 
 
 @pytest.mark.parametrize(
-    "url", ["sqlite://", "postgresql://localhost", "mysql://",],
+    "url",
+    [
+        "sqlite://",
+        "postgresql://localhost",
+        "mysql://",
+    ],
 )
 def test_records_iterator_to_db(url):
     s: Storage = Storage.from_url(url)

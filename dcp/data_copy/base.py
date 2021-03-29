@@ -48,11 +48,11 @@ def copy(
     schema: Schema = AnySchema,
 ):
     """
-     1. To copy request
-     2. Find copy path
-     3. Run each copy
-        1. Get copier for (SF -> SF)
-        2. Copier handles copy
+    1. To copy request
+    2. Find copy path
+    3. Run each copy
+       1. Get copier for (SF -> SF)
+       2. Copier handles copy
     """
     pass
 
