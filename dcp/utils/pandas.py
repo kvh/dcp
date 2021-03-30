@@ -1,13 +1,11 @@
 from __future__ import annotations
+from dcp.utils.common import is_nullish
 
 from typing import List, Optional
 
 import pandas as pd
 from pandas import DataFrame, Index, Series
 from pandas._testing import assert_almost_equal
-from snapflow.schema.base import Schema
-from snapflow.storage.data_formats import Records
-from snapflow.utils.data import is_nullish, records_as_dict_of_lists
 
 
 def sortable_columns(dtypes: Series) -> List[str]:
@@ -49,11 +47,11 @@ def empty_dataframe_for_schema(schema: Schema) -> DataFrame:
     return df
 
 
-def records_to_dataframe(records: Records, schema: Schema) -> DataFrame:
-    from snapflow.core.typing.inference import conform_dataframe_to_schema
+# def records_to_dataframe(records: Records, schema: Schema) -> DataFrame:
+#     from snapflow.core.typing.inference import conform_dataframe_to_schema
 
-    df = DataFrame(records)
-    return conform_dataframe_to_schema(df, schema)
+#     df = DataFrame(records)
+#     return conform_dataframe_to_schema(df, schema)
 
 
 def dataframe_to_records(df: DataFrame, schema: Schema = None) -> Records:

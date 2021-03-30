@@ -25,6 +25,7 @@ from typing import (
     TypeVar,
     Union,
 )
+from pandas.core.dtypes.missing import isnull
 
 import pytz
 from dateutil import parser

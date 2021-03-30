@@ -1,3 +1,5 @@
+from numpy import dtype
+from dcp.data_format.formats.memory.records import RecordsFormat
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 import decimal
 from datetime import date, datetime, time
@@ -26,9 +28,9 @@ test_records = [
     {"f1": "hi", "f2": 1, "f3": None, "f4": "2020-01-01", "f5": "2020-01-01 00:00:00"},
     {"f1": "bye", "f2": 2, "f3": None, "f4": "2020-01-01", "f5": "2020-01-01 00:00:00"},
     {"f1": None, "f2": 2, "f3": None, "f4": "2020-01-01", "f5": "2020-01-01 00:00:00"},
-    {"f1": "bye", "f2": None, "f3": None, "f4": "2020-01-01", "f5": "202001 bad data",},
+    {"f1": "bye", "f2": 3, "f3": None, "f4": "2020-01-01", "f5": "202001 bad data",},
 ]
-# rf = (RecordsFormat, lambda: records)
+rf = (RecordsFormat, lambda: test_records)
 dff = (DataFrameFormat, lambda: pd.DataFrame.from_records(test_records))
 # af = (
 #     ArrowTableFormat,

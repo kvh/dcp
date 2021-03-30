@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from schemas.field_types import DEFAULT_FIELD_TYPE, Date, Integer, Text
+from pandas.core.series import Series
+from dcp.utils.pandas import assert_dataframes_are_almost_equal
+from pandas.core.frame import DataFrame
+
+from schemas.field_types import DEFAULT_FIELD_TYPE, Date, DateTime, Integer, Text
 from dcp.data_format.handler import get_handler
 from dcp.storage.memory.memory_records_object import as_records
 from dcp import data_format
@@ -25,6 +29,15 @@ def test_formats():
         assert isinstance(fmt.is_storable(), bool)
 
 
+def assert_objects_equal(o1: Any, o2: Any):
+    if isinstance(o1, DataFrame):
+        assert_dataframes_are_almost_equal(o1, o2)
+    elif isinstance(o1, Series):
+        assert list(o1) == list(o2)
+    else:
+        assert o1 == o2
+
+
 @pytest.mark.parametrize("fmt,obj", test_data_format_objects)
 def test_memory_handler(fmt: DataFormat, obj: Any):
     s = Storage("python://test")
@@ -37,3 +50,8 @@ def test_memory_handler(fmt: DataFormat, obj: Any):
     assert handler().infer_field_type("_test", s, "f3") == DEFAULT_FIELD_TYPE
     assert handler().infer_field_type("_test", s, "f4") == Date()
     assert handler().infer_field_type("_test", s, "f5") == DEFAULT_FIELD_TYPE
+
+    handler().cast_to_field_type(name, s, "f4", Date())
+    handler().cast_to_field_type(name, s, "f4", Text())
+    round_trip_object = s.get_api().get(name).records_object
+    assert_objects_equal(round_trip_object, obj())

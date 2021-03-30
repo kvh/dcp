@@ -1,4 +1,6 @@
 from __future__ import annotations
+import traceback
+from dcp.utils.data import read_json
 from dcp.utils.common import (
     ensure_bool,
     ensure_date,
@@ -23,7 +25,7 @@ from datetime import date, datetime, time
 
 from dcp.data_format.handler import FormatHandler
 from dcp.data_format.base import DataFormatBase
-from typing import Any, Dict, Iterable, List, Optional, Type, cast
+from typing import Any, Dict, Iterable, List, Optional, Type, Union, cast
 from loguru import logger
 from dateutil import parser
 import pandas as pd
@@ -55,6 +57,8 @@ class PythonRecordsHandler(FormatHandler):
     for_data_formats = [RecordsFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
+    # TODO: get sample
+
     def infer_field_names(self, name, storage) -> List[str]:
         records = storage.get_api().get(name).records_object
         assert isinstance(records, list)
@@ -66,39 +70,45 @@ class PythonRecordsHandler(FormatHandler):
         self, name: str, storage: storage.Storage, field: str
     ) -> FieldType:
         records = storage.get_api().get(name).records_object
+        sample = []
+        for r in records:
+            if field in r:
+                sample.append(r[field])
+            if len(sample) >= self.sample_size:
+                break
+        ft = select_field_type(sample)
         return ft
 
-    def cast_to_field_type(self, name, storage, field, field_type, cast_level):
-        mro = storage.get_api().get(name)
-        df = mro.records_object
-        cast(DataFrame, df)
-        df[field] = cast_series_to_field_type(df[field], field_type)
-        mro.records_object = (
-            df  # TODO: Modifying an object? But trying to "unchange" it
-        )
-        storage.get_api().put(name, df)  # Unnecessary?
+    def cast_to_field_type(
+        self, name: str, storage: storage.Storage, field: str, field_type: FieldType
+    ):
+        records = storage.get_api().get(name).records_object
+        for r in records:
+            if field in r:
+                r[field] = cast_python_object_to_field_type(r[field], field_type)
+        storage.get_api().put(name, records)
 
     def create_empty(self, name, storage, schema: Schema):
-        df = DataFrame()
-        for field in schema.fields:
-            pd_type = field_type_to_pandas_dtype(field.field_type)
-            df[field.name] = pd.Series(dtype=pd_type)
-        return df
-
-    def supports(self, field_type) -> bool:
-        pass
+        return []
 
 
-ALL_FIELD_TYPE_HELPERS: List[Type[FieldTypeHelper]] = []
+ALL_FIELD_TYPE_HELPERS: Dict[Type[FieldType], Type[FieldTypeHelper]] = {}
+
+
+def get_helper(ft: Union[FieldType, Type[FieldType]]) -> FieldTypeHelper:
+    if isinstance(ft, FieldType):
+        ft = ft.__class__
+    return ALL_FIELD_TYPE_HELPERS[ft]()
 
 
 class FieldTypeHelper:
     field_type: Type[FieldType]
     python_type: type
+    cardinality_rank: int
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        ALL_FIELD_TYPE_HELPERS.append(cls)
+        ALL_FIELD_TYPE_HELPERS[cls.field_type] = cls
 
     def is_maybe(self, obj: Any) -> bool:
         return False
@@ -118,11 +128,11 @@ def _detect_field_type_fast(obj: Any) -> Optional[FieldType]:
     if is_nullish(obj):
         # TODO: this is pretty aggressive?
         return None
-    for fth in ALL_FIELD_TYPE_HELPERS:
+    for fth in ALL_FIELD_TYPE_HELPERS.values():
         fth = fth()
         if fth.is_definitely(obj):
             return ensure_field_type(fth.field_type)
-    for fth in ALL_FIELD_TYPE_HELPERS:
+    for fth in ALL_FIELD_TYPE_HELPERS.values():
         fth = fth()
         if fth.is_maybe(obj):
             return ensure_field_type(fth.field_type)
@@ -176,14 +186,35 @@ def select_field_type(objects: Iterable[Any]) -> FieldType:
         return DEFAULT_FIELD_TYPE
     # Now we must choose the HIGHEST cardinality, to accomodate ALL values
     # (the maximum minimum type)
-    return max(types, key=lambda x: x.cardinality_rank)
+    return max(types, key=lambda x: get_helper(x).cardinality_rank)
+
+
+def cast_python_object_to_field_type(
+    obj: Any, field_type: FieldType, strict: bool = False
+) -> Any:
+    if obj is None:
+        return None
+    try:
+        if not isinstance(obj, Iterable) and not isinstance(obj, dict) and pd.isna(obj):
+            return None
+    except ValueError:
+        # isna() throws ValueError
+        pass
+    try:
+        return get_helper(field_type).cast(obj, strict=strict)
+    except Exception:
+        logger.error(
+            f"Error casting python object ({obj}) to type {field_type}: {traceback.format_exc()}"
+        )
+    raise NotImplementedError
 
 
 class BooleanHelper(FieldTypeHelper):
     field_type = Boolean
     python_type = bool
+    cardinality_rank = 0
 
-    def is_maybe(obj: Any) -> bool:
+    def is_maybe(self, obj: Any) -> bool:
         return is_boolish(obj)
 
     def cast(self, obj: Any, strict: bool = False) -> Any:
@@ -195,6 +226,7 @@ class BooleanHelper(FieldTypeHelper):
 class IntegerHelper(FieldTypeHelper):
     field_type = Integer
     python_type = int
+    cardinality_rank = 11
 
     def is_maybe(self, obj: Any) -> bool:
         try:
@@ -215,6 +247,7 @@ class IntegerHelper(FieldTypeHelper):
 class FloatHelper(FieldTypeHelper):
     field_type = Float
     python_type = float
+    cardinality_rank = 13
 
     def is_maybe(self, obj: Any) -> bool:
         try:
@@ -230,6 +263,7 @@ class FloatHelper(FieldTypeHelper):
 class DecimalHelper(FieldTypeHelper):
     field_type = Decimal
     python_type = decimal.Decimal
+    cardinality_rank = 12
 
     def is_maybe(self, obj: Any) -> bool:
         try:
@@ -250,6 +284,7 @@ LONG_TEXT = 2 ** 16
 class TextHelper(FieldTypeHelper):
     field_type = Text
     python_type = str
+    cardinality_rank = 20
 
     def is_maybe(self, obj: Any) -> bool:
         return (isinstance(obj, str) or isinstance(obj, bytes)) and (
@@ -267,12 +302,13 @@ class TextHelper(FieldTypeHelper):
             raise NotImplementedError
             # TODO: cast exceptions?
             raise CastWouldCauseDataLossException(self, obj)
-        return str(obj)
+        return s
 
 
 class LongTextHelper(FieldTypeHelper):
     field_type = LongText
     python_type = str
+    cardinality_rank = 21
 
     def is_maybe(self, obj: Any) -> bool:
         return isinstance(obj, str) or isinstance(obj, bytes)
@@ -289,6 +325,7 @@ class LongTextHelper(FieldTypeHelper):
 class DateHelper(FieldTypeHelper):
     field_type = Date
     python_type = date
+    cardinality_rank = 10
 
     def is_maybe(self, obj: Any) -> bool:
         if isinstance(obj, date):
@@ -336,6 +373,7 @@ class DateHelper(FieldTypeHelper):
 class DateTimeHelper(FieldTypeHelper):
     field_type = DateTime
     python_type = datetime
+    cardinality_rank = 12
 
     def is_maybe(self, obj: Any) -> bool:
         if isinstance(obj, datetime):
@@ -383,6 +421,7 @@ class DateTimeHelper(FieldTypeHelper):
 class TimeHelper(FieldTypeHelper):
     field_type = Time
     python_type = time
+    cardinality_rank = 12
 
     def is_maybe(self, obj: Any) -> bool:
         if isinstance(obj, time):
@@ -410,3 +449,26 @@ class TimeHelper(FieldTypeHelper):
             return obj
         return ensure_time(obj)
 
+
+class JsonHelper(FieldTypeHelper):
+    field_type = Json
+    python_type = dict
+    cardinality_rank = 0  # TODO: strict json, only dicts and lists?
+
+    def is_maybe(self, obj: Any) -> bool:
+        # TODO: strings too? (Actual json string)
+        return isinstance(obj, dict) or isinstance(obj, list)
+
+    def is_definitely(self, obj: Any) -> bool:
+        return isinstance(obj, dict) or isinstance(obj, list)
+
+    def cast(self, obj: Any, strict: bool = False) -> Any:
+        if strict:
+            if not isinstance(obj, dict) and not isinstance(obj, list):
+                raise TypeError(obj)
+            return obj
+        if isinstance(obj, dict) or isinstance(obj, list):
+            return obj
+        if isinstance(obj, str):
+            return read_json(obj)
+        return [obj]  # TODO: this is extra ugly, should we just fail?

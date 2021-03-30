@@ -19,12 +19,14 @@ from typing import (
     Iterator,
     List,
     Optional,
+    TypeVar,
     Union,
 )
 
 from loguru import logger
 from pandas import Timestamp, isnull
-from sqlalchemy.engine.result import ResultProxy
+
+T = TypeVar("T")
 
 
 def records_as_dict_of_lists(dl: List[Dict]) -> Dict[str, List]:

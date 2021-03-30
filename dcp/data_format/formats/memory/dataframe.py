@@ -1,4 +1,8 @@
 from __future__ import annotations
+from dcp.data_format.formats.memory.records import (
+    cast_python_object_to_field_type,
+    select_field_type,
+)
 
 from schemas.field_types import Binary, Decimal, Json, LongBinary, LongText, Text
 
@@ -48,7 +52,9 @@ class PythonDataframeHandler(FormatHandler):
         ft = pandas_series_to_field_type(series)
         return ft
 
-    def cast_to_field_type(self, name, storage, field, field_type, cast_level):
+    def cast_to_field_type(
+        self, name: str, storage: storage.Storage, field: str, field_type: FieldType
+    ):
         mro = storage.get_api().get(name)
         df = mro.records_object
         cast(DataFrame, df)
@@ -56,7 +62,8 @@ class PythonDataframeHandler(FormatHandler):
         mro.records_object = (
             df  # TODO: Modifying an object? But trying to "unchange" it
         )
-        storage.get_api().put(name, df)  # Unnecessary?
+        mro.records_object = df
+        storage.get_api().put(name, mro)  # Unnecessary?
 
     def create_empty(self, name, storage, schema: Schema):
         df = DataFrame()
@@ -108,7 +115,6 @@ def pandas_series_to_field_type(series: pd.Series) -> FieldType:
     else:
         # Handle object / string case as generic detection
         # try:
-        raise NotImplementedError
         return select_field_type(series.dropna().iloc[:100])
         # except ParserError:
         #     pass

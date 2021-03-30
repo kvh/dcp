@@ -5,8 +5,14 @@ from dataclasses import dataclass
 from typing import Callable, Dict, Iterable, List, Type
 
 from schemas.base import Field, Schema
+from schemas.field_types import FieldType
 from dcp.data_format.base import DataFormat
-from dcp.storage.base import LocalPythonStorageEngine, StorageClass, StorageEngine
+from dcp.storage.base import (
+    LocalPythonStorageEngine,
+    StorageClass,
+    StorageEngine,
+    Storage,
+)
 
 
 class ErrorBehavior(Enum):
@@ -51,6 +57,7 @@ class FormatHandler:
     for_data_formats: List[DataFormat]
     for_storage_classes: List[StorageClass]
     for_storage_engines: List[StorageEngine]
+    sample_size: int = 100
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -70,12 +77,12 @@ class FormatHandler:
         # For S3 storage and csv: infer csv types (use arrow?)
         raise NotImplementedError
 
-    def cast_operation_for_field_type(
-        self, name, storage, field, field_type, cast_level
+    def cast_to_field_type(
+        self, name: str, storage: Storage, field: str, field_type: FieldType
     ):
         raise NotImplementedError
 
-    def create_empty(self, name, storage, schema):
+    def create_empty(self, name: str, storage: Storage, schema: Schema):
         # For python storage and dataframe: map pd.dtypes -> ftypes
         # For python storage and records: infer py object type
         # For postgres storage and table: map sa types -> ftypes

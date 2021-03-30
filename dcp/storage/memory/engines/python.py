@@ -39,6 +39,9 @@ class PythonStorageApi(StorageApi):
         del LOCAL_PYTHON_STORAGE[pth]
 
     def put(self, name: str, mdr: MemoryRecordsObject):
+        assert isinstance(
+            mdr, MemoryRecordsObject
+        ), f"Can only store MemoryRecordsObjects, not {type(mdr)}"
         pth = self.get_path(name)
         LOCAL_PYTHON_STORAGE[pth] = mdr
 
