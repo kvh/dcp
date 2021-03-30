@@ -43,14 +43,6 @@ class DatabaseCursorFormat(DataFormatBase[DatabaseCursor]):
     nickname = "cursor"
 
 
-DatabaseTable = TypeVar("DatabaseTable")
-
-
-class DatabaseTableFormat(DataFormatBase[DatabaseTable]):
-    natural_storage_class = storage.DatabaseStorageClass
-    nickname = "table"
-
-
 class FileObject(IOBase):
     pass
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dcp.storage.memory.memory_records_object import as_records
 import traceback
 from dcp.utils.data import read_json
 from dcp.utils.common import (
@@ -89,7 +90,9 @@ class PythonRecordsHandler(FormatHandler):
         storage.get_api().put(name, records)
 
     def create_empty(self, name, storage, schema: Schema):
-        return []
+        storage.get_api().put(
+            name, as_records([], data_format=RecordsFormat, schema=schema)
+        )
 
 
 ALL_FIELD_TYPE_HELPERS: Dict[Type[FieldType], Type[FieldTypeHelper]] = {}

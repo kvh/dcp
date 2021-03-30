@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from sqlalchemy.sql.ddl import CreateTable
+from dcp import storage
+from dcp.storage.base import StorageApi
+
 import json
 import os
 from contextlib import contextmanager
@@ -32,9 +36,7 @@ def dispose_all(keyword: Optional[str] = None):
 
 class DatabaseApi:
     def __init__(
-        self,
-        url: str,
-        json_serializer: Callable = None,
+        self, url: str, json_serializer: Callable = None,
     ):
         self.url = url
         self.json_serializer = (
@@ -54,9 +56,7 @@ class DatabaseApi:
         if key in _sa_engines:
             return _sa_engines[key]
         self.eng = sqlalchemy.create_engine(
-            self.url,
-            json_serializer=self.json_serializer,
-            echo=False,
+            self.url, json_serializer=self.json_serializer, echo=False,
         )
         _sa_engines[key] = self.eng
         return self.eng
@@ -82,13 +82,15 @@ class DatabaseApi:
         with self.connection() as conn:
             yield conn.execute(sql)
 
+    def execute_sa_statement(self, sa_stmt) -> ResultProxy:
+        sql = sa_stmt.compile(dialect=self.get_engine().dialect)
+        return self.execute_sql(str(sql))
+
     def ensure_table(self, name: str, schema: Schema) -> str:
         if self.exists(name):
             return name
         ddl = SchemaMapper().create_table_statement(
-            schema=schema,
-            dialect=self.get_engine().dialect,
-            table_name=name,
+            schema=schema, dialect=self.get_engine().dialect, table_name=name,
         )
         self.execute_sql(ddl)
         return name
@@ -145,9 +147,7 @@ class DatabaseApi:
         self.execute_sql(insert_sql)
 
     def create_table_from_sql(
-        self,
-        name: str,
-        sql: str,
+        self, name: str, sql: str,
     ):
         sql = self.clean_sub_sql(sql)
         create_sql = f"""
@@ -160,8 +160,19 @@ class DatabaseApi:
         """
         self.execute_sql(create_sql)
 
-    def get_table_schema(self, name: str) -> Schema:
-        return infer_schema_from_db_table(self, name)
+    def get_as_sqlalchemy_table(self, name: str) -> sqlalchemy.Table:
+        sa_table = sqlalchemy.Table(
+            name,
+            self.get_sqlalchemy_metadata(),
+            autoload=True,
+            autoload_with=self.get_engine(),
+        )
+        return sa_table
+
+    def create_sqlalchemy_table(self, table: sqlalchemy.Table):
+        table.metadata = self.get_sqlalchemy_metadata()
+        stmt = CreateTable(table).compile(dialect=self.get_engine().dialect)
+        self.execute_sql(str(stmt))
 
     def bulk_insert_records(self, name: str, records: Records, schema: Schema):
         # Create table whether or not there is anything to insert (side-effect consistency)
@@ -201,8 +212,7 @@ class DatabaseApi:
 
 class DatabaseStorageApi(DatabaseApi, StorageApi):
     def __init__(
-        self,
-        storage: Storage,
+        self, storage: storage,
     ):
         super().__init__(storage.url)
         self.storage = storage

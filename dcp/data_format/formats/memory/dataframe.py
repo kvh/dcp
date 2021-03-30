@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dcp.storage.memory.memory_records_object import as_records
 from dcp.data_format.formats.memory.records import (
     cast_python_object_to_field_type,
     select_field_type,
@@ -70,7 +71,9 @@ class PythonDataframeHandler(FormatHandler):
         for field in schema.fields:
             pd_type = field_type_to_pandas_dtype(field.field_type)
             df[field.name] = pd.Series(dtype=pd_type)
-        return df
+        storage.get_api().put(
+            name, as_records(df, data_format=DataFrameFormat, schema=schema)
+        )
 
     def supports(self, field_type) -> bool:
         pass
