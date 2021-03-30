@@ -1,27 +1,19 @@
-from typing import Sequence
-
-from snapflow.schema.base import Schema
-from snapflow.storage.data_copy.base import (
-    Conversion,
-    DiskToMemoryCost,
-    NetworkToBufferCost,
+from dcp.storage.database.api import DatabaseStorageApi
+from dcp.data_format.formats.database.base import DatabaseTableFormat
+from dcp.storage.base import DatabaseStorageClass, StorageApi
+from dcp.data_copy.costs import (
+    FormatConversionCost,
+    MemoryToMemoryCost,
     NetworkToMemoryCost,
-    datacopy,
 )
-from snapflow.storage.data_formats import (
-    DatabaseTableFormat,
-    DatabaseTableRefFormat,
-    DataFormat,
-    RecordsFormat,
-    RecordsIteratorFormat,
-)
-from snapflow.storage.db.api import DatabaseStorageApi
-from snapflow.storage.storage import (
-    DatabaseStorageClass,
-    PythonStorageApi,
-    PythonStorageClass,
-    StorageApi,
-)
+from dcp.data_format.formats.memory.dataframe import DataFrameFormat
+from dcp.storage.memory.memory_records_object import as_records
+from dcp.data_format.formats.memory.records import Records, RecordsFormat
+from dcp.storage.memory.engines.python import PythonStorageApi
+from schemas.base import Schema
+from dcp.data_copy.conversion import Conversion
+from dcp.data_copy.base import datacopy
+from typing import Sequence
 
 
 @datacopy(
@@ -42,7 +34,10 @@ def copy_records_to_db(
     assert isinstance(from_storage_api, PythonStorageApi)
     assert isinstance(to_storage_api, DatabaseStorageApi)
     mdr = from_storage_api.get(from_name)
-    to_storage_api.bulk_insert_records(to_name, mdr.records_object, schema)
+    conversion.to_storage_format_handler.create_empty(
+        to_name, to_storage_api.storage, schema
+    )
+    to_storage_api.bulk_insert_records(to_name, mdr.records_object)
 
 
 @datacopy(

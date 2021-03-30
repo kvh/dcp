@@ -67,6 +67,9 @@ class FormatHandler:
         ), "Must specify storage classes or engines"
         ALL_HANDLERS.append(cls)
 
+    # def __init__(self, storage: Storage):
+    #     self.storage = storage
+
     def infer_field_names(self, name, storage) -> Iterable[str]:
         raise NotImplementedError
 
@@ -81,6 +84,10 @@ class FormatHandler:
         self, name: str, storage: Storage, field: str, field_type: FieldType
     ):
         raise NotImplementedError
+
+    def cast_to_schema(self, name: str, storage: Storage, schema: Schema):
+        for field in schema.fields:
+            self.cast_to_field_type(name, storage, field.name, field.field_type)
 
     def create_empty(self, name: str, storage: Storage, schema: Schema):
         # For python storage and dataframe: map pd.dtypes -> ftypes

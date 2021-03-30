@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dcp.data_format.handler import FormatHandler
 
 import enum
 import random
@@ -104,6 +105,8 @@ class StorageFormat:
 class Conversion:
     from_storage_format: StorageFormat
     to_storage_format: StorageFormat
+    from_storage_format_handler: FormatHandler
+    to_storage_format_handler: FormatHandler
 
 
 @dataclass(frozen=True)
@@ -132,15 +135,7 @@ class ConversionPath:
 
 
 CopierCallabe = Callable[
-    [
-        str,
-        str,
-        Conversion,
-        StorageApi,
-        StorageApi,
-        Schema,
-    ],
-    None,
+    [str, str, Conversion, StorageApi, StorageApi, Schema,], None,
 ]
 
 

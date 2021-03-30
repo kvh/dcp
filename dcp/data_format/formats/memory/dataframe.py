@@ -133,7 +133,7 @@ def field_type_to_pandas_dtype(ft: FieldType) -> str:
         LongBinary: "bytes",
         Text: "string",
         LongText: "string",
-        Date: "date",
+        Date: "datetime64[ns]",
         Time: "time",
         DateTime: "datetime64[ns]",
         Json: "object",

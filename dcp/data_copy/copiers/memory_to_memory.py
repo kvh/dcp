@@ -1,53 +1,16 @@
+from dcp.storage.base import StorageApi
+from dcp.data_copy.costs import FormatConversionCost, MemoryToMemoryCost
+from dcp.data_format.formats.memory.dataframe import DataFrameFormat
+from dcp.storage.memory.memory_records_object import as_records
+from dcp.data_format.formats.memory.records import Records, RecordsFormat
+from dcp.storage.memory.engines.python import PythonStorageApi
+from schemas.base import Schema
+from dcp.data_copy.conversion import Conversion
+from dcp.data_copy.base import datacopy
 from typing import Sequence
 
 import pandas as pd
 import pyarrow as pa
-from snapflow.schema.base import Schema
-from snapflow.storage.data_copy.base import (
-    BufferToBufferCost,
-    Conversion,
-    DiskToMemoryCost,
-    FormatConversionCost,
-    MemoryToBufferCost,
-    MemoryToMemoryCost,
-    NoOpCost,
-    datacopy,
-)
-from snapflow.storage.data_formats import (
-    DatabaseTableFormat,
-    DatabaseTableRefFormat,
-    DataFormat,
-    RecordsFormat,
-    RecordsIteratorFormat,
-)
-from snapflow.storage.data_formats.arrow_table import ArrowTableFormat
-from snapflow.storage.data_formats.data_frame import (
-    DataFrameFormat,
-    DataFrameIterator,
-    DataFrameIteratorFormat,
-)
-from snapflow.storage.data_formats.delimited_file_object import (
-    DelimitedFileObjectFormat,
-    DelimitedFileObjectIteratorFormat,
-)
-from snapflow.storage.data_records import as_records
-from snapflow.storage.db.api import DatabaseStorageApi
-from snapflow.storage.file_system import FileSystemStorageApi
-from snapflow.storage.storage import (
-    DatabaseStorageClass,
-    FileSystemStorageClass,
-    PythonStorageApi,
-    PythonStorageClass,
-    StorageApi,
-)
-from snapflow.utils.data import (
-    SampleableIterator,
-    iterate_chunks,
-    read_csv,
-    with_header,
-    write_csv,
-)
-from snapflow.utils.pandas import dataframe_to_records, records_to_dataframe
 
 
 @datacopy(
@@ -67,11 +30,13 @@ def copy_records_to_df(
 ):
     assert isinstance(from_storage_api, PythonStorageApi)
     assert isinstance(to_storage_api, PythonStorageApi)
-    mdr = from_storage_api.get(from_name)
+    mdr: Records = from_storage_api.get(from_name)
     df = pd.DataFrame(mdr.records_object)
     to_mdr = as_records(df, data_format=DataFrameFormat, schema=schema)
-    to_mdr = to_mdr.conform_to_schema()
     to_storage_api.put(to_name, to_mdr)
+    conversion.to_storage_format_handler.cast_to_schema(
+        to_name, to_storage_api.storage, schema
+    )
 
 
 @datacopy(

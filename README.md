@@ -3,17 +3,18 @@
 "Like cp, but for structured data"
 
 dcp is a python library and command line tool that provides
-a **fast** way to _safely_ copy structured data between any two points,
+a **fast** and _safe_ way to copy structured data between any two points,
 whether copying a csv to a mysql table or an in-memory dataframe to an S3
 jsonl file.
 
 **Fast**
 
-To copy data most efficiently, dcp estimates the memory, cpu, and wire
-costs of any copy operation and optimizes for the _lowest cost copy path_
-for the given available storages. It tries to use best-in-class
-underlying client libraries, and employs parallelization and
-compression to the extent possible for an operation.
+To copy data most efficiently, dcp uses best-in-class
+underlying client libraries, employs parallelization and
+compression to the extent possible, and
+estimates the memory, cpu, and wire
+costs of any copy operation to select the _lowest cost copy path_
+for the given available storages.
 
 _Safe_
 
@@ -21,8 +22,8 @@ dcp uses Semantic Schemas under the hood as the "lingua franca" of
 structured data, allowing for careful preservation of data types and
 values across many formats and storage engines. Error handling behavior
 is configurable so when type conversion errors are encountered -- a
-value is truncated or cannot be cast -- dcp can fail, relax the datatype,
-or set the value null depending on what makes most sense for a given situation.
+value is truncated or cannot be cast -- **dcp can fail, relax the datatype,
+or set the value null depending on what the user wants**.
 
 **Currently supported formats:**
 
@@ -34,7 +35,7 @@ or set the value null depending on what makes most sense for a given situation.
 
 **Currently supported storage engines:**
 
-- DBs: postgres, mysql, sqlite
+- DBs: postgres, mysql, sqlite (and most databases supported by SqlAlchemy)
 - File systems: local, S3 (coming soon)
 - Memory: python
 
@@ -55,14 +56,14 @@ on the given database, inferring the right schema from the data in the CSV.
 
 A more complex transfer:
 
-`dcp -n orders -s mysql://localhost:3306/mydb --to s3://mybucket.s3/pth --to-name=orders.csv`
+`dcp mysql://localhost:3306/mydb/orders s3://mybucket.s3/pth/orders.csv`
 
 This will export your `orders` table to a file on S3 (in the "default" format for
 the StorageEngine since none was specified, in the case of S3 a CSV).
 
 ### Python library
 
-The python API gives you more powerful tools for more complex operations:
+The python library gives you a powerful API for more complex operations:
 
 ```python
 import dcp
@@ -154,5 +155,11 @@ class RedisStorageApi(StorageApi):
     def exists():...
     def exists():...
 
-dcp.add_storage_engine(RedisStorageEngine)
 ```
+
+Adding a new format requires adding the handling logic for that format, for
+each storage class or engine that you want to support.
+
+### TODO
+
+-

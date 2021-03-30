@@ -1,9 +1,15 @@
 from __future__ import annotations
+from dcp.data_copy.costs import DataCopyCost
+
+from schemas.base import AnySchema, Schema
+from dcp.data_format.base import DataFormat
+from dcp.storage.base import Storage
 
 import random
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import (
+    Any,
     TYPE_CHECKING,
     Callable,
     Dict,
@@ -55,6 +61,11 @@ def copy(
        2. Copier handles copy
     """
     pass
+
+
+CopierCallabe = Callable[
+    [str, str, Conversion, StorageApi, StorageApi, Schema,], None,
+]
 
 
 @dataclass(frozen=True)
