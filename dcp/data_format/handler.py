@@ -55,8 +55,8 @@ ALL_HANDLERS: List[Type[FormatHandler]] = []
 
 class FormatHandler:
     for_data_formats: List[DataFormat]
-    for_storage_classes: List[StorageClass]
-    for_storage_engines: List[StorageEngine]
+    for_storage_classes: List[StorageClass] = None
+    for_storage_engines: List[StorageEngine] = None
     sample_size: int = 100
 
     def __init_subclass__(cls, **kwargs):

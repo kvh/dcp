@@ -1,4 +1,5 @@
 from numpy import dtype
+from schemas.base import create_quick_schema
 from dcp.data_format.formats.memory.records import RecordsFormat
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 import decimal
@@ -23,6 +24,17 @@ time_ = time(20, 1, 1)
 long_text = "helloworld" * int(65536 / 9)
 json_ = {"hello": "world"}
 
+
+test_records_schema = create_quick_schema(
+    "TestRecordsSchema",
+    [
+        ("f1", "Text"),
+        ("f2", "Integer"),
+        ("f3", "Text"),
+        ("f4", "Date"),
+        ("f5", "Text"),
+    ],
+)
 
 test_records = [
     {"f1": "hi", "f2": 1, "f3": None, "f4": "2020-01-01", "f5": "2020-01-01 00:00:00"},

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+from dcp.utils.common import DcpJsonEncoder
 import decimal
 import json
 import typing
@@ -164,7 +165,7 @@ def conform_records_for_insert(
             o = r.get(c)
             # TODO: this is some magic buried down here. no bueno
             if adapt_objects_to_json and (isinstance(o, list) or isinstance(o, dict)):
-                o = json.dumps(o, cls=DcpJSONEncoder)
+                o = json.dumps(o, cls=DcpJsonEncoder)
             if conform_datetimes:
                 if isinstance(o, Timestamp):
                     o = o.to_pydatetime()

@@ -1,4 +1,9 @@
 from __future__ import annotations
+from dcp.utils.data import conform_records_for_insert
+from dcp.storage.database.utils import conform_columns_for_insert
+
+from schemas.base import Schema
+from dcp.data_format.formats.memory.records import Records
 
 from sqlalchemy.sql.ddl import CreateTable
 from dcp import storage
@@ -86,14 +91,14 @@ class DatabaseApi:
         sql = sa_stmt.compile(dialect=self.get_engine().dialect)
         return self.execute_sql(str(sql))
 
-    def ensure_table(self, name: str, schema: Schema) -> str:
-        if self.exists(name):
-            return name
-        ddl = SchemaMapper().create_table_statement(
-            schema=schema, dialect=self.get_engine().dialect, table_name=name,
-        )
-        self.execute_sql(ddl)
-        return name
+    # def ensure_table(self, name: str, schema: Schema) -> str:
+    #     if self.exists(name):
+    #         return name
+    #     ddl = SchemaMapper().create_table_statement(
+    #         schema=schema, dialect=self.get_engine().dialect, table_name=name,
+    #     )
+    #     self.execute_sql(ddl)
+    #     return name
 
     ### StorageApi implementations ###
     def create_alias(self, from_stmt: str, alias: str):
@@ -174,10 +179,11 @@ class DatabaseApi:
         stmt = CreateTable(table).compile(dialect=self.get_engine().dialect)
         self.execute_sql(str(stmt))
 
-    def bulk_insert_records(self, name: str, records: Records, schema: Schema):
+    def bulk_insert_records(self, name: str, records: Records):
         # Create table whether or not there is anything to insert (side-effect consistency)
         # TODO: is it right to create the table? Seems useful to have an "empty" datablock, for instance.
-        self.ensure_table(name, schema=schema)
+        assert self.exists(name)
+        # self.ensure_table(name, schema=schema)
         if not records:
             return
         self._bulk_insert(name, records)

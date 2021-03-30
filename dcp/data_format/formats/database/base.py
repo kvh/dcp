@@ -44,13 +44,13 @@ class GenericDatabaseTableHandler(FormatHandler):
     for_storage_classes = [storage.DatabaseStorageClass]
 
     def infer_field_names(self, name, storage) -> List[str]:
-        tble = storage.get_api().get_as_sqlalchmey_table(name)
+        tble = storage.get_api().get_as_sqlalchemy_table(name)
         return [c.name for c in tble.columns]
 
     def infer_field_type(
         self, name: str, storage: storage.Storage, field: str
     ) -> FieldType:
-        tble: sa.Table = storage.get_api().get_as_sqlalchmey_table(name)
+        tble: sa.Table = storage.get_api().get_as_sqlalchemy_table(name)
         for c in tble.columns:
             if c.name == field:
                 return sqlalchemy_type_to_field_type(c.type)
@@ -69,19 +69,19 @@ class GenericDatabaseTableHandler(FormatHandler):
 
 def field_type_to_sqlalchemy_type(ft: FieldType) -> satypes.TypeEngine:
     return {
-        Boolean: satypes.Boolean,
-        Integer: satypes.BigInteger,
-        Float: satypes.Float,
-        Decimal: satypes.Numeric,
-        Date: satypes.Date,
-        Time: satypes.Time,
-        DateTime: satypes.DateTime,
-        Binary: satypes.Binary,
-        LongBinary: satypes.LargeBinary,
-        Text: satypes.Unicode,
-        LongText: satypes.UnicodeText,
-        Json: satypes.JSON,
-    }[ft]
+        "Boolean": satypes.Boolean,
+        "Integer": satypes.BigInteger,
+        "Float": satypes.Float,
+        "Decimal": satypes.Numeric,
+        "Date": satypes.Date,
+        "Time": satypes.Time,
+        "DateTime": satypes.DateTime,
+        "Binary": satypes.BINARY,  # TODO
+        "LongBinary": satypes.LargeBinary,
+        "Text": satypes.Unicode,  # TODO: size mismatch here
+        "LongText": satypes.UnicodeText,
+        "Json": satypes.JSON,
+    }[ft.__class__.__name__]
 
 
 def field_as_sqlalchemy_column(f: Field) -> sa.Column:
@@ -105,8 +105,10 @@ def sqlalchemy_type_to_field_type(sa_type: satypes.TypeEngine) -> FieldType:
     s = repr(sa_type)
     satype_aliases = {
         # Sqlalchemy
+        "int": Integer,
         "integer": Integer,
         "biginteger": Integer,
+        "bigint": Integer,
         "numeric": Decimal,
         "real": Float,
         "date": Date,
