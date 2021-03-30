@@ -48,7 +48,7 @@ from snapflow.storage.storage import (
     LocalPythonStorageEngine,
     PostgresStorageEngine,
     PythonStorageApi,
-    PythonStorageClass,
+    MemoryStorageClass,
     Storage,
     clear_local_storage,
     new_local_python_storage,

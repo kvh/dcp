@@ -81,6 +81,8 @@ class StorageEngine:
 
     @classmethod
     def get_supported_formats(cls) -> List[DataFormat]:
+        from dcp.data_format.base import ALL_DATA_FORMATS
+
         fmts = []
         for fmt in ALL_DATA_FORMATS:
             if fmt.natural_storage_class == cls.storage_class:

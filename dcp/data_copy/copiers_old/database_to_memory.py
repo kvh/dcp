@@ -4,7 +4,7 @@ from dcp.data_copy.base import CopyRequest
 @datacopy(
     from_storage_classes=[DatabaseStorageClass],
     from_data_formats=[DatabaseTableFormat],
-    to_storage_classes=[PythonStorageClass],
+    to_storage_classes=[MemoryStorageClass],
     to_data_formats=[RecordsFormat],
     cost=NetworkToMemoryCost,
 )
@@ -22,7 +22,7 @@ def copy_db_to_records(request: CopyRequest):
 @datacopy(
     from_storage_classes=[DatabaseStorageClass],
     from_data_formats=[DatabaseTableFormat],
-    to_storage_classes=[PythonStorageClass],
+    to_storage_classes=[MemoryStorageClass],
     to_data_formats=[RecordsIteratorFormat],
     cost=NetworkToBufferCost,
 )
@@ -60,7 +60,7 @@ def copy_db_to_records_iterator(
 @datacopy(
     from_storage_classes=[DatabaseStorageClass],
     from_data_formats=[DatabaseTableFormat],
-    to_storage_classes=[PythonStorageClass],
+    to_storage_classes=[MemoryStorageClass],
     to_data_formats=[DatabaseCursorFormat],
     cost=NetworkToBufferCost,
 )
@@ -88,7 +88,7 @@ def copy_db_to_cursor(
 # @datacopy(
 #     from_storage_classes=[DatabaseStorageClass],
 #     from_data_formats=[DatabaseTableFormat],
-#     to_storage_classes=[PythonStorageClass],
+#     to_storage_classes=[MemoryStorageClass],
 #     to_data_formats=[DatabaseTableFormat],
 #     cost=NoOpCost,
 # )

@@ -29,7 +29,7 @@ from snapflow.storage.storage import (
     DatabaseStorageClass,
     FileSystemStorageClass,
     PythonStorageApi,
-    PythonStorageClass,
+    MemoryStorageClass,
     StorageApi,
 )
 from snapflow.utils.common import SnapflowJSONEncoder
@@ -37,7 +37,7 @@ from snapflow.utils.data import SampleableIO, write_csv
 
 
 @datacopy(
-    from_storage_classes=[PythonStorageClass],
+    from_storage_classes=[MemoryStorageClass],
     from_data_formats=[RecordsFormat, RecordsIteratorFormat],
     to_storage_classes=[FileSystemStorageClass],
     to_data_formats=[DelimitedFileFormat],
@@ -65,7 +65,7 @@ def copy_records_to_delim_file(
 
 
 @datacopy(
-    from_storage_classes=[PythonStorageClass],
+    from_storage_classes=[MemoryStorageClass],
     from_data_formats=[DelimitedFileObjectFormat, DelimitedFileObjectIteratorFormat],
     to_storage_classes=[FileSystemStorageClass],
     to_data_formats=[DelimitedFileFormat],
@@ -91,7 +91,7 @@ def copy_file_object_to_delim_file(
 
 
 @datacopy(
-    from_storage_classes=[PythonStorageClass],
+    from_storage_classes=[MemoryStorageClass],
     from_data_formats=[RecordsFormat, RecordsIteratorFormat],
     to_storage_classes=[FileSystemStorageClass],
     to_data_formats=[JsonLinesFileFormat],

@@ -54,7 +54,7 @@ def empty_dataframe_for_schema(schema: Schema) -> DataFrame:
 #     return conform_dataframe_to_schema(df, schema)
 
 
-def dataframe_to_records(df: DataFrame, schema: Schema = None) -> Records:
+def dataframe_to_records(df: DataFrame) -> Records:
     # TODO
     for c in df:
         dfc = df[c].astype(object)

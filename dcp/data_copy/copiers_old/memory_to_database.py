@@ -17,7 +17,7 @@ from typing import Sequence
 
 
 @datacopy(
-    from_storage_classes=[PythonStorageClass],
+    from_storage_classes=[MemoryStorageClass],
     from_data_formats=[RecordsFormat],
     to_storage_classes=[DatabaseStorageClass],
     to_data_formats=[DatabaseTableFormat],
@@ -41,7 +41,7 @@ def copy_records_to_db(
 
 
 @datacopy(
-    from_storage_classes=[PythonStorageClass],
+    from_storage_classes=[MemoryStorageClass],
     from_data_formats=[RecordsIteratorFormat],
     to_storage_classes=[DatabaseStorageClass],
     to_data_formats=[DatabaseTableFormat],

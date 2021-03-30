@@ -25,7 +25,7 @@ from schemas.field_types import (
 from datetime import date, datetime, time
 
 from dcp.data_format.handler import FormatHandler
-from dcp.data_format.base import DataFormatBase
+from dcp.data_format.base import DataFormat, DataFormatBase
 from typing import Any, Dict, Iterable, List, Optional, Type, Union, cast
 from loguru import logger
 from dateutil import parser
@@ -58,8 +58,10 @@ class PythonRecordsHandler(FormatHandler):
     for_data_formats = [RecordsFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
-    # TODO: get sample
+    def infer_data_format(self, name, storage) -> DataFormat:
+        return storage.get_api().get(name).data_format
 
+    # TODO: get sample
     def infer_field_names(self, name, storage) -> List[str]:
         records = storage.get_api().get(name).records_object
         assert isinstance(records, list)
@@ -83,11 +85,11 @@ class PythonRecordsHandler(FormatHandler):
     def cast_to_field_type(
         self, name: str, storage: storage.Storage, field: str, field_type: FieldType
     ):
-        records = storage.get_api().get(name).records_object
-        for r in records:
+        mro = storage.get_api().get(name)
+        for r in mro.records_object:
             if field in r:
                 r[field] = cast_python_object_to_field_type(r[field], field_type)
-        storage.get_api().put(name, records)
+        storage.get_api().put(name, mro)
 
     def create_empty(self, name, storage, schema: Schema):
         storage.get_api().put(

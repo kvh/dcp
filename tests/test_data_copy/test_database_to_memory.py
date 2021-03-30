@@ -44,7 +44,7 @@ from snapflow.storage.storage import (
     LocalPythonStorageEngine,
     PostgresStorageEngine,
     PythonStorageApi,
-    PythonStorageClass,
+    MemoryStorageClass,
     Storage,
     clear_local_storage,
     new_local_python_storage,
@@ -53,12 +53,7 @@ from tests.utils import TestSchema1, TestSchema4
 
 
 @pytest.mark.parametrize(
-    "url",
-    [
-        "sqlite://",
-        "postgresql://localhost",
-        "mysql://",
-    ],
+    "url", ["sqlite://", "postgresql://localhost", "mysql://",],
 )
 def test_db_to_mem(url):
     s: Storage = Storage.from_url(url)

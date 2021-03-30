@@ -8,7 +8,7 @@ from dcp.data_format.formats.memory.records import (
 from schemas.field_types import Binary, Decimal, Json, LongBinary, LongText, Text
 
 from dcp.data_format.handler import FormatHandler
-from dcp.data_format.base import DataFormatBase
+from dcp.data_format.base import DataFormat, DataFormatBase
 from typing import Dict, List, Type, cast
 from loguru import logger
 from dateutil import parser
@@ -39,6 +39,9 @@ class DataFrameFormat(DataFormatBase[DataFrame]):
 class PythonDataframeHandler(FormatHandler):
     for_data_formats = [DataFrameFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
+
+    def infer_data_format(self, name, storage) -> DataFormat:
+        return storage.get_api().get(name).data_format
 
     def infer_field_names(self, name, storage) -> List[str]:
         return storage.get_api().get(name).records_object.columns

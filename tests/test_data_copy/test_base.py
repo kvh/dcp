@@ -41,7 +41,7 @@ from snapflow.storage.storage import (
     LocalPythonStorageEngine,
     PostgresStorageEngine,
     PythonStorageApi,
-    PythonStorageClass,
+    MemoryStorageClass,
     SqliteStorageEngine,
     Storage,
     clear_local_storage,
@@ -68,7 +68,7 @@ def test_data_copy_lookup():
     @datacopy(
         from_storage_classes=[DatabaseStorageClass],
         from_data_formats=[DatabaseTableFormat],
-        to_storage_classes=[PythonStorageClass],
+        to_storage_classes=[MemoryStorageClass],
         to_data_formats=[RecordsFormat],
         cost=NetworkToMemoryCost,
         unregistered=True,

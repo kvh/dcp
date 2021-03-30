@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterable, List, Type
+from typing import Callable, Dict, Iterable, List, Optional, Type
 
 from schemas.base import Field, Schema
 from schemas.field_types import FieldType
@@ -55,8 +55,8 @@ ALL_HANDLERS: List[Type[FormatHandler]] = []
 
 class FormatHandler:
     for_data_formats: List[DataFormat]
-    for_storage_classes: List[StorageClass] = None
-    for_storage_engines: List[StorageEngine] = None
+    for_storage_classes: List[StorageClass] = []
+    for_storage_engines: List[StorageEngine] = []
     sample_size: int = 100
 
     def __init_subclass__(cls, **kwargs):
@@ -69,6 +69,9 @@ class FormatHandler:
 
     # def __init__(self, storage: Storage):
     #     self.storage = storage
+
+    def infer_data_format(self, name, storage) -> Optional[DataFormat]:
+        raise NotImplementedError
 
     def infer_field_names(self, name, storage) -> Iterable[str]:
         raise NotImplementedError
@@ -125,6 +128,24 @@ def get_handler(
     raise NotImplementedError(
         f"No format handler for {data_format} on {storage_engine}"
     )
+
+
+def get_format_for_name(name: str, storage: Storage) -> DataFormat:
+    format_handlers = [
+        handler
+        for handler in ALL_HANDLERS
+        if storage.storage_engine.storage_class in handler.for_storage_classes
+        or storage.storage_engine in handler.for_storage_engines
+    ]
+    for handler in format_handlers:
+        fmt = handler().infer_data_format(name, storage)
+        if fmt is not None:
+            return fmt
+    raise NotImplementedError
+
+
+def get_handler_for_name(name: str, storage: Storage) -> Type[FormatHandler]:
+    return get_handler(get_format_for_name(name, storage), storage.storage_engine)
 
 
 # @format_handler(

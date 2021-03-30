@@ -9,7 +9,7 @@ import sqlalchemy as sa
 import sqlalchemy.types as satypes
 from schemas.field_types import Binary, Decimal, Json, LongBinary, LongText, Text
 from dcp.data_format.handler import FormatHandler
-from dcp.data_format.base import DataFormatBase
+from dcp.data_format.base import DataFormat, DataFormatBase
 from typing import Dict, List, Type, TypeVar, cast
 from loguru import logger
 from dateutil import parser
@@ -42,6 +42,9 @@ class DatabaseTableFormat(DataFormatBase[DatabaseTable]):
 class GenericDatabaseTableHandler(FormatHandler):
     for_data_formats = [DatabaseTableFormat]
     for_storage_classes = [storage.DatabaseStorageClass]
+
+    def infer_data_format(self, name, storage) -> DataFormat:
+        return DatabaseTableFormat
 
     def infer_field_names(self, name, storage) -> List[str]:
         tble = storage.get_api().get_as_sqlalchemy_table(name)
