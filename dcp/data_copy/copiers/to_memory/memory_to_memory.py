@@ -30,9 +30,13 @@ def copy_records_to_df(req: CopyRequest):
     df = pd.DataFrame(mdr.records_object)
     to_mdr = as_records(df, data_format=DataFrameFormat, schema=req.schema)
     req.to_storage_api.put(req.to_name, to_mdr)
-    req.to_format_handler.cast_to_schema(
-        req.to_name, req.to_storage_api.storage, req.schema
-    )
+    # Does this belong here? Or is this a separate step?
+    # The copier is responsible for preserving logical types, but not fixing mis-typed values
+    # So, if the type is right in the python records, when will it NOT be right in pandas? that's
+    # all we are worried about
+    # req.to_format_handler.cast_to_schema(
+    #     req.to_name, req.to_storage_api.storage, req.schema
+    # )
 
 
 @datacopy(
@@ -49,9 +53,10 @@ def copy_df_to_records(req: CopyRequest):
     df = dataframe_to_records(mdr.records_object)
     to_mdr = as_records(df, data_format=RecordsFormat, schema=req.schema)
     req.to_storage_api.put(req.to_name, to_mdr)
-    req.to_format_handler.cast_to_schema(
-        req.to_name, req.to_storage_api.storage, req.schema
-    )
+    # Only necessary if we think there is datatype loss when converting df->records
+    # req.to_format_handler.cast_to_schema(
+    #     req.to_name, req.to_storage_api.storage, req.schema
+    # )
 
 
 # @datacopy(
