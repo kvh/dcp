@@ -12,19 +12,6 @@ from typing import Any, Dict, List, TypeVar
 from dcp.data_format.base import DataFormatBase
 
 
-try:
-    import pyarrow as pa
-
-    ArrowTable = pa.Table
-except ImportError:
-    ArrowTable = TypeVar("ArrowTable")
-
-
-class ArrowTableFormat(DataFormatBase[ArrowTable]):
-    natural_storage_class = storage.MemoryStorageClass
-    nickname = "arrow"
-
-
 ArrowFile = TypeVar("ArrowFile")
 
 

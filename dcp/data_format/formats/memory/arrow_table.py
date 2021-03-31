@@ -1,0 +1,173 @@
+from __future__ import annotations
+from dcp.storage.memory.memory_records_object import as_records
+import traceback
+from dcp.utils.data import read_json
+from dcp.utils.common import (
+    ensure_bool,
+    ensure_date,
+    ensure_datetime,
+    ensure_time,
+    is_boolish,
+    is_nullish,
+    is_numberish,
+)
+
+import decimal
+from schemas.field_types import (
+    Binary,
+    DEFAULT_FIELD_TYPE_CLASS,
+    Decimal,
+    Json,
+    LongBinary,
+    LongText,
+    Text,
+    ensure_field_type,
+)
+from datetime import date, datetime, time
+
+from dcp.data_format.handler import FormatHandler
+from dcp.data_format.base import DataFormat, DataFormatBase
+from typing import Any, Dict, Iterable, List, Optional, Type, Union, cast
+from loguru import logger
+from dateutil import parser
+import pandas as pd
+from pandas import DataFrame
+
+import dcp.storage.base as storage
+from schemas import (
+    DEFAULT_FIELD_TYPE,
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    Integer,
+    Time,
+    Field,
+    FieldType,
+    Schema,
+)
+
+
+try:
+    import pyarrow as pa
+
+    ArrowTable = pa.Table
+except ImportError:
+    ArrowTable = TypeVar("ArrowTable")
+
+
+class ArrowTableFormat(DataFormatBase[ArrowTable]):
+    natural_storage_class = storage.MemoryStorageClass
+    nickname = "arrow"
+
+
+class ArrowTableHandler(FormatHandler):
+    for_data_formats = [ArrowTableFormat]
+    for_storage_engines = [storage.LocalPythonStorageEngine]
+
+    def infer_data_format(self, name, storage) -> DataFormat:
+        return storage.get_api().get(name).data_format
+
+    def infer_field_names(self, name, storage) -> List[str]:
+        table = storage.get_api().get(name).records_object
+        assert isinstance(table, ArrowTable)
+        return [f.name for f in table.schema]
+
+    def infer_field_type(
+        self, name: str, storage: storage.Storage, field: str
+    ) -> FieldType:
+        table: ArrowTable = storage.get_api().get(name).records_object
+        return arrow_type_to_field_type(str(table.field(field).type))
+
+    def cast_to_field_type(
+        self, name: str, storage: storage.Storage, field: str, field_type: FieldType
+    ):
+        # TODO
+        pass
+
+    def create_empty(self, name, storage, schema: Schema):
+        table = pa.Table.from_batches([], schema=schema_to_arrow_schema(schema))
+        mro = as_records(table, data_format=ArrowTableFormat, schema=schema)
+        storage.get_api().put(name, mro)
+
+
+def schema_to_arrow_schema(schema: Schema) -> pa.Schema:
+    fields = [(f.name, field_type_to_arrow_type(f.field_type)) for f in schema.fields]
+    return pa.schema(fields)
+
+
+def arrow_type_to_field_type(arrow_type: str) -> FieldType:
+    """
+    null
+    bool_
+    int8
+    int16
+    int32
+    int64
+    uint8
+    uint16
+    uint32
+    uint64
+    float16
+    float32
+    float64
+    time32
+    time64
+    timestamp
+    date32
+    date64
+    binary
+    string
+    utf8
+    large_binary
+    large_string
+    large_utf8
+    decimal128
+    list_(value_type, int list_size=-1)
+    large_list(value_type)
+    map_(key_type, item_type[, keys_sorted])
+    struct(fields)
+    dictionary(index_type, value_type, …)
+    field(name, type, bool nullable=True[, metadata])
+    schema(fields[, metadata])
+    """
+    if arrow_type.startswith("bool"):
+        return Boolean()
+    if arrow_type.startswith("int") or arrow_type.startswith("uint"):
+        return Integer()
+    if arrow_type.startswith("float"):
+        return Float()
+    if arrow_type.startswith("decimal"):
+        return Decimal()
+    if arrow_type.startswith("binary"):
+        return Binary()
+    if arrow_type.startswith("large_binary"):
+        return LongBinary()
+    if arrow_type.startswith("utf8") or arrow_type.startswith("string"):
+        return Text()
+    if arrow_type.startswith("large_utf8") or arrow_type.startswith("large_string"):
+        return LongText()
+    if arrow_type.startswith("timestamp"):
+        return DateTime()
+    if arrow_type.startswith("time"):
+        return Time()
+    if arrow_type.startswith("date"):
+        return Date()
+    return DEFAULT_FIELD_TYPE
+
+
+def field_type_to_arrow_type(field_type: FieldType) -> pa.DataType:
+    types = {
+        Boolean: pa.bool_(),
+        Integer: pa.int64(),
+        Float: pa.float64(),
+        Decimal: pa.decimal128(),
+        Binary: pa.binary(),
+        LongBinary: pa.large_binary(),
+        Text: pa.utf8(),
+        LongText: pa.large_utf8(),
+        Time: pa.time64(),
+        Date: pa.date32(),
+        DateTime: pa.timestamp64(),
+    }
+    return types[type(field_type)]

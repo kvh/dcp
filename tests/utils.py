@@ -3,9 +3,11 @@ from numpy import dtype
 from schemas.base import create_quick_schema
 from dcp.data_format.formats.memory.records import PythonRecordsHandler, RecordsFormat
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
+from dcp.data_format.formats.memory.arrow_table import ArrowTableFormat
 import decimal
 from datetime import date, datetime, time
 import pandas as pd
+import pyarrow as pa
 
 #  python_sample_values
 nullish = [None, "None", "null", "none"]
@@ -50,16 +52,14 @@ for r in test_records:
     conformed_test_records.append(rc)
 rf = (RecordsFormat, lambda: test_records)
 dff = (DataFrameFormat, lambda: pd.DataFrame.from_records(test_records))
-# af = (
-#     ArrowTableFormat,
-#     lambda: pa.Table.from_pydict(
-#         {k: [r[k] for r in records] for k in records[0].keys()}
-#     ),
-# )
+af = (
+    ArrowTableFormat,
+    lambda: pa.Table.from_pydict(
+        {k: [r[k] for r in conformed_test_records] for k in test_records[0].keys()}
+    ),
+)
 # dlff = (DelimitedFileObjectFormat, lambda: StringIO("f1,f2\nhi,1\nbye,2"))
 # rif = (RecordsIteratorFormat, lambda: ([r] for r in records))
 # dfif = (DataFrameIteratorFormat, lambda: (pd.DataFrame([r]) for r in records))
 
-test_data_format_objects = [
-    dff,
-]
+test_data_format_objects = [dff, rf, af]

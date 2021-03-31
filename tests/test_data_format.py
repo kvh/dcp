@@ -63,6 +63,7 @@ def test_database_handler():
     dburl = get_tmp_sqlite_db_url()
     s = Storage(dburl)
     name = "_test"
+    print(s.storage_engine)
     handler = get_handler(DatabaseTableFormat, s.storage_engine)
     handler().create_empty(name, s, test_records_schema)
     s.get_api().bulk_insert_records(name, test_records)

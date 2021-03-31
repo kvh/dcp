@@ -30,6 +30,7 @@ pytest-cov = "^2.8.1"
 semantic-schemas = {path = "../schemas/python", develop = true}
 mysqlclient = "^2.0.3"
 psycopg2-binary = "2.8.4"
+pyarrow = "^3.0.0"
 
 [tool.poetry.scripts]
 snapflow = "dcp.cli:app"

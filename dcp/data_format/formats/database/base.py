@@ -113,7 +113,7 @@ def schema_as_sqlalchemy_table(
     columns: List[sa.Column] = []
     for field in schema.fields:
         c = field_as_sqlalchemy_column(
-            field, field_type_parameter_defaults.get(type(field.field_type))
+            field, (field_type_parameter_defaults or {}).get(type(field.field_type))
         )
         columns.append(c)
     # TODO: table level constraints

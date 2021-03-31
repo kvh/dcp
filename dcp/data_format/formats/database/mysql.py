@@ -40,7 +40,8 @@ DEFAULT_MYSQL_VARCHAR_LENGTH = 255
 
 
 class MysqlDatabaseTableHandler(GenericDatabaseTableHandler):
-    for_storage_engine = [storage.MysqlStorageEngine]
+    for_storage_classes = []
+    for_storage_engines = [storage.MysqlStorageEngine]
 
     def infer_field_type(
         self, name: str, storage: storage.Storage, field: str
