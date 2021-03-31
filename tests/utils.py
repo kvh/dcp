@@ -1,6 +1,7 @@
+from copy import copy
 from numpy import dtype
 from schemas.base import create_quick_schema
-from dcp.data_format.formats.memory.records import RecordsFormat
+from dcp.data_format.formats.memory.records import PythonRecordsHandler, RecordsFormat
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 import decimal
 from datetime import date, datetime, time
@@ -42,6 +43,11 @@ test_records = [
     {"f1": None, "f2": 2, "f3": None, "f4": "2020-01-01", "f5": "2020-01-01 00:00:00"},
     {"f1": "bye", "f2": 3, "f3": None, "f4": "2020-01-01", "f5": "202001 bad data",},
 ]
+conformed_test_records = []
+for r in test_records:
+    rc = copy(r)
+    rc["f4"] = datetime.strptime(rc["f4"], "%Y-%m-%d").date()
+    conformed_test_records.append(rc)
 rf = (RecordsFormat, lambda: test_records)
 dff = (DataFrameFormat, lambda: pd.DataFrame.from_records(test_records))
 # af = (

@@ -10,7 +10,7 @@ import sqlalchemy.types as satypes
 from schemas.field_types import Binary, Decimal, Json, LongBinary, LongText, Text
 from dcp.data_format.handler import FormatHandler
 from dcp.data_format.base import DataFormat, DataFormatBase
-from typing import Dict, List, Type, TypeVar, cast
+from typing import Any, Dict, List, Type, TypeVar, cast
 from loguru import logger
 from dateutil import parser
 import pandas as pd
@@ -70,8 +70,10 @@ class GenericDatabaseTableHandler(FormatHandler):
         storage.get_api().create_sqlalchemy_table(table)
 
 
-def field_type_to_sqlalchemy_type(ft: FieldType) -> satypes.TypeEngine:
-    return {
+def field_type_to_sqlalchemy_type(
+    ft: FieldType, field_type_parameter_defaults: Dict[str, Any] = None
+) -> satypes.TypeEngine:
+    types = {
         "Boolean": satypes.Boolean,
         "Integer": satypes.BigInteger,
         "Float": satypes.Float,
@@ -84,17 +86,35 @@ def field_type_to_sqlalchemy_type(ft: FieldType) -> satypes.TypeEngine:
         "Text": satypes.Unicode,  # TODO: size mismatch here
         "LongText": satypes.UnicodeText,
         "Json": satypes.JSON,
-    }[ft.__class__.__name__]
+    }
+    sa_type = types[ft.__class__.__name__]
+    if field_type_parameter_defaults:
+        params = field_type_parameter_defaults.copy()
+        params.update(ft.get_parameters())
+    else:
+        params = ft.get_parameters()
+    return sa_type(**params)
 
 
-def field_as_sqlalchemy_column(f: Field) -> sa.Column:
-    return sa.Column(f.name, field_type_to_sqlalchemy_type(f.field_type))
+def field_as_sqlalchemy_column(
+    f: Field, field_type_parameter_defaults: Dict[str, Any] = None
+) -> sa.Column:
+    return sa.Column(
+        f.name,
+        field_type_to_sqlalchemy_type(f.field_type, field_type_parameter_defaults),
+    )
 
 
-def schema_as_sqlalchemy_table(schema: Schema, name: str) -> sa.Table:
+def schema_as_sqlalchemy_table(
+    schema: Schema,
+    name: str,
+    field_type_parameter_defaults: Dict[Type[FieldType], Dict[str, Any]] = None,
+) -> sa.Table:
     columns: List[sa.Column] = []
     for field in schema.fields:
-        c = field_as_sqlalchemy_column(field)
+        c = field_as_sqlalchemy_column(
+            field, field_type_parameter_defaults.get(type(field.field_type))
+        )
         columns.append(c)
     # TODO: table level constraints
     sa_table = sa.Table(name, sa.MetaData(), *columns)

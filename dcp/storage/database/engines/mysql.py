@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Dict, Iterator, List
-
-from snapflow.storage.db.api import (
+from dcp.storage.database.utils import conform_columns_for_insert
+from dcp.utils.common import rand_str
+from dcp.utils.data import conform_records_for_insert
+from dcp.storage.database.api import (
     DatabaseApi,
     DatabaseStorageApi,
     create_db,
     dispose_all,
     drop_db,
 )
-from snapflow.storage.db.utils import conform_columns_for_insert
-from snapflow.utils.common import rand_str
-from snapflow.utils.data import conform_records_for_insert
+from typing import Dict, Iterator, List
+
 
 MYSQL_SUPPORTED = False
 try:

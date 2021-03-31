@@ -1,21 +1,24 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
-from typing import Dict, Iterator, List
 
 from loguru import logger
-from snapflow.storage.db.api import (
+from sqlalchemy.engine.base import Engine
+from dcp.storage.database.utils import (
+    compile_jinja_sql_template,
+    conform_columns_for_insert,
+)
+from dcp.utils.common import rand_str
+from dcp.utils.data import conform_records_for_insert
+from dcp.storage.database.api import (
     DatabaseApi,
     DatabaseStorageApi,
     create_db,
     dispose_all,
     drop_db,
 )
-from snapflow.storage.db.utils import (
-    compile_jinja_sql_template,
-    conform_columns_for_insert,
-)
-from snapflow.utils.common import rand_str
-from snapflow.utils.data import conform_records_for_insert
-from sqlalchemy.engine import Engine
+from typing import Dict, Iterator, List
+
 
 POSTGRES_SUPPORTED = False
 try:
@@ -73,11 +76,7 @@ def pg_execute_values(
     try:
         with conn.cursor() as curs:
             execute_values(
-                curs,
-                sql,
-                records,
-                template=None,
-                page_size=page_size,
+                curs, sql, records, template=None, page_size=page_size,
             )
         conn.commit()
     except Exception as e:
