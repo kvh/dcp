@@ -1,7 +1,6 @@
 from dcp.storage.database.api import DatabaseStorageApi
 from dcp.storage.file_system.engines.local import FileSystemStorageApi
 from dcp.data_format.formats.database.base import DatabaseTableFormat
-from dcp.data_format.formats_old import CsvFileFormat
 from dcp.storage.base import (
     DatabaseStorageClass,
     FileSystemStorageClass,
