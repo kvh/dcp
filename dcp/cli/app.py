@@ -1,8 +1,26 @@
 from __future__ import annotations
+from dcp.data_copy.graph import execute_copy_request
+from dcp.storage.base import Storage
 from dcp.data_copy.base import CopyRequest
 
 
 from cleo import Application, Command
+
+
+def make_copy_request(
+    from_url: str, to_url: str, fmt: str = None, schema: str = None
+) -> CopyRequest:
+    from_split = from_url.split("/")
+    to_split = from_url.split("/")
+    from_name = from_split[-1]
+    to_name = to_split[-1]
+    from_storage_url = "/".join(from_split[:-1])
+    to_storage_url = "/".join(to_split[:-1])
+    to_storage = Storage(to_storage_url)
+    to_fmt = to_storage.storage_engine.get_natural_format()
+    return CopyRequest(
+        from_name, Storage(from_storage_url), to_name, to_fmt, to_storage,
+    )
 
 
 class DcpCommand(Command):
@@ -30,7 +48,7 @@ class DcpCommand(Command):
             f"({req.to_storage.url})"
         )
 
-        data_copy(req)
+        execute_copy_request(req)
 
 
 command = DcpCommand()

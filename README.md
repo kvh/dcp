@@ -54,8 +54,6 @@ creating empty objects of a specified schema.
 This command will load the `orders.csv` file into a mysql table (by default of the same name `orders`)
 on the given database, inferring the right schema from the data in the CSV.
 
-A more complex transfer:
-
 `dcp mysql://localhost:3306/mydb/orders s3://mybucket.s3/pth/orders.csv`
 
 This will export your `orders` table to a file on S3 (in the "default" format for

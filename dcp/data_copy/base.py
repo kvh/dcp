@@ -56,6 +56,7 @@ class CopyRequest:
     to_format: DataFormat
     to_storage: Storage
     schema: Schema = None
+    # available_storages # TODO
     # handlers: List[Type[FormatHandler]] = ALL_HANDLERS
 
     @property
@@ -90,6 +91,10 @@ class CopyRequest:
                 data_format=self.to_format,
             ),
         )
+
+    @property
+    def available_storages(self) -> List[Storage]:
+        return [self.from_storage, self.to_storage]
 
 
 CopierCallabe = Callable[[CopyRequest], None]

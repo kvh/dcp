@@ -1,5 +1,9 @@
 from __future__ import annotations
-from dcp.data_copy.copiers.to_memory.file_to_memory import copy_csv_file_to_records
+from dcp.data_format.formats.memory.arrow_table import ArrowTableFormat
+from dcp.data_copy.copiers.to_memory.file_to_memory import (
+    copy_csv_file_to_records,
+    copy_json_file_to_arrow,
+)
 from dcp.data_format.handler import get_handler, get_handler_for_name
 from dcp.utils.data import read_csv
 from dcp.data_format.formats.file_system.csv_file import CsvFileFormat
@@ -24,6 +28,8 @@ from tests.utils import (
     conformed_test_records,
 )
 
+import pyarrow as pa
+
 
 def test_file_to_mem():
     dr = tempfile.gettempdir()
@@ -40,14 +46,9 @@ def test_file_to_mem():
     assert mem_api.get(name).records_object == records_obj
 
     # # Json lines
-    # name = "_json_test"
-    # fs_api.write_lines_to_file(name, ['{"f1":"hi","f2":2}'])
-    # conversion = Conversion(
-    #     StorageFormat(s.storage_engine, JsonLinesFileFormat),
-    #     StorageFormat(LocalPythonStorageEngine, ArrowTableFormat),
-    # )
-    # copy_json_file_to_arrow.copy(
-    #     name, name, conversion, fs_api, mem_api, schema=TestSchema4
-    # )
-    # expected = pa.Table.from_pydict({"f1": ["hi"], "f2": [2]})
-    # assert mem_api.get(name).records_object == expected
+    name = "_json_test"
+    fs_api.write_lines_to_file(name, ['{"f1":"hi","f2":2}'])
+    req = CopyRequest(name, s, name, ArrowTableFormat, mem_s, test_records_schema)
+    copy_json_file_to_arrow.copy(req)
+    expected = pa.Table.from_pydict({"f1": ["hi"], "f2": [2]})
+    assert mem_api.get(name).records_object == expected

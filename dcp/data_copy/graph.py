@@ -1,7 +1,13 @@
 from __future__ import annotations
-from dcp.data_copy.base import Conversion, DataCopier, StorageFormat, ALL_DATA_COPIERS
+from dcp.data_copy.base import (
+    Conversion,
+    CopyRequest,
+    DataCopier,
+    StorageFormat,
+    ALL_DATA_COPIERS,
+)
 from dcp.data_format.base import ALL_DATA_FORMATS, DataFormat
-from dcp.storage.base import ALL_STORAGE_ENGINES, StorageEngine
+from dcp.storage.base import ALL_STORAGE_ENGINES, Storage, StorageEngine
 from dcp.data_format.handler import FormatHandler
 
 import enum
@@ -143,3 +149,62 @@ def get_datacopy_lookup(
         available_data_formats=available_data_formats or ALL_DATA_FORMATS,
         expected_record_count=expected_record_count,
     )
+
+
+def execute_copy_request(req: CopyRequest):
+    conversion_path = get_datacopy_lookup(
+        available_storage_engines=set(s.storage_engine for s in req.available_storages),
+    ).get_lowest_cost_path(req.conversion,)
+    if not conversion_path.edges:
+        # Nothing to do?
+        return
+    prev_storage = req.from_storage
+    next_storage: Optional[Storage] = None
+    prev_name: str = req.from_name
+    for conversion_edge in conversion_path.edges:
+        conversion = conversion_edge.conversion
+        target_storage_format = conversion.to_storage_format
+        next_storage = select_storage(
+            req.to_storage, req.available_storages, target_storage_format
+        )
+        logger.debug(
+            f"CONVERSION: {conversion.from_storage_format} -> {conversion.to_storage_format}"
+        )
+        edge_req = CopyRequest(
+            prev_name,
+            prev_storage,
+            req.to_name,
+            conversion.to_storage_format.data_format,
+            next_storage,
+            req.schema,
+        )
+        conversion_edge.copier.copy(edge_req)
+        # if (
+        #     prev_sdb.data_format.is_python_format()
+        #     and not prev_sdb.data_format.is_storable()
+        # ):
+        #     # If the records obj is in python and not storable, and we just used it, then it can be removed
+        #     # TODO: Bit of a hack. Is there a central place we can do this?
+        #     #       also is reusable a better name than storable?
+        #     prev_storage.get_api().remove(prev_sdb.get_name())
+        #     prev_sdb.data_block.stored_data_blocks.remove(prev_sdb)
+        #     if prev_sdb in sess.new:
+        #         sess.expunge(prev_sdb)
+        #     else:
+        #         sess.delete(prev_sdb)
+        prev_name = req.to_name
+        prev_storage = next_storage
+    return
+
+
+def select_storage(
+    target_storage: Storage, storages: List[Storage], storage_format: StorageFormat,
+) -> Storage:
+    eng = storage_format.storage_engine
+    # By default, stay on target storage if possible (minimize transfer)
+    if eng == target_storage.storage_engine:
+        return target_storage
+    for storage in storages:
+        if eng == storage.storage_engine:
+            return storage
+    raise Exception(f"No matching storage {storage_format}")

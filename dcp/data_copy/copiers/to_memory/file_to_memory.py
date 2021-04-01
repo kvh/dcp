@@ -1,3 +1,4 @@
+from dcp.data_format.formats.memory.arrow_table import ArrowTableFormat
 from dcp.data_format.formats.file_system.json_lines_file import JsonLinesFileFormat
 import json
 from dcp.utils.common import DcpJsonEncoder
@@ -63,25 +64,21 @@ def copy_csv_file_to_records(req: CopyRequest):
 #         to_storage_api.put(to_name, mdr)
 
 
-# @datacopy(
-#     from_storage_classes=[FileSystemStorageClass],
-#     from_data_formats=[JsonLinesFileFormat],
-#     to_storage_classes=[MemoryStorageClass],
-#     to_data_formats=[ArrowTableFormat],
-#     cost=DiskToMemoryCost,  # TODO: conversion cost might be minimal cuz in C?
-# )
-# def copy_json_file_to_arrow(
-#     from_name: str,
-#     to_name: str,
-#     conversion: Conversion,
-#     from_storage_api: StorageApi,
-#     to_storage_api: StorageApi,
-#     schema: Schema,
-# ):
-#     assert isinstance(from_storage_api, FileSystemStorageApi)
-#     assert isinstance(to_storage_api, PythonStorageApi)
-#     pth = from_storage_api.get_path(from_name)
-#     at = pa_json.read_json(pth)
-#     mdr = as_records(at, data_format=ArrowTableFormat, schema=schema)
-#     mdr = mdr.conform_to_schema()
-#     to_storage_api.put(to_name, mdr)
+@datacopy(
+    from_storage_classes=[FileSystemStorageClass],
+    from_data_formats=[JsonLinesFileFormat],
+    to_storage_classes=[MemoryStorageClass],
+    to_data_formats=[ArrowTableFormat],
+    cost=DiskToMemoryCost,  # TODO: conversion cost might be minimal cuz in C?
+)
+def copy_json_file_to_arrow(req: CopyRequest):
+    assert isinstance(req.from_storage_api, FileSystemStorageApi)
+    assert isinstance(req.to_storage_api, PythonStorageApi)
+    pth = req.from_storage_api.get_path(req.from_name)
+    at = pa_json.read_json(pth)
+    mdr = as_records(at, data_format=ArrowTableFormat, schema=req.schema)
+    req.to_storage_api.put(req.to_name, mdr)
+    # This cast step is necessary because JSON preserves no logical type information
+    req.to_format_handler.cast_to_schema(
+        req.to_name, req.to_storage_api.storage, req.schema
+    )
