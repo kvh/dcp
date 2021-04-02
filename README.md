@@ -1,22 +1,27 @@
-# dcp - data copy
+![dcp](https://github.com/kvh/dcp/workflows/dcp/badge.svg)
 
-"Like cp, but for structured data"
+<p>&nbsp;</p>
+<p align="center">
+  <img width="200" src="assets/dcp.svg">
+</p>
+<h3 align="center">cp for structured data</h3>
+<p>&nbsp;</p>
 
 dcp is a python library and command line tool that provides
-a **fast** and _safe_ way to copy structured data between any two points,
-whether copying a csv to a mysql table or an in-memory dataframe to an S3
-jsonl file.
+a **fast** and **_safe_** way to copy structured data between any two points,
+whether copying a CSV to a Mysql table or an in-memory DataFrame to an S3
+JSONL file.
 
-**Fast**
+### _Fast_
 
 To copy data most efficiently, dcp uses best-in-class
 underlying client libraries, employs parallelization and
 compression to the extent possible, and
 estimates the memory, cpu, and wire
 costs of any copy operation to select the _lowest cost copy path_
-for the given available storages.
+for available storage engines.
 
-_Safe_
+### _Safe_
 
 dcp uses Semantic Schemas under the hood as the "lingua franca" of
 structured data, allowing for careful preservation of data types and
@@ -35,7 +40,7 @@ or set the value null depending on what the user wants**.
 
 **Currently supported storage engines:**
 
-- DBs: postgres, mysql, sqlite (and most databases supported by SqlAlchemy)
+- Databases: postgres, mysql, sqlite (and most databases supported by SqlAlchemy)
 - File systems: local, S3 (coming soon)
 - Memory: python
 
@@ -47,19 +52,23 @@ creating empty objects of a specified schema.
 
 `pip install dcp` or `poetry add dcp`
 
-### Command line:
+#### Command line:
 
-`dcp orders.csv mysql://localhost:3306/mydb`
+```bash
+dcp orders.csv mysql://localhost:3306/mydb
+```
 
 This command will load the `orders.csv` file into a mysql table (by default of the same name `orders`)
 on the given database, inferring the right schema from the data in the CSV.
 
-`dcp mysql://localhost:3306/mydb/orders s3://mybucket.s3/pth/orders.csv`
+```bash
+dcp mysql://localhost:3306/mydb/orders s3://mybucket.s3/pth/orders.csv
+```
 
 This will export your `orders` table to a file on S3 (in the "default" format for
 the StorageEngine since none was specified, in the case of S3 a CSV).
 
-### Python library
+#### Python library
 
 The python library gives you a powerful API for more complex operations:
 
