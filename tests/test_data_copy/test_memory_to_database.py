@@ -1,11 +1,18 @@
 from __future__ import annotations
-from dcp.data_format.formats.database.base import DatabaseTableFormat
-from dcp.data_copy.copiers.to_database.memory_to_database import copy_records_to_db
+from datacopy.data_format.formats.database.base import DatabaseTableFormat
+from datacopy.data_copy.copiers.to_database.memory_to_database import copy_records_to_db
 import warnings
-from dcp.storage.database.api import DatabaseApi, DatabaseStorageApi
-from dcp.storage.base import DatabaseStorageClass, LocalPythonStorageEngine, Storage
-from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
-from dcp.storage.memory.engines.python import PythonStorageApi, new_local_python_storage
+from datacopy.storage.database.api import DatabaseApi, DatabaseStorageApi
+from datacopy.storage.base import (
+    DatabaseStorageClass,
+    LocalPythonStorageEngine,
+    Storage,
+)
+from datacopy.data_copy.base import Conversion, CopyRequest, StorageFormat
+from datacopy.storage.memory.engines.python import (
+    PythonStorageApi,
+    new_local_python_storage,
+)
 
 from typing import Type
 

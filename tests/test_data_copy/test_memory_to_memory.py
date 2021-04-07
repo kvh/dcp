@@ -1,10 +1,13 @@
 from __future__ import annotations
 from tests.test_data_format import assert_objects_equal
-from dcp.data_copy.graph import get_datacopy_lookup
-from dcp.utils.pandas import assert_dataframes_are_almost_equal
-from dcp.storage.base import LocalPythonStorageEngine
-from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
-from dcp.storage.memory.engines.python import PythonStorageApi, new_local_python_storage
+from datacopy.data_copy.graph import get_datacopy_lookup
+from datacopy.utils.pandas import assert_dataframes_are_almost_equal
+from datacopy.storage.base import LocalPythonStorageEngine
+from datacopy.data_copy.base import Conversion, CopyRequest, StorageFormat
+from datacopy.storage.memory.engines.python import (
+    PythonStorageApi,
+    new_local_python_storage,
+)
 
 import tempfile
 import types

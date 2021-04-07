@@ -1,21 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from dcp.data_format.formats.database.base import DatabaseTableFormat
-from dcp.storage.database.utils import get_tmp_sqlite_db_url
+from datacopy.data_format.formats.database.base import DatabaseTableFormat
+from datacopy.storage.database.utils import get_tmp_sqlite_db_url
 
 from pandas.core.series import Series
-from dcp.utils.pandas import assert_dataframes_are_almost_equal
+from datacopy.utils.pandas import assert_dataframes_are_almost_equal
 from pandas.core.frame import DataFrame
 
 from openmodel.field_types import DEFAULT_FIELD_TYPE, Date, DateTime, Integer, Text
-from dcp.data_format.handler import get_handler
-from dcp import data_format
+from datacopy.data_format.handler import get_handler
+from datacopy import data_format
 from io import StringIO
 from typing import Any, Callable
 
-from dcp.data_format.base import ALL_DATA_FORMATS, DataFormat, DataFormatBase
-from dcp.storage.base import Storage, StorageClass, StorageEngine
+from datacopy.data_format.base import ALL_DATA_FORMATS, DataFormat, DataFormatBase
+from datacopy.storage.base import Storage, StorageClass, StorageEngine
 import pytest
 from tests.utils import test_data_format_objects, test_records, test_records_schema
 
