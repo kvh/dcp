@@ -12,7 +12,6 @@ from dcp.data_copy.costs import (
     MemoryToMemoryCost,
 )
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
-from dcp.storage.memory.memory_records_object import as_records
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
 from dcp.storage.memory.engines.python import PythonStorageApi
 from dcp.data_copy.base import CopyRequest, datacopy
@@ -31,9 +30,9 @@ import pandas as pd
 def copy_records_to_csv_file(req: CopyRequest):
     assert isinstance(req.from_storage_api, PythonStorageApi)
     assert isinstance(req.to_storage_api, FileSystemStorageApi)
-    mdr = req.from_storage_api.get(req.from_name)
-    records_iterator = mdr.records_object
-    if not isinstance(mdr.records_object, Iterator):
+    records_object = req.from_storage_api.get(req.from_name)
+    records_iterator = records_object
+    if not isinstance(records_object, Iterator):
         records_iterator = [records_iterator]
     with req.to_storage_api.open(req.to_name, "w") as f:
         append = False
@@ -54,9 +53,9 @@ def copy_records_to_csv_file(req: CopyRequest):
 # ):
 #     assert isinstance(req.from_storage_api, PythonStorageApi)
 #     assert isinstance(req.to_storage_api, FileSystemStorageApi)
-#     mdr = req.from_storage_api.get(req.from_name)
-#     file_obj_iterator = mdr.records_object
-#     if isinstance(mdr.records_object, IOBase):
+#     records_object = req.from_storage_api.get(req.from_name)
+#     file_obj_iterator = records_object
+#     if isinstance(records_object, IOBase):
 #         file_obj_iterator = [file_obj_iterator]
 #     with req.to_storage_api.open(req.to_name, "w") as to_file:
 #         for file_obj in file_obj_iterator:
@@ -73,9 +72,9 @@ def copy_records_to_csv_file(req: CopyRequest):
 def copy_records_to_json_file(req: CopyRequest):
     assert isinstance(req.from_storage_api, PythonStorageApi)
     assert isinstance(req.to_storage_api, FileSystemStorageApi)
-    mdr = req.from_storage_api.get(req.from_name)
-    records_iterator = mdr.records_object
-    if not isinstance(mdr.records_object, Iterator):
+    records_object = req.from_storage_api.get(req.from_name)
+    records_iterator = records_object
+    if not isinstance(records_object, Iterator):
         records_iterator = [records_iterator]
     with req.to_storage_api.open(req.to_name, "w") as f:
         for records in records_iterator:

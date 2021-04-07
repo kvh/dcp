@@ -53,4 +53,9 @@ class DataFormatBase(Generic[T]):
         return cls.storable
 
 
+class IterableDataFormatBase(DataFormatBase[T]):
+    inner_format: DataFormat
+
+
 DataFormat = Type[DataFormatBase]
+IterableDataFormat = Type[IterableDataFormatBase]

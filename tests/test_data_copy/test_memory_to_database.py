@@ -5,7 +5,6 @@ import warnings
 from dcp.storage.database.api import DatabaseApi, DatabaseStorageApi
 from dcp.storage.base import DatabaseStorageClass, LocalPythonStorageEngine, Storage
 from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
-from dcp.storage.memory.memory_records_object import as_records
 from dcp.storage.memory.engines.python import PythonStorageApi, new_local_python_storage
 
 from typing import Type
@@ -35,8 +34,7 @@ def test_records_to_db(url):
         db_s = Storage.from_url(db_url)
         db_api: DatabaseStorageApi = db_s.get_api()
         # Records
-        mdr = as_records(conformed_test_records)
-        mem_api.put(name, mdr)
+        mem_api.put(name, conformed_test_records)
         req = CopyRequest(
             name, mem_s, name, DatabaseTableFormat, db_s, test_records_schema
         )

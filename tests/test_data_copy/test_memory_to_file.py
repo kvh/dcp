@@ -12,7 +12,6 @@ import warnings
 from dcp.storage.database.api import DatabaseApi, DatabaseStorageApi
 from dcp.storage.base import DatabaseStorageClass, LocalPythonStorageEngine, Storage
 from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
-from dcp.storage.memory.memory_records_object import as_records
 from dcp.storage.memory.engines.python import PythonStorageApi, new_local_python_storage
 
 from typing import Type
@@ -33,8 +32,7 @@ def test_records_to_file():
     name = "_test"
     fmt = RecordsFormat
     obj = [{"f1": "hi", "f2": 2}]
-    mdr = as_records(obj, data_format=fmt)
-    mem_api.put(name, mdr)
+    mem_api.put(name, obj)
     req = CopyRequest(name, mem_s, name, CsvFileFormat, s, test_records_schema)
     copy_records_to_csv_file.copy(req)
     with fs_api.open(name) as f:
@@ -42,11 +40,10 @@ def test_records_to_file():
         print(recs)
         handler = get_handler(RecordsFormat, mem_s.storage_engine)
         mem_api.put(
-            "output",
-            as_records(recs, data_format=RecordsFormat, schema=test_records_schema),
+            "output", recs,
         )
         handler().cast_to_schema("output", mem_s, schema=test_records_schema)
-        recs = mem_api.get("output").records_object
+        recs = mem_api.get("output")
         assert recs == obj
 
 

@@ -8,7 +8,6 @@ from dcp.data_copy.costs import (
     NetworkToMemoryCost,
 )
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
-from dcp.storage.memory.memory_records_object import as_records
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
 from dcp.storage.memory.engines.python import PythonStorageApi
 from schemas.base import Schema
@@ -28,8 +27,7 @@ def copy_db_to_records(req: CopyRequest):
     select_sql = f"select * from {req.from_name}"
     with req.from_storage_api.execute_sql_result(select_sql) as r:
         records = result_proxy_to_records(r)
-        mdr = as_records(records, data_format=RecordsFormat, schema=req.schema)
-        req.to_storage_api.put(req.to_name, mdr)
+        req.to_storage_api.put(req.to_name, records)
 
 
 # @datacopy(

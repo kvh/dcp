@@ -7,11 +7,11 @@ from dcp.data_copy.costs import (
     NetworkToMemoryCost,
 )
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
-from dcp.storage.memory.memory_records_object import as_records
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
 from dcp.storage.memory.engines.python import PythonStorageApi
 from schemas.base import Schema
 from dcp.data_copy.base import CopyRequest, datacopy
+from typing import Sequence
 
 
 @datacopy(

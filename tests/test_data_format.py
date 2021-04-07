@@ -10,7 +10,6 @@ from pandas.core.frame import DataFrame
 
 from schemas.field_types import DEFAULT_FIELD_TYPE, Date, DateTime, Integer, Text
 from dcp.data_format.handler import get_handler
-from dcp.storage.memory.memory_records_object import as_records
 from dcp import data_format
 from io import StringIO
 from typing import Any, Callable
@@ -44,7 +43,7 @@ def assert_objects_equal(o1: Any, o2: Any):
 def test_memory_handlers(fmt: DataFormat, obj: Any):
     s = Storage("python://test")
     name = "_test"
-    s.get_api().put(name, as_records(obj(), data_format=fmt))
+    s.get_api().put(name, obj())
     handler = get_handler(fmt, s.storage_engine)
     assert list(handler().infer_field_names(name, s)) == list(test_records[0].keys())
     assert handler().infer_field_type(name, s, "f1") == Text()
@@ -55,7 +54,7 @@ def test_memory_handlers(fmt: DataFormat, obj: Any):
 
     handler().cast_to_field_type(name, s, "f4", Date())
     handler().cast_to_field_type(name, s, "f4", Text())
-    round_trip_object = s.get_api().get(name).records_object
+    round_trip_object = s.get_api().get(name)
     assert_objects_equal(round_trip_object, obj())
 
 
@@ -77,5 +76,5 @@ def test_database_handler():
     # TODO
     # handler().cast_to_field_type(name, s, "f4", Date())
     # handler().cast_to_field_type(name, s, "f4", Text())
-    # round_trip_object = s.get_api().get(name).records_object
+    # round_trip_object = s.get_api().get(name)
     # assert_objects_equal(round_trip_object, obj())

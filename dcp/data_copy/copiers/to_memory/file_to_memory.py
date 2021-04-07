@@ -33,8 +33,7 @@ def copy_csv_file_to_records(req: CopyRequest):
     assert isinstance(req.to_storage_api, PythonStorageApi)
     with req.from_storage_api.open(req.from_name) as f:
         records = list(read_csv(f.readlines()))
-        mdr = as_records(records, data_format=RecordsFormat, schema=req.schema)
-        req.to_storage_api.put(req.to_name, mdr)
+        req.to_storage_api.put(req.to_name, records)
         # This cast step is necessary because CSVs preserve no logical type information
         req.to_format_handler.cast_to_schema(
             req.to_name, req.to_storage_api.storage, req.schema
@@ -76,8 +75,7 @@ def copy_json_file_to_arrow(req: CopyRequest):
     assert isinstance(req.to_storage_api, PythonStorageApi)
     pth = req.from_storage_api.get_path(req.from_name)
     at = pa_json.read_json(pth)
-    mdr = as_records(at, data_format=ArrowTableFormat, schema=req.schema)
-    req.to_storage_api.put(req.to_name, mdr)
+    req.to_storage_api.put(req.to_name, at)
     # This cast step is necessary because JSON preserves no logical type information
     req.to_format_handler.cast_to_schema(
         req.to_name, req.to_storage_api.storage, req.schema

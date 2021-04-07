@@ -12,6 +12,8 @@ a **fast** and **_safe_** way to copy structured data between any two points,
 whether copying a CSV to a Mysql table or an in-memory DataFrame to an S3
 JSONL file.
 
+`dcp orders.csv mysql://root@localhost:3306/mydb/orders`
+
 ### _Fast_
 
 dcp uses best-in-class underlying client libraries, employs parallelization

@@ -17,7 +17,6 @@ import warnings
 from dcp.storage.database.api import DatabaseApi, DatabaseStorageApi
 from dcp.storage.base import DatabaseStorageClass, LocalPythonStorageEngine, Storage
 from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
-from dcp.storage.memory.memory_records_object import as_records
 from dcp.storage.memory.engines.python import PythonStorageApi, new_local_python_storage
 
 from typing import Type
@@ -43,7 +42,7 @@ def test_file_to_mem():
     records_obj = [{"f1": "hi", "f2": 2}]
     req = CopyRequest(name, s, name, RecordsFormat, mem_s, test_records_schema)
     copy_csv_file_to_records.copy(req)
-    assert mem_api.get(name).records_object == records_obj
+    assert mem_api.get(name) == records_obj
 
     # # Json lines
     name = "_json_test"
@@ -51,4 +50,4 @@ def test_file_to_mem():
     req = CopyRequest(name, s, name, ArrowTableFormat, mem_s, test_records_schema)
     copy_json_file_to_arrow.copy(req)
     expected = pa.Table.from_pydict({"f1": ["hi"], "f2": [2]})
-    assert mem_api.get(name).records_object == expected
+    assert mem_api.get(name) == expected

@@ -31,5 +31,5 @@ def test_db_to_mem(url):
         db_api.execute_sql(f"create table {name} as select 1 a, 2 b")
         req = CopyRequest(name, db_s, name, RecordsFormat, mem_s, test_records_schema)
         copy_db_to_records.copy(req)
-        assert mem_api.get(name).records_object == [{"a": 1, "b": 2}]
+        assert mem_api.get(name) == [{"a": 1, "b": 2}]
 

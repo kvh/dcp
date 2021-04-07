@@ -1,5 +1,4 @@
 from __future__ import annotations
-from dcp.storage.memory.memory_records_object import as_records
 import traceback
 from dcp.utils.data import read_json
 from dcp.utils.common import (
@@ -58,12 +57,16 @@ class PythonRecordsHandler(FormatHandler):
     for_data_formats = [RecordsFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
-    def infer_data_format(self, name, storage) -> DataFormat:
-        return storage.get_api().get(name).data_format
+    def infer_data_format(self, name, storage) -> Optional[DataFormat]:
+        obj = storage.get_api().get(name)
+        if isinstance(obj, list):
+            if len(obj) > 0 and isinstance(obj[0], dict):
+                return RecordsFormat
+        return None
 
     # TODO: get sample
     def infer_field_names(self, name, storage) -> List[str]:
-        records = storage.get_api().get(name).records_object
+        records = storage.get_api().get(name)
         assert isinstance(records, list)
         if not records:
             return []
@@ -72,7 +75,7 @@ class PythonRecordsHandler(FormatHandler):
     def infer_field_type(
         self, name: str, storage: storage.Storage, field: str
     ) -> FieldType:
-        records = storage.get_api().get(name).records_object
+        records = storage.get_api().get(name)
         sample = []
         for r in records:
             if field in r:
@@ -85,16 +88,14 @@ class PythonRecordsHandler(FormatHandler):
     def cast_to_field_type(
         self, name: str, storage: storage.Storage, field: str, field_type: FieldType
     ):
-        mro = storage.get_api().get(name)
-        for r in mro.records_object:
+        records = storage.get_api().get(name)
+        for r in records:
             if field in r:
                 r[field] = cast_python_object_to_field_type(r[field], field_type)
         storage.get_api().put(name, mro)
 
     def create_empty(self, name, storage, schema: Schema):
-        storage.get_api().put(
-            name, as_records([], data_format=RecordsFormat, schema=schema)
-        )
+        storage.get_api().put(name, [])
 
 
 ALL_FIELD_TYPE_HELPERS: Dict[Type[FieldType], Type[FieldTypeHelper]] = {}

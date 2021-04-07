@@ -1,6 +1,4 @@
 from __future__ import annotations
-from dcp.storage.memory.memory_records_object import as_records
-import traceback
 from dcp.utils.data import read_json
 
 import decimal
@@ -56,18 +54,21 @@ class ArrowTableHandler(FormatHandler):
     for_data_formats = [ArrowTableFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
-    def infer_data_format(self, name, storage) -> DataFormat:
-        return storage.get_api().get(name).data_format
+    def infer_data_format(self, name, storage) -> Optional[DataFormat]:
+        obj = storage.get_api().get(name)
+        if isinstance(obj, pa.Table):
+            return ArrowTableFormat
+        return None
 
     def infer_field_names(self, name, storage) -> List[str]:
-        table = storage.get_api().get(name).records_object
+        table = storage.get_api().get(name)
         assert isinstance(table, ArrowTable)
         return [f.name for f in table.schema]
 
     def infer_field_type(
         self, name: str, storage: storage.Storage, field: str
     ) -> FieldType:
-        table: ArrowTable = storage.get_api().get(name).records_object
+        table: ArrowTable = storage.get_api().get(name)
         return arrow_type_to_field_type(str(table.field(field).type))
 
     def cast_to_field_type(
@@ -78,8 +79,7 @@ class ArrowTableHandler(FormatHandler):
 
     def create_empty(self, name, storage, schema: Schema):
         table = pa.Table.from_batches([], schema=schema_to_arrow_schema(schema))
-        mro = as_records(table, data_format=ArrowTableFormat, schema=schema)
-        storage.get_api().put(name, mro)
+        storage.get_api().put(name, table)
 
 
 def schema_to_arrow_schema(schema: Schema) -> pa.Schema:

@@ -1,5 +1,4 @@
 from __future__ import annotations
-from dcp.storage.memory.memory_records_object import as_records
 from dcp.data_format.formats.memory.records import (
     cast_python_object_to_field_type,
     select_field_type,
@@ -9,7 +8,7 @@ from schemas.field_types import Binary, Decimal, Json, LongBinary, LongText, Tex
 
 from dcp.data_format.handler import FormatHandler
 from dcp.data_format.base import DataFormat, DataFormatBase
-from typing import Dict, List, Type, cast
+from typing import Dict, List, Optional, Type, cast
 from loguru import logger
 from dateutil import parser
 import pandas as pd
@@ -40,17 +39,19 @@ class PythonDataframeHandler(FormatHandler):
     for_data_formats = [DataFrameFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
-    def infer_data_format(self, name, storage) -> DataFormat:
-        return storage.get_api().get(name).data_format
+    def infer_data_format(self, name, storage) -> Optional[DataFormat]:
+        obj = storage.get_api().get(name)
+        if isinstance(obj, pd.DataFrame):
+            return DataFrameFormat
+        return None
 
     def infer_field_names(self, name, storage) -> List[str]:
-        return storage.get_api().get(name).records_object.columns
+        return storage.get_api().get(name).columns
 
     def infer_field_type(
         self, name: str, storage: storage.Storage, field: str
     ) -> FieldType:
-        mro = storage.get_api().get(name)
-        df = mro.records_object
+        df = storage.get_api().get(name)
         cast(DataFrame, df)
         series = df[field]
         ft = pandas_series_to_field_type(series)
@@ -59,27 +60,20 @@ class PythonDataframeHandler(FormatHandler):
     def cast_to_field_type(
         self, name: str, storage: storage.Storage, field: str, field_type: FieldType
     ):
-        mro = storage.get_api().get(name)
-        df = mro.records_object
+        df = storage.get_api().get(name)
         cast(DataFrame, df)
         df[field] = cast_series_to_field_type(df[field], field_type)
-        mro.records_object = (
-            df  # TODO: Modifying an object? But trying to "unchange" it
-        )
-        mro.records_object = df
-        storage.get_api().put(name, mro)  # Unnecessary?
+        storage.get_api().put(name, df)  # Unnecessary?
 
     def create_empty(self, name, storage, schema: Schema):
         df = DataFrame()
         for field in schema.fields:
             pd_type = field_type_to_pandas_dtype(field.field_type)
             df[field.name] = pd.Series(dtype=pd_type)
-        storage.get_api().put(
-            name, as_records(df, data_format=DataFrameFormat, schema=schema)
-        )
+        storage.get_api().put(name, df)
 
     def supports(self, field_type) -> bool:
-        pass
+        raise NotImplementedError
 
 
 def pandas_series_to_field_type(series: pd.Series) -> FieldType:

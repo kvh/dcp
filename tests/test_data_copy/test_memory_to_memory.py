@@ -4,7 +4,6 @@ from dcp.data_copy.graph import get_datacopy_lookup
 from dcp.utils.pandas import assert_dataframes_are_almost_equal
 from dcp.storage.base import LocalPythonStorageEngine
 from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
-from dcp.storage.memory.memory_records_object import as_records
 from dcp.storage.memory.engines.python import PythonStorageApi, new_local_python_storage
 
 import tempfile
@@ -36,7 +35,7 @@ def test_mem_to_mem(from_fmt, to_fmt):
     mem_api: PythonStorageApi = s.get_api()
     from_name = "_from_test"
     to_name = "_to_test"
-    mem_api.put(from_name, as_records(obj(), data_format=from_fmt))
+    mem_api.put(from_name, obj())
     req = CopyRequest(from_name, s, to_name, to_fmt, s, test_records_schema)
     pth = get_datacopy_lookup().get_lowest_cost_path(req.conversion)
     assert pth is not None
@@ -45,5 +44,5 @@ def test_mem_to_mem(from_fmt, to_fmt):
         from_name = to_name
         to_name = to_name + str(i)
     to_name = from_name
-    assert_objects_equal(mem_api.get(to_name).records_object, expected())
+    assert_objects_equal(mem_api.get(to_name), expected())
 

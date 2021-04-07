@@ -42,7 +42,9 @@ class CsvFileHandler(FormatHandler):
     for_data_formats = [CsvFileFormat]
     for_storage_classes = [storage.DatabaseStorageClass]
 
-    def infer_data_format(self, name, storage) -> Optional[DataFormat]:
+    def infer_data_format(
+        self, name: str, storage: storage.Storage
+    ) -> Optional[DataFormat]:
         if name.endswith(".csv"):
             return CsvFileFormat
         # TODO: get records sample and sniff csv

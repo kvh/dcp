@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from enum import Enum
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterable, List, Optional, Type
+from typing import Callable, Dict, Iterable, Iterator, List, Optional, Type
 
 from schemas.base import Field, Schema
 from schemas.field_types import FieldType
-from dcp.data_format.base import DataFormat
+from dcp.data_format.base import DataFormat, IterableDataFormat, IterableDataFormatBase
 from dcp.storage.base import (
     LocalPythonStorageEngine,
     StorageClass,
@@ -70,13 +70,64 @@ class FormatHandler:
     # def __init__(self, storage: Storage):
     #     self.storage = storage
 
-    def infer_data_format(self, name, storage) -> Optional[DataFormat]:
+    def infer_data_format(self, name: str, storage: Storage) -> Optional[DataFormat]:
         raise NotImplementedError
 
-    def infer_field_names(self, name, storage) -> Iterable[str]:
+    def infer_field_names(self, name: str, storage: Storage) -> Iterable[str]:
         raise NotImplementedError
 
     def infer_field_type(self, name, storage, field) -> List[Field]:
+        # For python storage and dataframe: map pd.dtypes -> ftypes
+        # For python storage and records: infer py object type
+        # For postgres storage and table: map sa types -> ftypes
+        # For S3 storage and csv: infer csv types (use arrow?)
+        raise NotImplementedError
+
+    def cast_to_field_type(
+        self, name: str, storage: Storage, field: str, field_type: FieldType
+    ):
+        raise NotImplementedError
+
+    def cast_to_schema(self, name: str, storage: Storage, schema: Schema):
+        for field in schema.fields:
+            self.cast_to_field_type(name, storage, field.name, field.field_type)
+
+    def create_empty(self, name: str, storage: Storage, schema: Schema):
+        # For python storage and dataframe: map pd.dtypes -> ftypes
+        # For python storage and records: infer py object type
+        # For postgres storage and table: map sa types -> ftypes
+        # For S3 storage and csv: infer csv types (use arrow?)
+        raise NotImplementedError
+
+    def supports(self, field_type) -> bool:
+        # For python storage and dataframe: yes to almost all (nullable ints maybe)
+        # For S3 storage and csv:
+        raise NotImplementedError
+
+    def get_record_count(self, name: str, storage: Storage) -> Optional[int]:
+        # Will come directly from storage engine most of time, except python memory implemented here
+        raise NotImplementedError
+
+
+class IterableFormatHandler(FormatHandler):
+    for_storage_engines = [LocalPythonStorageEngine]
+    for_data_formats: List[IterableDataFormat]
+
+    def infer_data_format(self, name: str, storage: Storage) -> Optional[DataFormat]:
+        obj = storage.get_api().get(name)
+        if isinstance(obj, Iterator):
+            for outer_df in self.for_data_formats:
+                inner_df = outer_df.inner_format
+                handler = get_handler(inner_df, storage.storage_engine)
+                fmt = handler().infer_data_format(name, storage)
+                if fmt is not None:
+                    return fmt
+        return None
+
+    def infer_field_names(self, name: str, storage: Storage) -> Iterable[str]:
+        raise NotImplementedError
+
+    def infer_field_type(self, name, storage: Storage, field: str) -> List[Field]:
         # For python storage and dataframe: map pd.dtypes -> ftypes
         # For python storage and records: infer py object type
         # For postgres storage and table: map sa types -> ftypes
@@ -131,12 +182,7 @@ def get_handler(
 
 
 def get_format_for_name(name: str, storage: Storage) -> DataFormat:
-    format_handlers = [
-        handler
-        for handler in ALL_HANDLERS
-        if storage.storage_engine.storage_class in handler.for_storage_classes
-        or storage.storage_engine in handler.for_storage_engines
-    ]
+    format_handlers = get_handlers_for_storage(storage)
     for handler in format_handlers:
         fmt = handler().infer_data_format(name, storage)
         if fmt is not None:
@@ -146,6 +192,20 @@ def get_format_for_name(name: str, storage: Storage) -> DataFormat:
 
 def get_handler_for_name(name: str, storage: Storage) -> Type[FormatHandler]:
     return get_handler(get_format_for_name(name, storage), storage.storage_engine)
+
+
+def get_handlers_for_storage(storage: Storage) -> List[Type[FormatHandler]]:
+    format_handlers = [
+        handler
+        for handler in ALL_HANDLERS
+        if storage.storage_engine.storage_class in handler.for_storage_classes
+        or storage.storage_engine in handler.for_storage_engines
+    ]
+    return format_handlers
+
+
+def infer_data_format(name: str, storage: Storage) -> Optional[DataFormat]:
+    pass
 
 
 # @format_handler(
