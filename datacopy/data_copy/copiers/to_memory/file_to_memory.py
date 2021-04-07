@@ -13,7 +13,6 @@ from datacopy.data_copy.costs import (
     MemoryToMemoryCost,
 )
 from datacopy.data_format.formats.memory.dataframe import DataFrameFormat
-from datacopy.storage.memory.memory_records_object import as_records
 from datacopy.data_format.formats.memory.records import Records, RecordsFormat
 from datacopy.storage.memory.engines.python import PythonStorageApi
 from datacopy.data_copy.base import CopyRequest, datacopy

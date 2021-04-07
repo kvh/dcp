@@ -19,6 +19,7 @@ from typing import Type
 import pytest
 from tests.utils import (
     test_records_schema,
+    test_records,
     conformed_test_records,
 )
 
@@ -47,5 +48,8 @@ def test_records_to_db(url):
         )
         copy_records_to_db.copy(req)
         with db_api.execute_sql_result(f"select * from {name}") as res:
-            assert [dict(r) for r in res] == conformed_test_records
+            if url.startswith("sqlite"):
+                assert [dict(r) for r in res] == test_records
+            else:
+                assert [dict(r) for r in res] == conformed_test_records
 

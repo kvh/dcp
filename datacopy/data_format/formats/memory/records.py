@@ -31,7 +31,7 @@ from dateutil import parser
 import pandas as pd
 from pandas import DataFrame
 
-import dcp.storage.base as storage
+import datacopy.storage.base as storage
 from openmodel import (
     DEFAULT_FIELD_TYPE,
     Boolean,
@@ -92,7 +92,7 @@ class PythonRecordsHandler(FormatHandler):
         for r in records:
             if field in r:
                 r[field] = cast_python_object_to_field_type(r[field], field_type)
-        storage.get_api().put(name, mro)
+        storage.get_api().put(name, records)
 
     def create_empty(self, name, storage, schema: Schema):
         storage.get_api().put(name, [])

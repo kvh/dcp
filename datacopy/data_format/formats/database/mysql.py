@@ -22,7 +22,7 @@ from dateutil import parser
 import pandas as pd
 from pandas import DataFrame
 
-import dcp.storage.base as storage
+import datacopy.storage.base as storage
 from openmodel import (
     DEFAULT_FIELD_TYPE,
     Boolean,

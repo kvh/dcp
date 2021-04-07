@@ -65,6 +65,9 @@ class FormatHandler:
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+        # Excluded intermediate base classes
+        if cls.__name__ in ["IterableFormatHandler"]:
+            return
         assert cls.for_data_formats, "Must specify data formats"
         assert (
             cls.for_storage_engines or cls.for_storage_classes
@@ -114,8 +117,8 @@ class FormatHandler:
 
 
 class IterableFormatHandler(FormatHandler):
-    for_storage_engines = [LocalPythonStorageEngine]
     for_data_formats: List[IterableDataFormat]
+    for_storage_engines = [LocalPythonStorageEngine]
 
     def infer_data_format(self, name: str, storage: Storage) -> Optional[DataFormat]:
         obj = storage.get_api().get(name)
