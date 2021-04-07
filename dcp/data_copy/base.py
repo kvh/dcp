@@ -8,7 +8,7 @@ from dcp.data_format.handler import (
 )
 from dcp.data_copy.costs import DataCopyCost
 
-from schemas.base import AnySchema, Schema
+from openmodel.base import AnySchema, Schema
 from dcp.data_format.base import DataFormat
 from dcp.storage.base import Storage, StorageApi, StorageClass, StorageEngine
 

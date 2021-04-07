@@ -2,7 +2,7 @@ from __future__ import annotations
 from dcp.utils.data import read_json
 
 import decimal
-from schemas.field_types import (
+from openmodel.field_types import (
     Binary,
     DEFAULT_FIELD_TYPE_CLASS,
     Decimal,
@@ -23,7 +23,7 @@ import pandas as pd
 from pandas import DataFrame
 
 import dcp.storage.base as storage
-from schemas import (
+from openmodel import (
     DEFAULT_FIELD_TYPE,
     Boolean,
     Date,

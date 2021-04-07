@@ -2,7 +2,7 @@ from __future__ import annotations
 from dcp.utils.data import conform_records_for_insert
 from dcp.storage.database.utils import conform_columns_for_insert
 
-from schemas.base import Schema
+from openmodel.base import Schema
 from dcp.data_format.formats.memory.records import Records
 
 from sqlalchemy.sql.ddl import CreateTable

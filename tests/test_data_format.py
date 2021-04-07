@@ -8,7 +8,7 @@ from pandas.core.series import Series
 from dcp.utils.pandas import assert_dataframes_are_almost_equal
 from pandas.core.frame import DataFrame
 
-from schemas.field_types import DEFAULT_FIELD_TYPE, Date, DateTime, Integer, Text
+from openmodel.field_types import DEFAULT_FIELD_TYPE, Date, DateTime, Integer, Text
 from dcp.data_format.handler import get_handler
 from dcp import data_format
 from io import StringIO

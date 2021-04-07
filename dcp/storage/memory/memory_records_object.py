@@ -7,8 +7,8 @@
 # from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, Tuple, Type, Union
 
 # from pandas.core.frame import DataFrame
-# from schemas import Schema
-# from schemas.base import SchemaKey, schema_like_to_key
+# from openmodel import Schema
+# from openmodel.base import SchemaKey, schema_like_to_key
 
 
 # if TYPE_CHECKING:

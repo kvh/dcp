@@ -9,7 +9,7 @@ from dcp.data_copy.costs import (
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
 from dcp.storage.memory.engines.python import PythonStorageApi
-from schemas.base import Schema
+from openmodel.base import Schema
 from dcp.data_copy.base import CopyRequest, datacopy
 from typing import Sequence
 

@@ -4,8 +4,8 @@ from enum import Enum
 from dataclasses import dataclass
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Type
 
-from schemas.base import Field, Schema
-from schemas.field_types import FieldType
+from openmodel.base import Field, Schema
+from openmodel.field_types import FieldType
 from dcp.data_format.base import DataFormat, IterableDataFormat, IterableDataFormatBase
 from dcp.storage.base import (
     LocalPythonStorageEngine,

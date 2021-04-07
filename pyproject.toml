@@ -23,14 +23,14 @@ isort = "^4.3.21"
 mkdocs = "^1.1.2"
 mkdocs-material = "^6.1.7"
 mypy = "^0.770"
+mysqlclient = "^2.0.3"
+openmodel = {path = "../openmodel/python", develop = true}
 pre-commit = "^2.1.1"
+psycopg2-binary = "2.8.4"
+pyarrow = "^3.0.0"
 pydeps = "^1.9.0"
 pytest = "^4.6"
 pytest-cov = "^2.8.1"
-semantic-schemas = {path = "../schemas/python", develop = true}
-mysqlclient = "^2.0.3"
-psycopg2-binary = "2.8.4"
-pyarrow = "^3.0.0"
 
 [tool.poetry.scripts]
 snapflow = "dcp.cli:app"

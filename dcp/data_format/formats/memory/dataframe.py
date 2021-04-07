@@ -4,7 +4,7 @@ from dcp.data_format.formats.memory.records import (
     select_field_type,
 )
 
-from schemas.field_types import Binary, Decimal, Json, LongBinary, LongText, Text
+from openmodel.field_types import Binary, Decimal, Json, LongBinary, LongText, Text
 
 from dcp.data_format.handler import FormatHandler
 from dcp.data_format.base import DataFormat, DataFormatBase
@@ -15,7 +15,7 @@ import pandas as pd
 from pandas import DataFrame
 
 import dcp.storage.base as storage
-from schemas import (
+from openmodel import (
     DEFAULT_FIELD_TYPE,
     Boolean,
     Date,

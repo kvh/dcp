@@ -30,7 +30,6 @@ def test_records_to_file():
     mem_s = new_local_python_storage()
     mem_api: PythonStorageApi = mem_s.get_api()
     name = "_test"
-    fmt = RecordsFormat
     obj = [{"f1": "hi", "f2": 2}]
     mem_api.put(name, obj)
     req = CopyRequest(name, mem_s, name, CsvFileFormat, s, test_records_schema)
