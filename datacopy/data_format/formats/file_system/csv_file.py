@@ -40,14 +40,22 @@ class CsvFileFormat(DataFormatBase[CsvFile]):
 
 class CsvFileHandler(FormatHandler):
     for_data_formats = [CsvFileFormat]
-    for_storage_classes = [storage.DatabaseStorageClass]
+    for_storage_classes = [storage.FileSystemStorageClass]
+    delimiter = ","
 
     def infer_data_format(
         self, name: str, storage: storage.Storage
     ) -> Optional[DataFormat]:
         if name.endswith(".csv"):
             return CsvFileFormat
-        # TODO: get records sample and sniff csv
+        # TODO: how hacky is this? very
+        with storage.get_api().open(name) as f:
+            l = f.readline()
+            if l.startswith("{"):
+                return None
+            l2 = f.readline()
+            if len(l.split(self.delimiter)) == len(l2.split(self.delimiter)):
+                return CsvFileFormat
         return None
 
     def infer_field_names(self, name, storage) -> List[str]:

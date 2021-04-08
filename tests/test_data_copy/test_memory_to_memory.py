@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import tempfile
-import types
 from io import StringIO
 from itertools import product
-from typing import Any, List, Optional, Tuple, Type
 
 import pandas as pd
+
 # import pyarrow as pa
 import pytest
 from datacopy.data_copy.base import Conversion, CopyRequest, StorageFormat
@@ -25,8 +23,7 @@ to_formats = [rf, dff]  # , af]
 
 
 @pytest.mark.parametrize(
-    "from_fmt,to_fmt",
-    product(from_formats, to_formats),
+    "from_fmt,to_fmt", product(from_formats, to_formats),
 )
 def test_mem_to_mem(from_fmt, to_fmt):
     from_fmt, obj = from_fmt

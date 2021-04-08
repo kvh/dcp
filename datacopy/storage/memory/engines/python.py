@@ -19,7 +19,6 @@ from datacopy.storage.base import (
 )
 from datacopy.storage.memory.iterator import SampleableIterator
 from datacopy.utils.common import rand_str
-from numpy import record
 
 LOCAL_PYTHON_STORAGE: Dict[str, Any] = {}  # TODO: global state...
 

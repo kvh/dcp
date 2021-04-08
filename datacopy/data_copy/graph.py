@@ -153,10 +153,10 @@ def get_datacopy_lookup(
 
 def execute_copy_request(req: CopyRequest):
     conversion_path = get_datacopy_lookup(
-        available_storage_engines=set(s.storage_engine for s in req.available_storages),
-    ).get_lowest_cost_path(
-        req.conversion,
-    )
+        available_storage_engines=set(
+            s.storage_engine for s in req.get_available_storages()
+        ),
+    ).get_lowest_cost_path(req.conversion,)
     if not conversion_path.edges:
         # Nothing to do?
         return
@@ -167,7 +167,7 @@ def execute_copy_request(req: CopyRequest):
         conversion = conversion_edge.conversion
         target_storage_format = conversion.to_storage_format
         next_storage = select_storage(
-            req.to_storage, req.available_storages, target_storage_format
+            req.to_storage, req.get_available_storages(), target_storage_format
         )
         logger.debug(
             f"CONVERSION: {conversion.from_storage_format} -> {conversion.to_storage_format}"
@@ -178,7 +178,7 @@ def execute_copy_request(req: CopyRequest):
             req.to_name,
             conversion.to_storage_format.data_format,
             next_storage,
-            req.schema,
+            req.get_schema(),
         )
         conversion_edge.copier.copy(edge_req)
         # if (
@@ -200,9 +200,7 @@ def execute_copy_request(req: CopyRequest):
 
 
 def select_storage(
-    target_storage: Storage,
-    storages: List[Storage],
-    storage_format: StorageFormat,
+    target_storage: Storage, storages: List[Storage], storage_format: StorageFormat,
 ) -> Storage:
     eng = storage_format.storage_engine
     # By default, stay on target storage if possible (minimize transfer)

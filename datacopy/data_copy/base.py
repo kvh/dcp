@@ -47,15 +47,15 @@ class Conversion:
     to_storage_format: StorageFormat
 
 
-@dataclass(frozen=True)
+@dataclass
 class CopyRequest:
     from_name: str
     from_storage: Storage
     to_name: str
     to_format: DataFormat
     to_storage: Storage
-    schema: Schema = None
-    # available_storages # TODO
+    schema: Optional[Schema] = None
+    available_storages: Optional[List[Storage]] = None
     # handlers: List[Type[FormatHandler]] = ALL_HANDLERS
 
     @property
@@ -91,9 +91,16 @@ class CopyRequest:
             ),
         )
 
-    @property
-    def available_storages(self) -> List[Storage]:
-        return [self.from_storage, self.to_storage]
+    def get_available_storages(self) -> List[Storage]:
+        return list(
+            set([self.from_storage, self.to_storage] + self.available_storages or [])
+        )
+
+    def get_schema(self) -> Schema:
+        if self.schema is None:
+            handler = self.from_format_handler
+            self.schema = handler.infer_schema(self.from_name, self.from_storage)
+        return self.schema
 
 
 CopierCallabe = Callable[[CopyRequest], None]

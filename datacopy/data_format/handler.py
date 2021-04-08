@@ -2,6 +2,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 
 from dataclasses import dataclass
+from datacopy.data_format.inference import generate_auto_schema
 from datacopy.storage.memory.iterator import SampleableIterator
 from enum import Enum
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Type
@@ -81,12 +82,20 @@ class FormatHandler:
     def infer_field_names(self, name: str, storage: Storage) -> Iterable[str]:
         raise NotImplementedError
 
-    def infer_field_type(self, name, storage, field) -> List[Field]:
+    def infer_field_type(self, name: str, storage: Storage, field: str) -> FieldType:
         # For python storage and dataframe: map pd.dtypes -> ftypes
         # For python storage and records: infer py object type
         # For postgres storage and table: map sa types -> ftypes
         # For S3 storage and csv: infer csv types (use arrow?)
         raise NotImplementedError
+
+    def infer_schema(self, name: str, storage: Storage) -> Schema:
+        fields = [
+            Field(name=n, field_type=self.infer_field_type(name, storage, n))
+            for n in self.infer_field_names(name, storage)
+        ]
+        schema = generate_auto_schema(fields=fields)
+        return schema
 
     def cast_to_field_type(
         self, name: str, storage: Storage, field: str, field_type: FieldType
@@ -217,7 +226,7 @@ def get_format_for_name(name: str, storage: Storage) -> DataFormat:
         fmt = handler().infer_data_format(name, storage)
         if fmt is not None:
             return fmt
-    raise NotImplementedError
+    raise NotImplementedError(storage)
 
 
 def get_handler_for_name(name: str, storage: Storage) -> Type[FormatHandler]:

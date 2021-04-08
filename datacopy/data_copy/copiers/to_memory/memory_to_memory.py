@@ -1,3 +1,4 @@
+from datacopy.data_format.formats.memory.arrow_table import ArrowTableFormat
 from typing import TypeVar
 
 import pandas as pd
@@ -33,7 +34,7 @@ def copy_records_to_df(req: CopyRequest):
     # So, if the type is right in the python records, when will it NOT be right in pandas? that's
     # all we are worried about
     # req.to_format_handler.cast_to_schema(
-    #     req.to_name, req.to_storage_api.storage, req.schema
+    #     req.to_name, req.to_storage_api.storage, req.get_schema()
     # )
 
 
@@ -52,7 +53,7 @@ def copy_df_to_records(req: CopyRequest):
     req.to_storage_api.put(req.to_name, df)
     # Only necessary if we think there is datatype loss when converting df->records
     # req.to_format_handler.cast_to_schema(
-    #     req.to_name, req.to_storage_api.storage, req.schema
+    #     req.to_name, req.to_storage_api.storage, req.get_schema()
     # )
 
 
@@ -69,8 +70,8 @@ def copy_df_to_records(req: CopyRequest):
 #     assert isinstance(req.from_storage_api, PythonStorageApi)
 #     assert isinstance(req.to_storage_api, PythonStorageApi)
 #     records_object = req.from_storage_api.get(req.from_name)
-#     itr = (dataframe_to_records(df, req.schema) for df in records_object)
-#     to_records_object = as_records(itr, data_format=RecordsIteratorFormat, schema=req.schema)
+#     itr = (dataframe_to_records(df, req.get_schema()) for df in records_object)
+#     to_records_object = as_records(itr, data_format=RecordsIteratorFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
@@ -89,7 +90,7 @@ def copy_df_to_records(req: CopyRequest):
 #     assert isinstance(req.to_storage_api, PythonStorageApi)
 #     records_object = req.from_storage_api.get(req.from_name)
 #     itr = (pd.DataFrame(records) for records in records_object)
-#     to_records_object = as_records(itr, data_format=DataFrameIteratorFormat, schema=req.schema)
+#     to_records_object = as_records(itr, data_format=DataFrameIteratorFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
@@ -110,7 +111,7 @@ def copy_df_to_records(req: CopyRequest):
 #     all_records = []
 #     for records in records_object:
 #         all_records.extend(records)
-#     to_records_object = as_records(all_records, data_format=RecordsFormat, schema=req.schema)
+#     to_records_object = as_records(all_records, data_format=RecordsFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
@@ -131,7 +132,7 @@ def copy_df_to_records(req: CopyRequest):
 #     all_dfs = []
 #     for df in records_object:
 #         all_dfs.append(df)
-#     to_records_object = as_records(pd.concat(all_dfs), data_format=DataFrameFormat, schema=req.schema)
+#     to_records_object = as_records(pd.concat(all_dfs), data_format=DataFrameFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
@@ -150,7 +151,7 @@ def copy_df_to_records(req: CopyRequest):
 #     assert isinstance(req.to_storage_api, PythonStorageApi)
 #     records_object = req.from_storage_api.get(req.from_name)
 #     obj = read_csv(records_object)
-#     to_records_object = as_records(obj, data_format=RecordsFormat, schema=req.schema)
+#     to_records_object = as_records(obj, data_format=RecordsFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
@@ -174,7 +175,7 @@ def copy_df_to_records(req: CopyRequest):
 #         read_csv(chunk)
 #         for chunk in with_header(iterate_chunks(records_object, 1000))
 #     )
-#     to_records_object = as_records(itr, data_format=RecordsIteratorFormat, schema=req.schema)
+#     to_records_object = as_records(itr, data_format=RecordsIteratorFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
@@ -193,49 +194,43 @@ def copy_df_to_records(req: CopyRequest):
 #     assert isinstance(req.to_storage_api, PythonStorageApi)
 #     records_object = req.from_storage_api.get(req.from_name)
 #     itr = (read_csv(chunk) for chunk in with_header(records_object))
-#     to_records_object = as_records(itr, data_format=RecordsIteratorFormat, schema=req.schema)
+#     to_records_object = as_records(itr, data_format=RecordsIteratorFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
 
-# #########
-# ### Arrow
-# #########
+#########
+### Arrow
+#########
 
 
-# @datacopy(
-#     from_storage_classes=[MemoryStorageClass],
-#     from_data_formats=[ArrowTableFormat],
-#     to_storage_classes=[MemoryStorageClass],
-#     to_data_formats=[DataFrameFormat],
-#     cost=MemoryToMemoryCost,  # Sometimes this is a zero-copy no-op (rarely for real world data tho due to lack of null support in numpy)
-# )
-# def copy_arrow_to_dataframe(
-# req: CopyRequest
-# ):
-#     assert isinstance(req.from_storage_api, PythonStorageApi)
-#     assert isinstance(req.to_storage_api, PythonStorageApi)
-#     records_object = req.from_storage_api.get(req.from_name)
-#     df = records_object.to_pandas()
-#     to_records_object = as_records(df, data_format=DataFrameFormat, schema=req.schema)
-#     to_records_object = to_records_object.conform_to_schema()
-#     req.to_storage_api.put(req.to_name, to_records_object)
+@datacopy(
+    from_storage_classes=[MemoryStorageClass],
+    from_data_formats=[ArrowTableFormat],
+    to_storage_classes=[MemoryStorageClass],
+    to_data_formats=[DataFrameFormat],
+    cost=MemoryToMemoryCost,  # Sometimes this is a zero-copy no-op (rarely for real world data tho due to lack of null support in numpy)
+)
+def copy_arrow_to_dataframe(req: CopyRequest):
+    assert isinstance(req.from_storage_api, PythonStorageApi)
+    assert isinstance(req.to_storage_api, PythonStorageApi)
+    records_object = req.from_storage_api.get(req.from_name)
+    df = records_object.to_pandas()
+    # No need to cast, should be preserved
+    req.to_storage_api.put(req.to_name, df)
 
 
-# @datacopy(
-#     from_storage_classes=[MemoryStorageClass],
-#     from_data_formats=[DataFrameFormat],
-#     to_storage_classes=[MemoryStorageClass],
-#     to_data_formats=[ArrowTableFormat],
-#     cost=MemoryToMemoryCost,
-# )
-# def copy_dataframe_to_arrow(
-# req: CopyRequest
-# ):
-#     assert isinstance(req.from_storage_api, PythonStorageApi)
-#     assert isinstance(req.to_storage_api, PythonStorageApi)
-#     records_object = req.from_storage_api.get(req.from_name)
-#     at = pa.Table.from_pandas(records_object)
-#     to_records_object = as_records(at, data_format=ArrowTableFormat, schema=req.schema)
-#     to_records_object = to_records_object.conform_to_schema()
-#     req.to_storage_api.put(req.to_name, to_records_object)
+@datacopy(
+    from_storage_classes=[MemoryStorageClass],
+    from_data_formats=[DataFrameFormat],
+    to_storage_classes=[MemoryStorageClass],
+    to_data_formats=[ArrowTableFormat],
+    cost=MemoryToMemoryCost,
+)
+def copy_dataframe_to_arrow(req: CopyRequest):
+    assert isinstance(req.from_storage_api, PythonStorageApi)
+    assert isinstance(req.to_storage_api, PythonStorageApi)
+    records_object = req.from_storage_api.get(req.from_name)
+    at = pa.Table.from_pandas(records_object)
+    # No need to cast, should be preserved
+    req.to_storage_api.put(req.to_name, at)

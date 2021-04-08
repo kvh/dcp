@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Tuple, Type
 
 import sqlalchemy
+from sqlalchemy.sql.elements import quoted_name
 from datacopy import storage
 from datacopy.data_format.formats.memory.records import Records
 from datacopy.storage.base import StorageApi
@@ -39,9 +40,7 @@ def dispose_all(keyword: Optional[str] = None):
 
 class DatabaseApi:
     def __init__(
-        self,
-        url: str,
-        json_serializer: Callable = None,
+        self, url: str, json_serializer: Callable = None,
     ):
         self.url = url
         self.json_serializer = (
@@ -61,15 +60,17 @@ class DatabaseApi:
         if key in _sa_engines:
             return _sa_engines[key]
         self.eng = sqlalchemy.create_engine(
-            self.url,
-            json_serializer=self.json_serializer,
-            echo=False,
+            self.url, json_serializer=self.json_serializer, echo=False,
         )
         _sa_engines[key] = self.eng
         return self.eng
 
     def dialect_is_supported(self) -> bool:
         return True
+
+    def get_quoted_identifier(self, identifier: str) -> str:
+        # TODO: actually use this
+        return self.get_engine().dialect.identifier_preparer.quote(identifier)
 
     @contextmanager
     def connection(self) -> Iterator[Connection]:
@@ -154,9 +155,7 @@ class DatabaseApi:
         self.execute_sql(insert_sql)
 
     def create_table_from_sql(
-        self,
-        name: str,
-        sql: str,
+        self, name: str, sql: str,
     ):
         sql = self.clean_sub_sql(sql)
         create_sql = f"""
@@ -181,6 +180,7 @@ class DatabaseApi:
     def create_sqlalchemy_table(self, table: sqlalchemy.Table):
         table.metadata = self.get_sqlalchemy_metadata()
         stmt = CreateTable(table).compile(dialect=self.get_engine().dialect)
+        print(stmt)
         self.execute_sql(str(stmt))
 
     def bulk_insert_records(self, name: str, records: Records):
@@ -222,8 +222,7 @@ class DatabaseApi:
 
 class DatabaseStorageApi(DatabaseApi, StorageApi):
     def __init__(
-        self,
-        storage: storage,
+        self, storage: storage,
     ):
         super().__init__(storage.url)
         self.storage = storage

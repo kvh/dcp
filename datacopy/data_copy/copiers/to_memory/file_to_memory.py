@@ -35,7 +35,7 @@ def copy_csv_file_to_records(req: CopyRequest):
         req.to_storage_api.put(req.to_name, records)
         # This cast step is necessary because CSVs preserve no logical type information
         req.to_format_handler.cast_to_schema(
-            req.to_name, req.to_storage_api.storage, req.schema
+            req.to_name, req.to_storage_api.storage, req.get_schema()
         )
 
 
@@ -77,5 +77,5 @@ def copy_json_file_to_arrow(req: CopyRequest):
     req.to_storage_api.put(req.to_name, at)
     # This cast step is necessary because JSON preserves no logical type information
     req.to_format_handler.cast_to_schema(
-        req.to_name, req.to_storage_api.storage, req.schema
+        req.to_name, req.to_storage_api.storage, req.get_schema()
     )

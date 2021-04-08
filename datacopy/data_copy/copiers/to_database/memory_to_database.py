@@ -27,7 +27,7 @@ def copy_records_to_db(req: CopyRequest):
     assert isinstance(req.to_storage_api, DatabaseStorageApi)
     records = req.from_storage_api.get(req.from_name)
     req.to_format_handler.create_empty(
-        req.to_name, req.to_storage_api.storage, req.schema
+        req.to_name, req.to_storage_api.storage, req.get_schema()
     )
     req.to_storage_api.bulk_insert_records(req.to_name, records)
 
@@ -46,7 +46,7 @@ def copy_records_to_db(req: CopyRequest):
 #     assert isinstance(req.to_storage_api, DatabaseStorageApi)
 #     mdr = req.from_storage_api.get(req.from_name)
 #     req.to_format_handler.create_empty(
-#         req.to_name, req.to_storage_api.storage, req.schema
+#         req.to_name, req.to_storage_api.storage, req.get_schema()
 #     )
 #     for records in mdr.records_object:
 #         req.to_storage_api.bulk_insert_records(req.to_name, records)
