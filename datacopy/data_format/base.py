@@ -36,8 +36,8 @@ class DataFormatBase(Generic[T]):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         # Exclude intermediate base classes
-        if cls.__name__ in ["IterableDataFormatBase"]:
-            return
+        # if cls.__name__ in ["IterableDataFormatBase"]:
+        #     return
         ALL_DATA_FORMATS.append(cls)
 
     @classmethod
@@ -56,9 +56,9 @@ class DataFormatBase(Generic[T]):
         return cls.storable
 
 
-class IterableDataFormatBase(DataFormatBase[T]):
-    inner_format: DataFormat
+# class IterableDataFormatBase(DataFormatBase[T]):
+#     inner_format: DataFormat
 
 
 DataFormat = Type[DataFormatBase]
-IterableDataFormat = Type[IterableDataFormatBase]
+# IterableDataFormat = Type[IterableDataFormatBase]

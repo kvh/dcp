@@ -1,14 +1,4 @@
 from __future__ import annotations
-from datacopy.data_copy.base import (
-    Conversion,
-    CopyRequest,
-    DataCopier,
-    StorageFormat,
-    ALL_DATA_COPIERS,
-)
-from datacopy.data_format.base import ALL_DATA_FORMATS, DataFormat
-from datacopy.storage.base import ALL_STORAGE_ENGINES, Storage, StorageEngine
-from datacopy.data_format.handler import FormatHandler
 
 import enum
 import random
@@ -29,6 +19,16 @@ from typing import (
 )
 
 import networkx as nx
+from datacopy.data_copy.base import (
+    ALL_DATA_COPIERS,
+    Conversion,
+    CopyRequest,
+    DataCopier,
+    StorageFormat,
+)
+from datacopy.data_format.base import ALL_DATA_FORMATS, DataFormat
+from datacopy.data_format.handler import FormatHandler
+from datacopy.storage.base import ALL_STORAGE_ENGINES, Storage, StorageEngine
 from loguru import logger
 from sqlalchemy.orm.session import Session
 
@@ -154,7 +154,9 @@ def get_datacopy_lookup(
 def execute_copy_request(req: CopyRequest):
     conversion_path = get_datacopy_lookup(
         available_storage_engines=set(s.storage_engine for s in req.available_storages),
-    ).get_lowest_cost_path(req.conversion,)
+    ).get_lowest_cost_path(
+        req.conversion,
+    )
     if not conversion_path.edges:
         # Nothing to do?
         return
@@ -198,7 +200,9 @@ def execute_copy_request(req: CopyRequest):
 
 
 def select_storage(
-    target_storage: Storage, storages: List[Storage], storage_format: StorageFormat,
+    target_storage: Storage,
+    storages: List[Storage],
+    storage_format: StorageFormat,
 ) -> Storage:
     eng = storage_format.storage_engine
     # By default, stay on target storage if possible (minimize transfer)

@@ -1,10 +1,9 @@
 from __future__ import annotations
-from datacopy.data_copy.graph import execute_copy_request
-from datacopy.storage.base import Storage
-from datacopy.data_copy.base import CopyRequest
-
 
 from cleo import Application, Command
+from datacopy.data_copy.base import CopyRequest
+from datacopy.data_copy.graph import execute_copy_request
+from datacopy.storage.base import Storage
 
 
 def make_copy_request(
@@ -19,7 +18,11 @@ def make_copy_request(
     to_storage = Storage(to_storage_url)
     to_fmt = to_storage.storage_engine.get_natural_format()
     return CopyRequest(
-        from_name, Storage(from_storage_url), to_name, to_fmt, to_storage,
+        from_name,
+        Storage(from_storage_url),
+        to_name,
+        to_fmt,
+        to_storage,
     )
 
 

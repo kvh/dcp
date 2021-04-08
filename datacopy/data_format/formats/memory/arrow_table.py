@@ -1,10 +1,31 @@
 from __future__ import annotations
-from datacopy.utils.data import read_json
 
 import decimal
+from datetime import date, datetime, time
+from typing import Any, Dict, Iterable, List, Optional, Type, TypeVar, Union, cast
+
+import datacopy.storage.base as storage
+import pandas as pd
+from datacopy.data_format.base import DataFormat, DataFormatBase
+from datacopy.data_format.handler import FormatHandler
+from datacopy.utils.data import read_json
+from dateutil import parser
+from loguru import logger
+from openmodel import (
+    DEFAULT_FIELD_TYPE,
+    Boolean,
+    Date,
+    DateTime,
+    Field,
+    FieldType,
+    Float,
+    Integer,
+    Schema,
+    Time,
+)
 from openmodel.field_types import (
-    Binary,
     DEFAULT_FIELD_TYPE_CLASS,
+    Binary,
     Decimal,
     Json,
     LongBinary,
@@ -12,30 +33,7 @@ from openmodel.field_types import (
     Text,
     ensure_field_type,
 )
-from datetime import date, datetime, time
-
-from datacopy.data_format.handler import FormatHandler
-from datacopy.data_format.base import DataFormat, DataFormatBase
-from typing import Any, Dict, Iterable, List, Optional, Type, TypeVar, Union, cast
-from loguru import logger
-from dateutil import parser
-import pandas as pd
 from pandas import DataFrame
-
-import datacopy.storage.base as storage
-from openmodel import (
-    DEFAULT_FIELD_TYPE,
-    Boolean,
-    Date,
-    DateTime,
-    Float,
-    Integer,
-    Time,
-    Field,
-    FieldType,
-    Schema,
-)
-
 
 try:
     import pyarrow as pa

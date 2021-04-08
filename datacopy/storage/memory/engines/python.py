@@ -1,25 +1,25 @@
 from __future__ import annotations
-from collections import abc
-from datacopy.storage.memory.iterator import SampleableIterator
-
-from numpy import record
-from datacopy.data_format.handler import get_handler
 
 import enum
 import os
+from collections import abc
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import urlparse
 
 from datacopy.data_format.base import ALL_DATA_FORMATS, DataFormat, DataFormatBase
+from datacopy.data_format.handler import get_handler
 from datacopy.storage.base import (
     LocalPythonStorageEngine,
     NameDoesNotExistError,
     Storage,
     StorageApi,
 )
+from datacopy.storage.memory.iterator import SampleableIterator
 from datacopy.utils.common import rand_str
+from numpy import record
 
 LOCAL_PYTHON_STORAGE: Dict[str, Any] = {}  # TODO: global state...
 
@@ -55,6 +55,12 @@ class PythonStorageApi(StorageApi):
         if obj is None:
             raise NameDoesNotExistError(name)
         return obj
+
+    @contextmanager
+    def temp(self, name: str, records_obj: Any):
+        self.put(name, records_obj)
+        yield
+        self.remove(name)
 
     def remove(self, name: str):
         pth = self.get_path(name)
@@ -92,4 +98,3 @@ class PythonStorageApi(StorageApi):
 
     def remove_alias(self, alias: str):
         self.remove(alias)
-

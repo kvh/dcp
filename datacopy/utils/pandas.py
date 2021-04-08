@@ -1,11 +1,12 @@
 from __future__ import annotations
-from datacopy.utils.common import is_nullish
 
 from typing import List, Optional
 
 import pandas as pd
+from datacopy.utils.common import is_nullish
 from pandas import DataFrame, Index, Series
 from pandas._testing import assert_almost_equal
+from openmodel import Schema
 
 
 def sortable_columns(dtypes: Series) -> List[str]:

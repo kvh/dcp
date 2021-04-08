@@ -1,13 +1,4 @@
 from __future__ import annotations
-from datacopy.utils.data import conform_records_for_insert
-from datacopy.storage.database.utils import conform_columns_for_insert
-
-from openmodel.base import Schema
-from datacopy.data_format.formats.memory.records import Records
-
-from sqlalchemy.sql.ddl import CreateTable
-from datacopy import storage
-from datacopy.storage.base import StorageApi
 
 import json
 import os
@@ -15,12 +6,19 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Tuple, Type
 
 import sqlalchemy
+from datacopy import storage
+from datacopy.data_format.formats.memory.records import Records
+from datacopy.storage.base import StorageApi
+from datacopy.storage.database.utils import conform_columns_for_insert
 from datacopy.utils.common import DcpJsonEncoder
+from datacopy.utils.data import conform_records_for_insert
 from loguru import logger
+from openmodel.base import Schema
 from sqlalchemy import MetaData
 from sqlalchemy.engine import Connection, Engine, ResultProxy
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm.session import Session
+from sqlalchemy.sql.ddl import CreateTable
 
 if TYPE_CHECKING:
     pass
@@ -41,7 +39,9 @@ def dispose_all(keyword: Optional[str] = None):
 
 class DatabaseApi:
     def __init__(
-        self, url: str, json_serializer: Callable = None,
+        self,
+        url: str,
+        json_serializer: Callable = None,
     ):
         self.url = url
         self.json_serializer = (
@@ -61,7 +61,9 @@ class DatabaseApi:
         if key in _sa_engines:
             return _sa_engines[key]
         self.eng = sqlalchemy.create_engine(
-            self.url, json_serializer=self.json_serializer, echo=False,
+            self.url,
+            json_serializer=self.json_serializer,
+            echo=False,
         )
         _sa_engines[key] = self.eng
         return self.eng
@@ -152,7 +154,9 @@ class DatabaseApi:
         self.execute_sql(insert_sql)
 
     def create_table_from_sql(
-        self, name: str, sql: str,
+        self,
+        name: str,
+        sql: str,
     ):
         sql = self.clean_sub_sql(sql)
         create_sql = f"""
@@ -218,7 +222,8 @@ class DatabaseApi:
 
 class DatabaseStorageApi(DatabaseApi, StorageApi):
     def __init__(
-        self, storage: storage,
+        self,
+        storage: storage,
     ):
         super().__init__(storage.url)
         self.storage = storage

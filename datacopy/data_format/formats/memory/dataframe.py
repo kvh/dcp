@@ -1,32 +1,31 @@
 from __future__ import annotations
+
+from typing import Dict, List, Optional, Type, cast
+
+import datacopy.storage.base as storage
+import pandas as pd
+from datacopy.data_format.base import DataFormat, DataFormatBase
 from datacopy.data_format.formats.memory.records import (
     cast_python_object_to_field_type,
     select_field_type,
 )
-
-from openmodel.field_types import Binary, Decimal, Json, LongBinary, LongText, Text
-
 from datacopy.data_format.handler import FormatHandler
-from datacopy.data_format.base import DataFormat, DataFormatBase
-from typing import Dict, List, Optional, Type, cast
-from loguru import logger
 from dateutil import parser
-import pandas as pd
-from pandas import DataFrame
-
-import datacopy.storage.base as storage
+from loguru import logger
 from openmodel import (
     DEFAULT_FIELD_TYPE,
     Boolean,
     Date,
     DateTime,
-    Float,
-    Integer,
-    Time,
     Field,
     FieldType,
+    Float,
+    Integer,
     Schema,
+    Time,
 )
+from openmodel.field_types import Binary, Decimal, Json, LongBinary, LongText, Text
+from pandas import DataFrame
 
 
 class DataFrameFormat(DataFormatBase[DataFrame]):
@@ -151,4 +150,3 @@ def cast_series_to_field_type(s: pd.Series, field_type: FieldType) -> pd.Series:
         pass
     # Fall back to parsing individual values (very slow...)
     return pd.Series([cast_python_object_to_field_type(v, field_type) for v in s])
-

@@ -1,15 +1,8 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from typing import Dict, Iterator, List
 
-from loguru import logger
-from sqlalchemy.engine.base import Engine
-from datacopy.storage.database.utils import (
-    compile_jinja_sql_template,
-    conform_columns_for_insert,
-)
-from datacopy.utils.common import rand_str
-from datacopy.utils.data import conform_records_for_insert
 from datacopy.storage.database.api import (
     DatabaseApi,
     DatabaseStorageApi,
@@ -17,8 +10,14 @@ from datacopy.storage.database.api import (
     dispose_all,
     drop_db,
 )
-from typing import Dict, Iterator, List
-
+from datacopy.storage.database.utils import (
+    compile_jinja_sql_template,
+    conform_columns_for_insert,
+)
+from datacopy.utils.common import rand_str
+from datacopy.utils.data import conform_records_for_insert
+from loguru import logger
+from sqlalchemy.engine.base import Engine
 
 POSTGRES_SUPPORTED = False
 try:
@@ -76,7 +75,11 @@ def pg_execute_values(
     try:
         with conn.cursor() as curs:
             execute_values(
-                curs, sql, records, template=None, page_size=page_size,
+                curs,
+                sql,
+                records,
+                template=None,
+                page_size=page_size,
             )
         conn.commit()
     except Exception as e:

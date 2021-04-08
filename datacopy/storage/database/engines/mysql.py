@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from datacopy.storage.database.utils import conform_columns_for_insert
-from datacopy.utils.common import rand_str
-from datacopy.utils.data import conform_records_for_insert
+from typing import Dict, Iterator, List
+
 from datacopy.storage.database.api import (
     DatabaseApi,
     DatabaseStorageApi,
@@ -11,8 +10,9 @@ from datacopy.storage.database.api import (
     dispose_all,
     drop_db,
 )
-from typing import Dict, Iterator, List
-
+from datacopy.storage.database.utils import conform_columns_for_insert
+from datacopy.utils.common import rand_str
+from datacopy.utils.data import conform_records_for_insert
 
 MYSQL_SUPPORTED = False
 try:

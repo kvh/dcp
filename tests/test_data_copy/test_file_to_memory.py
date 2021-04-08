@@ -1,40 +1,36 @@
 from __future__ import annotations
-from datacopy.data_format.formats.memory.arrow_table import ArrowTableFormat
+
+import tempfile
+import warnings
+from typing import Type
+
+import pyarrow as pa
+import pytest
+from datacopy.data_copy.base import Conversion, CopyRequest, StorageFormat
+from datacopy.data_copy.copiers.to_database.memory_to_database import copy_records_to_db
+from datacopy.data_copy.copiers.to_file.memory_to_file import copy_records_to_csv_file
 from datacopy.data_copy.copiers.to_memory.file_to_memory import (
     copy_csv_file_to_records,
     copy_json_file_to_arrow,
 )
-from datacopy.data_format.handler import get_handler, get_handler_for_name
-from datacopy.utils.data import read_csv
-from datacopy.data_format.formats.file_system.csv_file import CsvFileFormat
-from datacopy.data_copy.copiers.to_file.memory_to_file import copy_records_to_csv_file
-from datacopy.data_format.formats.memory.records import RecordsFormat
-from datacopy.storage.file_system.engines.local import FileSystemStorageApi
-import tempfile
 from datacopy.data_format.formats.database.base import DatabaseTableFormat
-from datacopy.data_copy.copiers.to_database.memory_to_database import copy_records_to_db
-import warnings
-from datacopy.storage.database.api import DatabaseApi, DatabaseStorageApi
+from datacopy.data_format.formats.file_system.csv_file import CsvFileFormat
+from datacopy.data_format.formats.memory.arrow_table import ArrowTableFormat
+from datacopy.data_format.formats.memory.records import RecordsFormat
+from datacopy.data_format.handler import get_handler, get_handler_for_name
 from datacopy.storage.base import (
     DatabaseStorageClass,
     LocalPythonStorageEngine,
     Storage,
 )
-from datacopy.data_copy.base import Conversion, CopyRequest, StorageFormat
+from datacopy.storage.database.api import DatabaseApi, DatabaseStorageApi
+from datacopy.storage.file_system.engines.local import FileSystemStorageApi
 from datacopy.storage.memory.engines.python import (
     PythonStorageApi,
     new_local_python_storage,
 )
-
-from typing import Type
-
-import pytest
-from tests.utils import (
-    test_records_schema,
-    conformed_test_records,
-)
-
-import pyarrow as pa
+from datacopy.utils.data import read_csv
+from tests.utils import conformed_test_records, test_records_schema
 
 
 def test_file_to_mem():

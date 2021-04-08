@@ -1,22 +1,20 @@
 from __future__ import annotations
+from contextlib import contextmanager
 
-from enum import Enum
 from dataclasses import dataclass
+from datacopy.storage.memory.iterator import SampleableIterator
+from enum import Enum
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Type
 
-from openmodel.base import Field, Schema
-from openmodel.field_types import FieldType
-from datacopy.data_format.base import (
-    DataFormat,
-    IterableDataFormat,
-    IterableDataFormatBase,
-)
+from datacopy.data_format.base import DataFormat
 from datacopy.storage.base import (
     LocalPythonStorageEngine,
+    Storage,
     StorageClass,
     StorageEngine,
-    Storage,
 )
+from openmodel.base import Field, Schema
+from openmodel.field_types import FieldType
 
 
 class ErrorBehavior(Enum):
@@ -66,8 +64,8 @@ class FormatHandler:
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         # Excluded intermediate base classes
-        if cls.__name__ in ["IterableFormatHandler"]:
-            return
+        # if cls.__name__ in ["IterableFormatHandler"]:
+        #     return
         assert cls.for_data_formats, "Must specify data formats"
         assert (
             cls.for_storage_engines or cls.for_storage_classes
@@ -116,51 +114,76 @@ class FormatHandler:
         raise NotImplementedError
 
 
-class IterableFormatHandler(FormatHandler):
-    for_data_formats: List[IterableDataFormat]
-    for_storage_engines = [LocalPythonStorageEngine]
+# Too complex, messy
+# Just roll up iterators as chunks in-memory
+# With an "emphemeral node" or something
+# So python function can return static object or generator, and generator is stream of data blocks
+# class IterableFormatHandler(FormatHandler):
+#     for_data_formats: List[IterableDataFormat]
+#     for_storage_engines = [LocalPythonStorageEngine]
 
-    def infer_data_format(self, name: str, storage: Storage) -> Optional[DataFormat]:
-        obj = storage.get_api().get(name)
-        if isinstance(obj, Iterator):
-            for outer_df in self.for_data_formats:
-                inner_df = outer_df.inner_format
-                handler = get_handler(inner_df, storage.storage_engine)
-                fmt = handler().infer_data_format(name, storage)
-                if fmt is not None:
-                    return fmt
-        return None
+#     @property
+#     def for_data_format(self) -> IterableDataFormat:
+#         assert len(self.for_data_formats) == 1
+#         return self.for_data_formats[0]
 
-    def infer_field_names(self, name: str, storage: Storage) -> Iterable[str]:
-        raise NotImplementedError
+#     def get_inner_format(self) -> DataFormat:
+#         return self.for_data_format.inner_format
 
-    def infer_field_type(self, name, storage: Storage, field: str) -> List[Field]:
-        # For python storage and dataframe: map pd.dtypes -> ftypes
-        # For python storage and records: infer py object type
-        # For postgres storage and table: map sa types -> ftypes
-        # For S3 storage and csv: infer csv types (use arrow?)
-        raise NotImplementedError
+#     def get_inner_handler(self, storage: Storage) -> Type[FormatHandler]:
+#         handler = get_handler(self.get_inner_format(), storage.storage_engine)
+#         return handler
 
-    def cast_to_field_type(
-        self, name: str, storage: Storage, field: str, field_type: FieldType
-    ):
-        raise NotImplementedError
+#     @contextmanager
+#     def get_first_inner_object(self, name: str, storage: Storage):
+#         obj = storage.get_api().get(name)
+#         assert isinstance(obj, SampleableIterator)
+#         inner_obj = obj.get_first()
+#         inner_name = name + "__inner__"
+#         with storage.get_api().temp(inner_name, inner_obj):
+#             yield inner_name
 
-    def cast_to_schema(self, name: str, storage: Storage, schema: Schema):
-        for field in schema.fields:
-            self.cast_to_field_type(name, storage, field.name, field.field_type)
+#     def infer_data_format(self, name: str, storage: Storage) -> Optional[DataFormat]:
+#         obj = storage.get_api().get(name)
+#         if isinstance(obj, SampleableIterator):
+#             with self.get_first_inner_object(name, storage) as inner_name:
+#                 handler = self.get_inner_handler(storage)
+#                 fmt = handler().infer_data_format(inner_name, storage)
+#                 if fmt is not None:
+#                     return fmt
+#         return None
 
-    def create_empty(self, name: str, storage: Storage, schema: Schema):
-        # For python storage and dataframe: map pd.dtypes -> ftypes
-        # For python storage and records: infer py object type
-        # For postgres storage and table: map sa types -> ftypes
-        # For S3 storage and csv: infer csv types (use arrow?)
-        raise NotImplementedError
+#     def infer_field_names(self, name: str, storage: Storage) -> Iterable[str]:
+#         with self.get_first_inner_object(name, storage) as inner_name:
+#             return self.get_inner_handler(storage)().infer_field_names(inner_name, storage)
 
-    def supports(self, field_type) -> bool:
-        # For python storage and dataframe: yes to almost all (nullable ints maybe)
-        # For S3 storage and csv:
-        raise NotImplementedError
+#     def infer_field_type(self, name, storage: Storage, field: str) -> List[Field]:
+#         with self.get_first_inner_object(name, storage) as inner_name:
+#             return self.get_inner_handler(storage)().infer_field_type(inner_name, storage, field)
+
+
+#     def cast_to_field_type(
+#         self, name: str, storage: Storage, field: str, field_type: FieldType
+#     ):
+#         obj = storage.get_api().get(name)
+#         for inner_obj for obj in
+#         return (self.get_inner_handler(storage).cast_to_field_type())
+
+#     def cast_to_schema(self, name: str, storage: Storage, schema: Schema):
+#         for field in schema.fields:
+#             self.cast_to_field_type(name, storage, field.name, field.field_type)
+
+#     def create_empty(self, name: str, storage: Storage, schema: Schema):
+#         # For python storage and dataframe: map pd.dtypes -> ftypes
+#         # For python storage and records: infer py object type
+#         # For postgres storage and table: map sa types -> ftypes
+#         # For S3 storage and csv: infer csv types (use arrow?)
+#         raise NotImplementedError
+
+#     def supports(self, field_type) -> bool:
+#         # For python storage and dataframe: yes to almost all (nullable ints maybe)
+#         # For S3 storage and csv:
+#         raise NotImplementedError
 
 
 def get_handler(

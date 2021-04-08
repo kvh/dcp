@@ -1,23 +1,11 @@
 from __future__ import annotations
-from datacopy.data_format.handler import (
-    ALL_HANDLERS,
-    FormatHandler,
-    get_format_for_name,
-    get_handler,
-    get_handler_for_name,
-)
-from datacopy.data_copy.costs import DataCopyCost
-
-from openmodel.base import AnySchema, Schema
-from datacopy.data_format.base import DataFormat
-from datacopy.storage.base import Storage, StorageApi, StorageClass, StorageEngine
 
 import random
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import (
-    Any,
     TYPE_CHECKING,
+    Any,
     Callable,
     Dict,
     Iterable,
@@ -31,6 +19,17 @@ from typing import (
 )
 
 import networkx as nx
+from datacopy.data_copy.costs import DataCopyCost
+from datacopy.data_format.base import DataFormat
+from datacopy.data_format.handler import (
+    ALL_HANDLERS,
+    FormatHandler,
+    get_format_for_name,
+    get_handler,
+    get_handler_for_name,
+)
+from datacopy.storage.base import Storage, StorageApi, StorageClass, StorageEngine
+from openmodel.base import AnySchema, Schema
 
 
 @dataclass(frozen=True)
@@ -181,4 +180,3 @@ def datacopy(
         return dc
 
     return f
-

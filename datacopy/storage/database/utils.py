@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datacopy.utils.common import rand_str
 import os
 import tempfile
 from collections.abc import Generator
 from typing import Dict, Iterable, List
 
 import jinja2
+from datacopy.utils.common import rand_str
+from sqlalchemy.engine import ResultProxy, RowProxy
 
 
 def result_proxy_to_records(
@@ -28,7 +29,8 @@ def db_result_batcher(result_proxy: ResultProxy, batch_size: int = 1000) -> Gene
 
 
 def conform_columns_for_insert(
-    records: Records, columns: List[str] = None,
+    records: Records,
+    columns: List[str] = None,
 ) -> List[str]:
     if columns is None:
         assert len(records) > 0, "No records to infer columns from"

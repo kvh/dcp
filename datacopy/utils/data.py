@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-from datacopy.utils.common import DcpJsonEncoder, is_nullish, title_to_snake_case
 import decimal
 import json
 import typing
@@ -24,6 +23,7 @@ from typing import (
     Union,
 )
 
+from datacopy.utils.common import DcpJsonEncoder, is_nullish, title_to_snake_case
 from loguru import logger
 from pandas import Timestamp, isnull
 
@@ -41,7 +41,7 @@ def records_as_dict_of_lists(dl: List[Dict]) -> Dict[str, List]:
     return series
 
 
-class SnapflowCsvDialect(csv.Dialect):
+class DcpCsvDialect(csv.Dialect):
     delimiter = ","
     quotechar = '"'
     escapechar = "\\"
@@ -100,7 +100,7 @@ def with_header(iterator: Iterator[Iterable[T]]) -> Iterator[Iterable[T]]:
         yield chunk
 
 
-def read_csv(lines: Iterable[AnyStr], dialect=SnapflowCsvDialect) -> Iterator[Dict]:
+def read_csv(lines: Iterable[AnyStr], dialect=DcpCsvDialect) -> Iterator[Dict]:
     lines = ensure_strings(lines)
     reader = csv.reader(lines, dialect=dialect)
     try:
@@ -120,7 +120,7 @@ def conform_to_csv_value(v: Any) -> Any:
     if v is None:
         return ""
     if isinstance(v, list) or isinstance(v, dict):
-        return json.dumps(v, cls=SnapflowJSONEncoder)
+        return json.dumps(v, cls=DcpJSONEncoder)
     return v
 
 
@@ -129,7 +129,7 @@ def write_csv(
     file_like: IO,
     columns: List[str] = None,
     append: bool = False,
-    dialect=SnapflowCsvDialect,
+    dialect=DcpCsvDialect,
 ):
     if not records:
         return
@@ -184,86 +184,3 @@ def head(file_obj: IOBase, n: int) -> Iterator:
         yield v
         i += 1
     file_obj.seek(0)
-
-
-class SampleableIterator(Generic[T]):
-    def __init__(
-        self, iterator: typing.Iterator, iterated_values: Optional[List[T]] = None
-    ):
-        self._iterator = iterator
-        self._iterated_values: List[T] = iterated_values or []
-        self._i = 0
-        self._is_used = False
-
-    def __iter__(self) -> Iterator[T]:
-        if self._is_used:
-            raise Exception("Iterator already used")  # TODO: better exception
-        for v in self._iterated_values:
-            yield v
-        for v in self._iterator:
-            self._is_used = True
-            yield v
-
-    # def __next__(self) -> T:
-    #     if self._i < len(self._iterated_values) - 1:
-    #         self._i += 1
-    #         return self._iterated_values[i]
-    #     nxt = next(self._iterator)
-    #     self._iterated_values.append(nxt)
-    #     self._i += 1
-    #     return nxt
-
-    def get_first(self) -> Optional[T]:
-        return next(self.head(1), None)
-
-    def copy(self) -> SampleableIterator[T]:
-        logger.warning("Copying an iterator, this requires bringing it into memory.")
-        self._iterator, it2 = tee(self._iterator, 2)
-        return SampleableIterator(it2, self._iterated_values)
-
-    def head(self, n: int) -> Iterator[T]:
-        from snapflow.storage.data_records import wrap_records_object
-
-        if n < 1:
-            return
-        i = 0
-        for v in self._iterated_values:
-            yield v
-            i += 1
-            if i >= n:
-                return
-        for v in self._iterator:
-            # Important: we are uncovering a new records object potentially
-            # so we must wrap it immediately
-            wrapped_v = wrap_records_object(v)
-            self._iterated_values.append(wrapped_v)
-            yield wrapped_v
-            i += 1
-            if i >= n:
-                return
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._iterator, name)
-
-
-class SampleableIO(SampleableIterator):
-    def __init__(self, file_obj: IOBase):
-        super().__init__(file_obj)
-
-    def copy(self) -> SampleableIterator[T]:
-        logger.warning("Cannot copy file object, reusing existing")
-        return self
-
-
-class SampleableCursor(SampleableIterator):
-    def __init__(self, cursor: ResultProxy):
-        super().__init__(cursor)
-
-    def copy(self) -> SampleableIterator[T]:
-        logger.warning("Cannot copy cursor object, reusing existing")
-        return self
-
-
-class SampleableGenerator(SampleableIterator):
-    def __init__(self, gen: Generator):
-        super().__init__(gen)

@@ -1,6 +1,14 @@
 from __future__ import annotations
+
+import decimal
 import traceback
-from datacopy.utils.data import read_json
+from datetime import date, datetime, time
+from typing import Any, Dict, Iterable, List, Optional, Type, Union, cast
+
+import datacopy.storage.base as storage
+import pandas as pd
+from datacopy.data_format.base import DataFormat, DataFormatBase
+from datacopy.data_format.handler import FormatHandler
 from datacopy.utils.common import (
     ensure_bool,
     ensure_date,
@@ -10,8 +18,21 @@ from datacopy.utils.common import (
     is_nullish,
     is_numberish,
 )
-
-import decimal
+from datacopy.utils.data import read_json
+from dateutil import parser
+from loguru import logger
+from openmodel import (
+    DEFAULT_FIELD_TYPE,
+    Boolean,
+    Date,
+    DateTime,
+    Field,
+    FieldType,
+    Float,
+    Integer,
+    Schema,
+    Time,
+)
 from openmodel.field_types import (
     Binary,
     Decimal,
@@ -21,29 +42,7 @@ from openmodel.field_types import (
     Text,
     ensure_field_type,
 )
-from datetime import date, datetime, time
-
-from datacopy.data_format.handler import FormatHandler
-from datacopy.data_format.base import DataFormat, DataFormatBase
-from typing import Any, Dict, Iterable, List, Optional, Type, Union, cast
-from loguru import logger
-from dateutil import parser
-import pandas as pd
 from pandas import DataFrame
-
-import datacopy.storage.base as storage
-from openmodel import (
-    DEFAULT_FIELD_TYPE,
-    Boolean,
-    Date,
-    DateTime,
-    Float,
-    Integer,
-    Time,
-    Field,
-    FieldType,
-    Schema,
-)
 
 Records = List[Dict[str, Any]]
 
@@ -60,8 +59,13 @@ class PythonRecordsHandler(FormatHandler):
     def infer_data_format(self, name, storage) -> Optional[DataFormat]:
         obj = storage.get_api().get(name)
         if isinstance(obj, list):
-            if len(obj) > 0 and isinstance(obj[0], dict):
-                return RecordsFormat
+            if len(obj) > 0:
+                if isinstance(obj[0], dict):
+                    return RecordsFormat
+                else:
+                    return None
+            # If empty list, default to records format
+            return RecordsFormat
         return None
 
     # TODO: get sample

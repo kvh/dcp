@@ -1,34 +1,34 @@
 from __future__ import annotations
 
-from sqlalchemy.sql.ddl import CreateTable
+from typing import Any, Dict, List, Optional, Type, TypeVar, cast
+
+import datacopy.storage.base as storage
+import pandas as pd
+import sqlalchemy as sa
+import sqlalchemy.types as satypes
+from datacopy.data_format.base import DataFormat, DataFormatBase
 from datacopy.data_format.formats.memory.records import (
     cast_python_object_to_field_type,
     select_field_type,
 )
-import sqlalchemy as sa
-import sqlalchemy.types as satypes
-from openmodel.field_types import Binary, Decimal, Json, LongBinary, LongText, Text
 from datacopy.data_format.handler import FormatHandler
-from datacopy.data_format.base import DataFormat, DataFormatBase
-from typing import Any, Dict, List, Optional, Type, TypeVar, cast
-from loguru import logger
 from dateutil import parser
-import pandas as pd
-from pandas import DataFrame
-
-import datacopy.storage.base as storage
+from loguru import logger
 from openmodel import (
     DEFAULT_FIELD_TYPE,
     Boolean,
     Date,
     DateTime,
-    Float,
-    Integer,
-    Time,
     Field,
     FieldType,
+    Float,
+    Integer,
     Schema,
+    Time,
 )
+from openmodel.field_types import Binary, Decimal, Json, LongBinary, LongText, Text
+from pandas import DataFrame
+from sqlalchemy.sql.ddl import CreateTable
 
 CsvFile = TypeVar("CsvFile")
 
