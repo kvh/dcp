@@ -169,7 +169,7 @@ def get_copy_path(req: CopyRequest) -> Optional[CopyPath]:
 
 def execute_copy_request(req: CopyRequest) -> CopyResult:
     copy_path = get_copy_path(req)
-    if not copy_path or not copy_path.edges:
+    if copy_path is None:
         # Nothing to do?
         return CopyResult(request=req, copy_path=copy_path, intermediate_created=[])
     return execute_copy_path(req, copy_path)
@@ -181,6 +181,17 @@ def execute_copy_path(original_req: CopyRequest, pth: CopyPath):
     prev_name: str = original_req.from_name
     prev_format: DataFormat = None
     n = len(pth.edges)
+    if n == 0:
+        # TODO: handle copy between identical StorageFormats
+        # No copy required, BUT may need an alias
+        if original_req.from_name != original_req.to_name:
+            if original_req.from_storage.url != original_req.to_storage.url:
+                raise NotImplementedError(
+                    "Copy between same StorageFormats not supported yet"
+                )
+            original_req.from_storage_api.create_alias(
+                original_req.from_name, original_req.to_name
+            )
     created = []
     for i, conversion_edge in enumerate(pth.edges):
         conversion = conversion_edge.conversion

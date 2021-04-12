@@ -50,7 +50,7 @@ class PythonStorageApi(StorageApi):
         pth = self.get_path(name)
         obj = LOCAL_PYTHON_STORAGE.get(pth)
         if obj is None:
-            raise NameDoesNotExistError(name)
+            raise NameDoesNotExistError(f"{name} on {self.storage}")
         return obj
 
     @contextmanager

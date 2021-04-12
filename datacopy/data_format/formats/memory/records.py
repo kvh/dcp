@@ -74,7 +74,10 @@ class PythonRecordsHandler(FormatHandler):
         assert isinstance(records, list)
         if not records:
             return []
-        return list(records[0].keys())
+        names = set()
+        for r in records[:100]:
+            names |= set(r.keys())
+        return list(names)
 
     def infer_field_type(
         self, name: str, storage: storage.Storage, field: str
