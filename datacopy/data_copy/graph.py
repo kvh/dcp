@@ -202,7 +202,7 @@ def execute_copy_path(original_req: CopyRequest, pth: CopyPath):
             target_storage_format,
         )
         logger.debug(
-            f"CONVERSION: {conversion.from_storage_format} -> {conversion.to_storage_format}"
+            f"Copy: {conversion.from_storage_format} -> {conversion.to_storage_format}"
         )
         if i == n - 1:
             to_name = original_req.to_name
@@ -219,12 +219,13 @@ def execute_copy_path(original_req: CopyRequest, pth: CopyPath):
             delete_intermediate=original_req.delete_intermediate,
         )
         conversion_edge.copier.copy(edge_req)
-        if i >= 1 and original_req.delete_intermediate:
-            # If not first conversion (we don't want to delete original source)
-            edge_req.from_storage_api.remove(prev_name)
-        else:
-            # If not deleting previous (and not source) than add as created
-            created.append((prev_name, prev_storage, prev_format))
+        if i >= 2:
+            if original_req.delete_intermediate:
+                # If not first conversion (we don't want to delete original source)
+                edge_req.from_storage_api.remove(prev_name)
+            else:
+                # If not deleting previous (and not source) than add as created
+                created.append((prev_name, prev_storage, prev_format))
         prev_name = to_name
         prev_storage = next_storage
         prev_format = edge_req.get_to_format()
