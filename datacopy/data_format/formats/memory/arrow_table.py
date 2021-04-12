@@ -147,16 +147,23 @@ def arrow_type_to_field_type(arrow_type: str) -> FieldType:
 
 def field_type_to_arrow_type(field_type: FieldType) -> pa.DataType:
     types = {
-        Boolean: pa.bool_(),
-        Integer: pa.int64(),
-        Float: pa.float64(),
-        Decimal: pa.decimal128(),
-        Binary: pa.binary(),
-        LongBinary: pa.large_binary(),
-        Text: pa.utf8(),
-        LongText: pa.large_utf8(),
-        Time: pa.time64(),
-        Date: pa.date32(),
-        DateTime: pa.timestamp64(),
+        Boolean: pa.bool_,
+        Integer: pa.int64,
+        Float: pa.float64,
+        Decimal: pa.decimal128,
+        Binary: pa.binary,
+        LongBinary: pa.large_binary,
+        Text: pa.utf8,
+        LongText: pa.large_utf8,
+        Time: pa.time64,
+        Date: pa.date32,
+        DateTime: pa.timestamp,
     }
-    return types[type(field_type)]
+    pa_type = types[type(field_type)]
+    if pa_type == pa.decimal128:
+        pdt = pa_type(**field_type.get_parameters())
+    elif pa_type in (pa.time64, pa.timestamp):
+        pdt = pa_type("us")
+    else:
+        pdt = pa_type()
+    return pdt

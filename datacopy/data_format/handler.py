@@ -1,19 +1,19 @@
 from __future__ import annotations
-from contextlib import contextmanager
 
+from contextlib import contextmanager
 from dataclasses import dataclass
-from datacopy.data_format.inference import generate_auto_schema
-from datacopy.storage.memory.iterator import SampleableIterator
 from enum import Enum
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Type
 
 from datacopy.data_format.base import DataFormat
+from datacopy.data_format.inference import generate_auto_schema
 from datacopy.storage.base import (
     LocalPythonStorageEngine,
     Storage,
     StorageClass,
     StorageEngine,
 )
+from datacopy.storage.memory.iterator import SampleableIterator
 from openmodel.base import Field, Schema
 from openmodel.field_types import FieldType
 
@@ -107,6 +107,9 @@ class FormatHandler:
             self.cast_to_field_type(name, storage, field.name, field.field_type)
 
     def create_empty(self, name: str, storage: Storage, schema: Schema):
+        """
+        Throws error if exists
+        """
         # For python storage and dataframe: map pd.dtypes -> ftypes
         # For python storage and records: infer py object type
         # For postgres storage and table: map sa types -> ftypes
@@ -196,7 +199,8 @@ class FormatHandler:
 
 
 def get_handler(
-    data_format: DataFormat, storage_engine: Type[StorageEngine],
+    data_format: DataFormat,
+    storage_engine: Type[StorageEngine],
 ) -> Type[FormatHandler]:
     # TODO: can cache this stuff
     format_handlers = [
@@ -220,7 +224,7 @@ def get_handler(
     )
 
 
-def get_format_for_name(name: str, storage: Storage) -> DataFormat:
+def infer_format_for_name(name: str, storage: Storage) -> DataFormat:
     format_handlers = get_handlers_for_storage(storage)
     for handler in format_handlers:
         fmt = handler().infer_data_format(name, storage)
@@ -230,7 +234,7 @@ def get_format_for_name(name: str, storage: Storage) -> DataFormat:
 
 
 def get_handler_for_name(name: str, storage: Storage) -> Type[FormatHandler]:
-    return get_handler(get_format_for_name(name, storage), storage.storage_engine)
+    return get_handler(infer_format_for_name(name, storage), storage.storage_engine)
 
 
 def get_handlers_for_storage(storage: Storage) -> List[Type[FormatHandler]]:
@@ -243,43 +247,6 @@ def get_handlers_for_storage(storage: Storage) -> List[Type[FormatHandler]]:
     return format_handlers
 
 
-def infer_data_format(name: str, storage: Storage) -> Optional[DataFormat]:
-    pass
-
-
-# @format_handler(
-#     for_data_formats=[DataFrameFormat],
-#     for_storage_engines=[storage.LocalPythonStorageEngine],
-# )
-# class PythonDataframeHandler:
-#     def infer_field_names(self, name, storage) -> List[str]:
-#         pass
-
-#     def infer_field_type(self, name, storage, field) -> List[Field]:
-#         mro = storage.get_api().get(name)
-#         df = mro.records_object
-#         cast(DataFrame, df)
-#         series = df[field]
-#         ft = pandas_series_to_field_type(series)
-#         return ft
-#         # For python storage and dataframe: map pd.dtypes -> ftypes
-#         # For python storage and records: infer py object type
-#         # For postgres storage and table: map sa types -> ftypes
-#         # For S3 storage and csv: infer csv types (use arrow?)
-
-#     def cast_operation_for_field_type(
-#         self, name, storage, field, field_type, cast_level
-#     ):
-#         pass
-
-#     def create_empty(self, name, storage, schema):
-#         # For python storage and dataframe: map pd.dtypes -> ftypes
-#         # For python storage and records: infer py object type
-#         # For postgres storage and table: map sa types -> ftypes
-#         # For S3 storage and csv: infer csv types (use arrow?)
-#         pass
-
-#     def supports(self, field_type) -> bool:
-#         # For python storage and dataframe: yes to almost all (nullable ints maybe)
-#         # For S3 storage and csv:
-#         pass
+# def infer_data_format(name: str, storage: Storage) -> Optional[DataFormat]:
+#     # TODO
+#     raise NotImplementedError

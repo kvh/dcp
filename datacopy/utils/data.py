@@ -120,7 +120,7 @@ def conform_to_csv_value(v: Any) -> Any:
     if v is None:
         return ""
     if isinstance(v, list) or isinstance(v, dict):
-        return json.dumps(v, cls=DcpJSONEncoder)
+        return json.dumps(v, cls=DcpJsonEncoder)
     return v
 
 
@@ -153,7 +153,7 @@ def read_json(j: str) -> Union[Dict, List]:
 
 
 def conform_records_for_insert(
-    records: Records,
+    records: List[Dict],
     columns: List[str],
     adapt_objects_to_json: bool = True,
     conform_datetimes: bool = True,

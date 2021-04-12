@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import pandas as pd
 from datacopy.utils.common import is_nullish
+from openmodel import Schema
 from pandas import DataFrame, Index, Series
 from pandas._testing import assert_almost_equal
-from openmodel import Schema
 
 
 def sortable_columns(dtypes: Series) -> List[str]:
@@ -55,7 +55,7 @@ def empty_dataframe_for_schema(schema: Schema) -> DataFrame:
 #     return conform_dataframe_to_schema(df, schema)
 
 
-def dataframe_to_records(df: DataFrame) -> Records:
+def dataframe_to_records(df: DataFrame) -> List[Dict]:
     # TODO
     for c in df:
         dfc = df[c].astype(object)

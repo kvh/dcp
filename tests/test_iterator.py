@@ -1,5 +1,5 @@
-from datacopy.storage.memory.iterator import SampleableIterator
 import pytest
+from datacopy.storage.memory.iterator import SampleableIterator
 
 
 def test_sampleable_iterator():
@@ -17,4 +17,3 @@ def test_sampleable_iterator():
     with pytest.raises(Exception):
         # Raises because out of sample, iterator already exhausted
         assert list(si) == list(range(20))
-

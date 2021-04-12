@@ -29,8 +29,8 @@ from datacopy.data_copy.base import (
 from datacopy.data_format.base import ALL_DATA_FORMATS, DataFormat
 from datacopy.data_format.handler import FormatHandler
 from datacopy.storage.base import ALL_STORAGE_ENGINES, Storage, StorageEngine
+from datacopy.utils.common import rand_str
 from loguru import logger
-from sqlalchemy.orm.session import Session
 
 
 @dataclass(frozen=True)
@@ -151,36 +151,58 @@ def get_datacopy_lookup(
     )
 
 
-def execute_copy_request(req: CopyRequest):
-    conversion_path = get_datacopy_lookup(
+def get_copy_path(req: CopyRequest) -> Optional[CopyPath]:
+    copy_path = get_datacopy_lookup(
         available_storage_engines=set(
             s.storage_engine for s in req.get_available_storages()
         ),
-    ).get_lowest_cost_path(req.conversion,)
-    if not conversion_path.edges:
+    ).get_lowest_cost_path(req.conversion)
+    return copy_path
+
+
+def execute_copy_request(req: CopyRequest):
+    copy_path = get_copy_path(req)
+    if not copy_path or not copy_path.edges:
         # Nothing to do?
         return
-    prev_storage = req.from_storage
+    return execute_copy_path(req, copy_path)
+
+
+def execute_copy_path(original_req: CopyRequest, pth: CopyPath):
+    prev_storage = original_req.from_storage
     next_storage: Optional[Storage] = None
-    prev_name: str = req.from_name
-    for conversion_edge in conversion_path.edges:
+    prev_name: str = original_req.from_name
+    n = len(pth.edges)
+    for i, conversion_edge in enumerate(pth.edges):
         conversion = conversion_edge.conversion
         target_storage_format = conversion.to_storage_format
         next_storage = select_storage(
-            req.to_storage, req.get_available_storages(), target_storage_format
+            original_req.to_storage,
+            original_req.get_available_storages(),
+            target_storage_format,
         )
         logger.debug(
             f"CONVERSION: {conversion.from_storage_format} -> {conversion.to_storage_format}"
         )
+        if i == n - 1:
+            to_name = original_req.to_name
+        else:
+            to_name = f"{original_req.to_name}_{rand_str(6).lower()}"
         edge_req = CopyRequest(
-            prev_name,
-            prev_storage,
-            req.to_name,
-            conversion.to_storage_format.data_format,
-            next_storage,
-            req.get_schema(),
+            from_name=prev_name,
+            from_storage=prev_storage,
+            to_name=to_name,
+            to_storage=next_storage,
+            to_format=conversion.to_storage_format.data_format,
+            schema=original_req.get_schema(),
+            if_exists=original_req.if_exists,
+            delete_intermediate=original_req.delete_intermediate,
         )
         conversion_edge.copier.copy(edge_req)
+        if i >= 1 and original_req.delete_intermediate:
+            # If not first conversion (we don't want to delete original source)
+            edge_req.from_storage_api.remove(prev_name)
+
         # if (
         #     prev_sdb.data_format.is_python_format()
         #     and not prev_sdb.data_format.is_storable()
@@ -194,13 +216,15 @@ def execute_copy_request(req: CopyRequest):
         #         sess.expunge(prev_sdb)
         #     else:
         #         sess.delete(prev_sdb)
-        prev_name = req.to_name
+        prev_name = to_name
         prev_storage = next_storage
     return
 
 
 def select_storage(
-    target_storage: Storage, storages: List[Storage], storage_format: StorageFormat,
+    target_storage: Storage,
+    storages: List[Storage],
+    storage_format: StorageFormat,
 ) -> Storage:
     eng = storage_format.storage_engine
     # By default, stay on target storage if possible (minimize transfer)

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from typing import Sequence
 
-from datacopy.data_copy.base import CopyRequest, datacopy
+from datacopy.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
 from datacopy.data_copy.costs import (
     FormatConversionCost,
     MemoryToMemoryCost,
@@ -15,7 +17,7 @@ from datacopy.storage.memory.engines.python import PythonStorageApi
 from openmodel.base import Schema
 
 
-@datacopy(
+@datacopier(
     from_storage_classes=[MemoryStorageClass],
     from_data_formats=[RecordsFormat],
     to_storage_classes=[DatabaseStorageClass],
@@ -26,13 +28,11 @@ def copy_records_to_db(req: CopyRequest):
     assert isinstance(req.from_storage_api, PythonStorageApi)
     assert isinstance(req.to_storage_api, DatabaseStorageApi)
     records = req.from_storage_api.get(req.from_name)
-    req.to_format_handler.create_empty(
-        req.to_name, req.to_storage_api.storage, req.get_schema()
-    )
+    create_empty_if_not_exists(req)
     req.to_storage_api.bulk_insert_records(req.to_name, records)
 
 
-# @datacopy(
+# @datacopier(
 #     from_storage_classes=[MemoryStorageClass],
 #     from_data_formats=[RecordsIteratorFormat],
 #     to_storage_classes=[DatabaseStorageClass],

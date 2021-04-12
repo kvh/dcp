@@ -1,20 +1,14 @@
 from __future__ import annotations
 
-from io import StringIO
 from itertools import product
 
-import pandas as pd
-
-# import pyarrow as pa
 import pytest
 from datacopy.data_copy.base import Conversion, CopyRequest, StorageFormat
 from datacopy.data_copy.graph import get_datacopy_lookup
-from datacopy.storage.base import LocalPythonStorageEngine
 from datacopy.storage.memory.engines.python import (
     PythonStorageApi,
     new_local_python_storage,
 )
-from datacopy.utils.pandas import assert_dataframes_are_almost_equal
 from tests.test_data_format import assert_objects_equal
 from tests.utils import dff, rf, test_records_schema
 
@@ -23,7 +17,8 @@ to_formats = [rf, dff]  # , af]
 
 
 @pytest.mark.parametrize(
-    "from_fmt,to_fmt", product(from_formats, to_formats),
+    "from_fmt,to_fmt",
+    product(from_formats, to_formats),
 )
 def test_mem_to_mem(from_fmt, to_fmt):
     from_fmt, obj = from_fmt
@@ -35,7 +30,7 @@ def test_mem_to_mem(from_fmt, to_fmt):
     from_name = "_from_test"
     to_name = "_to_test"
     mem_api.put(from_name, obj())
-    req = CopyRequest(from_name, s, to_name, to_fmt, s, test_records_schema)
+    req = CopyRequest(from_name, s, to_name, s, to_fmt, test_records_schema)
     pth = get_datacopy_lookup().get_lowest_cost_path(req.conversion)
     assert pth is not None
     for i, ce in enumerate(pth.edges):

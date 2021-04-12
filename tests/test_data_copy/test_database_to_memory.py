@@ -40,6 +40,6 @@ def test_db_to_mem(url):
         db_s = Storage.from_url(db_url)
         db_api: DatabaseStorageApi = db_s.get_api()
         db_api.execute_sql(f"create table {name} as select 1 a, 2 b")
-        req = CopyRequest(name, db_s, name, RecordsFormat, mem_s, test_records_schema)
+        req = CopyRequest(name, db_s, name, mem_s, RecordsFormat, test_records_schema)
         copy_db_to_records.copy(req)
         assert mem_api.get(name) == [{"a": 1, "b": 2}]

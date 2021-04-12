@@ -23,6 +23,7 @@ from datacopy.storage.memory.engines.python import (
     PythonStorageApi,
     new_local_python_storage,
 )
+from datacopy.utils.common import rand_str
 from datacopy.utils.data import read_csv
 from tests.utils import conformed_test_records, test_records_schema
 
@@ -33,14 +34,13 @@ def test_records_to_file():
     fs_api: FileSystemStorageApi = s.get_api()
     mem_s = new_local_python_storage()
     mem_api: PythonStorageApi = mem_s.get_api()
-    name = "_test"
+    name = f"_test_{rand_str()}"
     obj = [{"f1": "hi", "f2": 2}]
     mem_api.put(name, obj)
-    req = CopyRequest(name, mem_s, name, CsvFileFormat, s, test_records_schema)
+    req = CopyRequest(name, mem_s, name, s, CsvFileFormat)
     copy_records_to_csv_file.copy(req)
     with fs_api.open(name) as f:
         recs = list(read_csv(f))
-        print(recs)
         handler = get_handler(RecordsFormat, mem_s.storage_engine)
         mem_api.put(
             "output",

@@ -1,33 +1,30 @@
-from contextlib import contextmanager
-from datacopy.data_format.handler import get_handler
 import tempfile
-from datacopy.utils.data import write_csv
-from datacopy.data_format.base import DataFormat
-from datacopy.storage.database.api import DatabaseApi
+from contextlib import contextmanager
+from itertools import product
 from typing import Iterator, Type
+
+import pytest
+from datacopy.data_copy.base import CopyRequest, NameExistsError
+from datacopy.data_copy.graph import execute_copy_request, get_copy_path
+from datacopy.data_format.base import DataFormat
+from datacopy.data_format.formats.database.base import DatabaseTableFormat
+from datacopy.data_format.formats.file_system.csv_file import CsvFileFormat
+from datacopy.data_format.formats.file_system.json_lines_file import JsonLinesFileFormat
+from datacopy.data_format.formats.memory.arrow_table import ArrowTableFormat
+from datacopy.data_format.formats.memory.dataframe import DataFrameFormat
+from datacopy.data_format.formats.memory.records import RecordsFormat
+from datacopy.data_format.handler import get_handler
 from datacopy.storage.base import (
     DatabaseStorageClass,
     FileSystemStorageClass,
     MemoryStorageClass,
     Storage,
 )
-from datacopy.data_copy.base import CopyRequest
-from datacopy.data_copy.graph import execute_copy_request
-from itertools import product
-import pytest
-
-from contextlib import contextmanager
-
-from datacopy.data_format.formats.memory.arrow_table import ArrowTableFormat
-from datacopy.data_format.formats.memory.dataframe import DataFrameFormat
-from datacopy.data_format.formats.memory.records import RecordsFormat
-from datacopy.data_format.formats.file_system.json_lines_file import JsonLinesFileFormat
-from datacopy.data_format.formats.file_system.csv_file import CsvFileFormat
-from datacopy.data_format.formats.database.base import DatabaseTableFormat
+from datacopy.storage.database.api import DatabaseApi
 from datacopy.utils.common import rand_str, to_json
+from datacopy.utils.data import write_csv
 
 from ..utils import get_test_records_for_format, test_records, test_records_schema
-
 
 dr = tempfile.gettempdir()
 python_url = f"python://{rand_str(10)}/"
@@ -82,11 +79,14 @@ def make_database_storage(storage: Storage) -> Iterator[Storage]:
         yield Storage(db_url)
 
 
+existence_options = ["error", "append", "replace"]
+
+
 @pytest.mark.parametrize(
-    "from_storage_fmt,to_storage_fmt",
-    product(all_storage_formats, all_storage_formats),
+    "from_storage_fmt,to_storage_fmt,if_exists",
+    product(all_storage_formats, all_storage_formats, existence_options),
 )
-def test_copy(from_storage_fmt, to_storage_fmt):
+def test_copy(from_storage_fmt, to_storage_fmt, if_exists):
     if from_storage_fmt == to_storage_fmt:
         return
     with make_storage(from_storage_fmt[0]) as from_storage:
@@ -98,8 +98,18 @@ def test_copy(from_storage_fmt, to_storage_fmt):
                 from_name,
                 from_storage,
                 to_name,
-                to_storage_fmt[1],
                 to_storage,
+                to_format=to_storage_fmt[1],
                 available_storages=[Storage(python_url)],
+                if_exists=if_exists,
             )
+            pth = get_copy_path(req)
+            assert 1 <= len(pth.edges) <= 4  # Bring this 4 down!
             execute_copy_request(req)
+            if if_exists == "error":
+                with pytest.raises(NameExistsError):
+                    execute_copy_request(req)
+            elif if_exists == "append":
+                execute_copy_request(req)
+            elif if_exists == "replace":
+                execute_copy_request(req)

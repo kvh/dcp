@@ -7,12 +7,12 @@ from typing import Dict, Iterable, List
 
 import jinja2
 from datacopy.utils.common import rand_str
-from sqlalchemy.engine import ResultProxy, RowProxy
+from sqlalchemy.engine import Result, Row
 
 
 def result_proxy_to_records(
-    result_proxy: ResultProxy, rows: Iterable[RowProxy] = None
-) -> Records:
+    result_proxy: Result, rows: Iterable[Row] = None
+) -> List[Dict]:
     if not result_proxy:
         return []
     if not rows:
@@ -20,7 +20,7 @@ def result_proxy_to_records(
     return [{k: v for k, v in zip(result_proxy.keys(), row)} for row in rows]
 
 
-def db_result_batcher(result_proxy: ResultProxy, batch_size: int = 1000) -> Generator:
+def db_result_batcher(result_proxy: Result, batch_size: int = 1000) -> Generator:
     while True:
         rows = result_proxy.fetchmany(batch_size)
         yield result_proxy_to_records(result_proxy, rows)
@@ -29,7 +29,7 @@ def db_result_batcher(result_proxy: ResultProxy, batch_size: int = 1000) -> Gene
 
 
 def conform_columns_for_insert(
-    records: Records,
+    records: List[Dict],
     columns: List[str] = None,
 ) -> List[str]:
     if columns is None:

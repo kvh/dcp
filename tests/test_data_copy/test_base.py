@@ -51,7 +51,7 @@
 
 
 # def test_data_copy_decorator():
-#     @datacopy(cost=NoOpCost, unregistered=True)
+#     @datacopier(cost=NoOpCost, unregistered=True)
 #     def copy(*args):
 #         pass
 
@@ -59,13 +59,13 @@
 
 
 # def test_data_copy_lookup():
-#     @datacopy(
+#     @datacopier(
 #         cost=NoOpCost, from_storage_classes=[FileSystemStorageClass], unregistered=True
 #     )
 #     def noop_all(*args):
 #         pass
 
-#     @datacopy(
+#     @datacopier(
 #         from_storage_classes=[DatabaseStorageClass],
 #         from_data_formats=[DatabaseTableFormat],
 #         to_storage_classes=[MemoryStorageClass],

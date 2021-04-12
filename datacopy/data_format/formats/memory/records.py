@@ -288,7 +288,9 @@ class DecimalHelper(FieldTypeHelper):
 
 ### TODO: binary types
 
+
 LONG_TEXT = 2 ** 16
+
 
 ### String types
 class TextHelper(FieldTypeHelper):
@@ -311,7 +313,7 @@ class TextHelper(FieldTypeHelper):
         if len(s) >= LONG_TEXT:
             raise NotImplementedError
             # TODO: cast exceptions?
-            raise CastWouldCauseDataLossException(self, obj)
+            # raise CastWouldCauseDataLossException(self, obj)
         return s
 
 

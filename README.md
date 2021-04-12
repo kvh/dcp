@@ -93,7 +93,6 @@ with Storage('file:///tmp/dcp').get_api().open('records') as f:
 datacopy.copy(
     from_name='records',
     from_storage='file:///tmp/dcp/',
-    to_format='table',
     to_storage='postgres://localhost:5432/mydb'
 )
 
@@ -104,7 +103,6 @@ print(data_format)
 datacopy.copy(
     from_name='records',
     from_storage='file:///tmp/dcp/',
-    to_format='table',
     to_storage='postgres://localhost:5432/mydb'
     fields=fields,
     cast_level='strict',

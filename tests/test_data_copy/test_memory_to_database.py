@@ -45,7 +45,7 @@ def test_records_to_db(url):
         # Records
         mem_api.put(name, conformed_test_records)
         req = CopyRequest(
-            name, mem_s, name, DatabaseTableFormat, db_s, test_records_schema
+            name, mem_s, name, db_s, DatabaseTableFormat, test_records_schema
         )
         copy_records_to_db.copy(req)
         with db_api.execute_sql_result(f"select * from {name}") as res:

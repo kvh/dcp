@@ -20,7 +20,7 @@
 # from openmodel.base import Schema
 
 
-# @datacopy(
+# @datacopier(
 #     from_storage_classes=[FileSystemStorageClass],
 #     from_data_formats=[CsvFileFormat],
 #     to_storage_classes=[DatabaseStorageClass],

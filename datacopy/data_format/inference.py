@@ -1,5 +1,5 @@
-from openmodel.base import Schema
 from datacopy.utils.common import rand_str
+from openmodel.base import Schema
 
 
 def generate_auto_schema(fields, **kwargs) -> Schema:

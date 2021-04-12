@@ -9,8 +9,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import urlparse
 
-from datacopy.data_format.base import ALL_DATA_FORMATS, DataFormat, DataFormatBase
-from datacopy.data_format.handler import get_handler
 from datacopy.storage.base import (
     LocalPythonStorageEngine,
     NameDoesNotExistError,
@@ -80,11 +78,11 @@ class PythonStorageApi(StorageApi):
         return pth in LOCAL_PYTHON_STORAGE
 
     def record_count(self, name: str) -> Optional[int]:
-        obj = self.get(name)
+        # obj = self.get(name)
+        # get_record_count(
+        #     obj
+        # )  # TODO: going in circles? this would be a handler thing -> infer format -> get cnt
         raise NotImplementedError
-        get_record_count(
-            obj
-        )  # TODO: going in circles? this would be a handler thing -> infer format -> get cnt
 
     def copy(self, name: str, to_name: str):
         obj = self.get(name)

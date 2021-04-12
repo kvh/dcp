@@ -21,8 +21,8 @@ def make_copy_request(
         from_name,
         Storage(from_storage_url),
         to_name,
-        to_fmt,
         to_storage,
+        to_fmt,
     )
 
 
@@ -39,7 +39,7 @@ class DcpCommand(Command):
     def handle(self):
         from_url = self.argument("from")
         to_url = self.argument("to")
-        cast = self.option("cast")
+        # cast = self.option("cast")
         req: CopyRequest = make_copy_request(from_url, to_url)
 
         self.line(

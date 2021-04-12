@@ -1,7 +1,7 @@
 from __future__ import annotations
-import json
 
-from typing import Any, Dict, List, Type, TypeVar, cast
+import json
+from typing import Any, Dict, List, Optional, Type, TypeVar, cast
 
 import datacopy.storage.base as storage
 import pandas as pd
@@ -50,9 +50,9 @@ class JsonLinesFileHandler(FormatHandler):
             return JsonLinesFileFormat
         # TODO: how hacky is this? very
         with storage.get_api().open(name) as f:
-            l = f.readline()
+            ln = f.readline()
             try:
-                json.loads(l)
+                json.loads(ln)
                 return JsonLinesFileFormat
             except json.JSONDecodeError:
                 pass
@@ -60,8 +60,8 @@ class JsonLinesFileHandler(FormatHandler):
 
     def infer_field_names(self, name, storage) -> List[str]:
         with storage.get_api().open(name) as f:
-            l = f.readline()
-            return [k for k in json.loads(l).keys()]
+            ln = f.readline()
+            return [k for k in json.loads(ln).keys()]
 
     def infer_field_type(
         self, name: str, storage: storage.Storage, field: str
@@ -77,6 +77,6 @@ class JsonLinesFileHandler(FormatHandler):
         pass
 
     def create_empty(self, name, storage, schema: Schema):
-        # Not sure you'd really ever want to do this?
-        with storage.get_api().open(name, "w") as f:
+        # Just "touch"
+        with storage.get_api().open(name, "w"):
             pass

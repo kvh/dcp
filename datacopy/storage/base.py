@@ -4,7 +4,7 @@ import enum
 import os
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
 from urllib.parse import urlparse
 
 if TYPE_CHECKING:
@@ -174,6 +174,12 @@ class Storage:
         return get_engine_for_scheme(parsed.scheme)
 
 
+def ensure_storage(s: Union[Storage, str]) -> Storage:
+    if isinstance(s, str):
+        s = Storage.from_url(s)
+    return s
+
+
 class NameDoesNotExistError(Exception):
     pass
 
@@ -183,6 +189,9 @@ class StorageApi:
         self.storage = storage
 
     def exists(self, name: str) -> bool:
+        raise NotImplementedError
+
+    def remove(self, name: str):
         raise NotImplementedError
 
     def record_count(self, name: str) -> Optional[int]:

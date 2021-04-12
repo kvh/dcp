@@ -1,9 +1,9 @@
-from datacopy.data_format.formats.memory.arrow_table import ArrowTableFormat
 from typing import TypeVar
 
 import pandas as pd
-from datacopy.data_copy.base import CopyRequest, datacopy
+from datacopy.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
 from datacopy.data_copy.costs import FormatConversionCost, MemoryToMemoryCost
+from datacopy.data_format.formats.memory.arrow_table import ArrowTableFormat
 from datacopy.data_format.formats.memory.dataframe import DataFrameFormat
 from datacopy.data_format.formats.memory.records import Records, RecordsFormat
 from datacopy.storage.base import MemoryStorageClass, StorageApi
@@ -16,7 +16,7 @@ except ImportError:
     pa = TypeVar("pa")
 
 
-@datacopy(
+@datacopier(
     from_storage_classes=[MemoryStorageClass],
     from_data_formats=[RecordsFormat],
     to_storage_classes=[MemoryStorageClass],
@@ -28,7 +28,9 @@ def copy_records_to_df(req: CopyRequest):
     assert isinstance(req.to_storage_api, PythonStorageApi)
     records_object = req.from_storage_api.get(req.from_name)
     df = pd.DataFrame(records_object)
-    req.to_storage_api.put(req.to_name, df)
+    create_empty_if_not_exists(req)
+    existing_df = req.to_storage_api.get(req.to_name)
+    req.to_storage_api.put(req.to_name, pd.concat([existing_df, df]))
     # Does this belong here? Or is this a separate step?
     # The copier is responsible for preserving logical types, but not fixing mis-typed values
     # So, if the type is right in the python records, when will it NOT be right in pandas? that's
@@ -38,7 +40,7 @@ def copy_records_to_df(req: CopyRequest):
     # )
 
 
-@datacopy(
+@datacopier(
     from_storage_classes=[MemoryStorageClass],
     from_data_formats=[DataFrameFormat],
     to_storage_classes=[MemoryStorageClass],
@@ -49,15 +51,17 @@ def copy_df_to_records(req: CopyRequest):
     assert isinstance(req.from_storage_api, PythonStorageApi)
     assert isinstance(req.to_storage_api, PythonStorageApi)
     records_object = req.from_storage_api.get(req.from_name)
-    df = dataframe_to_records(records_object)
-    req.to_storage_api.put(req.to_name, df)
+    records = dataframe_to_records(records_object)
+    create_empty_if_not_exists(req)
+    existing_records = req.to_storage_api.get(req.to_name)
+    req.to_storage_api.put(req.to_name, existing_records + records)
     # Only necessary if we think there is datatype loss when converting df->records
     # req.to_format_handler.cast_to_schema(
     #     req.to_name, req.to_storage_api.storage, req.get_schema()
     # )
 
 
-# @datacopy(
+# @datacopier(
 #     from_storage_classes=[MemoryStorageClass],
 #     from_data_formats=[DataFrameIteratorFormat],
 #     to_storage_classes=[MemoryStorageClass],
@@ -76,7 +80,7 @@ def copy_df_to_records(req: CopyRequest):
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
 
-# @datacopy(
+# @datacopier(
 #     from_storage_classes=[MemoryStorageClass],
 #     from_data_formats=[RecordsIteratorFormat],
 #     to_storage_classes=[MemoryStorageClass],
@@ -95,7 +99,7 @@ def copy_df_to_records(req: CopyRequest):
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
 
-# @datacopy(
+# @datacopier(
 #     from_storage_classes=[MemoryStorageClass],
 #     from_data_formats=[RecordsIteratorFormat],
 #     to_storage_classes=[MemoryStorageClass],
@@ -116,7 +120,7 @@ def copy_df_to_records(req: CopyRequest):
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
 
-# @datacopy(
+# @datacopier(
 #     from_storage_classes=[MemoryStorageClass],
 #     from_data_formats=[DataFrameIteratorFormat],
 #     to_storage_classes=[MemoryStorageClass],
@@ -137,7 +141,7 @@ def copy_df_to_records(req: CopyRequest):
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
 
-# @datacopy(
+# @datacopier(
 #     from_storage_classes=[MemoryStorageClass],
 #     from_data_formats=[DelimitedFileObjectFormat],
 #     to_storage_classes=[MemoryStorageClass],
@@ -156,7 +160,7 @@ def copy_df_to_records(req: CopyRequest):
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
 
-# @datacopy(
+# @datacopier(
 #     from_storage_classes=[MemoryStorageClass],
 #     from_data_formats=[DelimitedFileObjectFormat],
 #     to_storage_classes=[MemoryStorageClass],
@@ -180,7 +184,7 @@ def copy_df_to_records(req: CopyRequest):
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
 
-# @datacopy(
+# @datacopier(
 #     from_storage_classes=[MemoryStorageClass],
 #     from_data_formats=[DelimitedFileObjectIteratorFormat],
 #     to_storage_classes=[MemoryStorageClass],
@@ -204,7 +208,7 @@ def copy_df_to_records(req: CopyRequest):
 #########
 
 
-@datacopy(
+@datacopier(
     from_storage_classes=[MemoryStorageClass],
     from_data_formats=[ArrowTableFormat],
     to_storage_classes=[MemoryStorageClass],
@@ -216,11 +220,13 @@ def copy_arrow_to_dataframe(req: CopyRequest):
     assert isinstance(req.to_storage_api, PythonStorageApi)
     records_object = req.from_storage_api.get(req.from_name)
     df = records_object.to_pandas()
+    create_empty_if_not_exists(req)
+    existing_df = req.to_storage_api.get(req.to_name)
     # No need to cast, should be preserved
-    req.to_storage_api.put(req.to_name, df)
+    req.to_storage_api.put(req.to_name, pd.concat([existing_df, df]))
 
 
-@datacopy(
+@datacopier(
     from_storage_classes=[MemoryStorageClass],
     from_data_formats=[DataFrameFormat],
     to_storage_classes=[MemoryStorageClass],
@@ -232,5 +238,8 @@ def copy_dataframe_to_arrow(req: CopyRequest):
     assert isinstance(req.to_storage_api, PythonStorageApi)
     records_object = req.from_storage_api.get(req.from_name)
     at = pa.Table.from_pandas(records_object)
-    # No need to cast, should be preserved
-    req.to_storage_api.put(req.to_name, at)
+    create_empty_if_not_exists(req)
+    existing_table: pa.Table = req.to_storage_api.get(req.to_name)
+    new_table = pa.Table.from_batches(existing_table.to_batches() + at.to_batches())
+    # No need to cast, should be preserved (???)
+    req.to_storage_api.put(req.to_name, new_table)

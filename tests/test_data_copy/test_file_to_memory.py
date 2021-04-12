@@ -43,14 +43,14 @@ def test_file_to_mem():
     fs_api.write_lines_to_file(name, ["f1,f2", "hi,2"])
     # Records
     records_obj = [{"f1": "hi", "f2": 2}]
-    req = CopyRequest(name, s, name, RecordsFormat, mem_s, test_records_schema)
+    req = CopyRequest(name, s, name, mem_s, RecordsFormat, test_records_schema)
     copy_csv_file_to_records.copy(req)
     assert mem_api.get(name) == records_obj
 
     # # Json lines
     name = "_json_test"
     fs_api.write_lines_to_file(name, ['{"f1":"hi","f2":2}'])
-    req = CopyRequest(name, s, name, ArrowTableFormat, mem_s, test_records_schema)
+    req = CopyRequest(name, s, name, mem_s, ArrowTableFormat, test_records_schema)
     copy_json_file_to_arrow.copy(req)
     expected = pa.Table.from_pydict({"f1": ["hi"], "f2": [2]})
     assert mem_api.get(name) == expected

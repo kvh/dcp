@@ -2,7 +2,7 @@ import json
 from typing import Iterator, TypeVar
 
 import pandas as pd
-from datacopy.data_copy.base import CopyRequest, datacopy
+from datacopy.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
 from datacopy.data_copy.costs import (
     DiskToMemoryCost,
     FormatConversionCost,
@@ -20,7 +20,7 @@ from datacopy.utils.data import write_csv
 from datacopy.utils.pandas import dataframe_to_records
 
 
-@datacopy(
+@datacopier(
     from_storage_classes=[MemoryStorageClass],
     from_data_formats=[RecordsFormat],  # , RecordsIteratorFormat],
     to_storage_classes=[FileSystemStorageClass],
@@ -34,14 +34,13 @@ def copy_records_to_csv_file(req: CopyRequest):
     records_iterator = records_object
     if not isinstance(records_object, Iterator):
         records_iterator = [records_iterator]
-    with req.to_storage_api.open(req.to_name, "w") as f:
-        append = False
+    create_empty_if_not_exists(req)
+    with req.to_storage_api.open(req.to_name, "a") as f:
         for records in records_iterator:
-            write_csv(records, f, append=append)
-            append = True
+            write_csv(records, f, append=True)  # Append because we created empty
 
 
-# @datacopy(
+# @datacopier(
 #     from_storage_classes=[MemoryStorageClass],
 #     from_data_formats=[DelimitedFileObjectFormat, DelimitedFileObjectIteratorFormat],
 #     to_storage_classes=[FileSystemStorageClass],
@@ -62,12 +61,12 @@ def copy_records_to_csv_file(req: CopyRequest):
 #             to_file.write(file_obj)
 
 
-@datacopy(
+@datacopier(
     from_storage_classes=[MemoryStorageClass],
     from_data_formats=[RecordsFormat],  # , RecordsIteratorFormat],
     to_storage_classes=[FileSystemStorageClass],
     to_data_formats=[JsonLinesFileFormat],
-    cost=DiskToMemoryCost,  # TODO: not much conversion cost, but some?
+    cost=DiskToMemoryCost,  # TODO: not much format conversion cost, but some?
 )
 def copy_records_to_json_file(req: CopyRequest):
     assert isinstance(req.from_storage_api, PythonStorageApi)
@@ -76,7 +75,9 @@ def copy_records_to_json_file(req: CopyRequest):
     records_iterator = records_object
     if not isinstance(records_object, Iterator):
         records_iterator = [records_iterator]
-    with req.to_storage_api.open(req.to_name, "w") as f:
+    create_empty_if_not_exists(req)
+    with req.to_storage_api.open(req.to_name, "a") as f:
         for records in records_iterator:
             for r in records:
-                json.dump(r, f, cls=DcpJsonEncoder)
+                s = json.dumps(r, cls=DcpJsonEncoder)
+                f.write(s + "\n")

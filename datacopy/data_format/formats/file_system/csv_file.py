@@ -50,18 +50,18 @@ class CsvFileHandler(FormatHandler):
             return CsvFileFormat
         # TODO: how hacky is this? very
         with storage.get_api().open(name) as f:
-            l = f.readline()
-            if l.startswith("{"):
+            ln = f.readline()
+            if ln.startswith("{"):
                 return None
             l2 = f.readline()
-            if len(l.split(self.delimiter)) == len(l2.split(self.delimiter)):
+            if len(ln.split(self.delimiter)) == len(l2.split(self.delimiter)):
                 return CsvFileFormat
         return None
 
     def infer_field_names(self, name, storage) -> List[str]:
         with storage.get_api().open(name) as f:
-            l = f.readline()
-            return [c.strip() for c in l.split(",")]
+            ln = f.readline()
+            return [c.strip() for c in ln.split(",")]
 
     def infer_field_type(
         self, name: str, storage: storage.Storage, field: str
@@ -79,4 +79,4 @@ class CsvFileHandler(FormatHandler):
     def create_empty(self, name, storage, schema: Schema):
         # Not sure you'd really ever want to do this?
         with storage.get_api().open(name, "w") as f:
-            f.writeline(",".join(schema.field_names()))
+            f.write(",".join(schema.field_names()) + "\n")

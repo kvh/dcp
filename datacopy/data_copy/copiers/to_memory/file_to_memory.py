@@ -1,6 +1,6 @@
 import json
 
-from datacopy.data_copy.base import CopyRequest, datacopy
+from datacopy.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
 from datacopy.data_copy.costs import (
     DiskToMemoryCost,
     FormatConversionCost,
@@ -8,7 +8,7 @@ from datacopy.data_copy.costs import (
 )
 from datacopy.data_format.formats.file_system.csv_file import CsvFileFormat
 from datacopy.data_format.formats.file_system.json_lines_file import JsonLinesFileFormat
-from datacopy.data_format.formats.memory.arrow_table import ArrowTableFormat
+from datacopy.data_format.formats.memory.arrow_table import ArrowTable, ArrowTableFormat
 from datacopy.data_format.formats.memory.dataframe import DataFrameFormat
 from datacopy.data_format.formats.memory.records import Records, RecordsFormat
 from datacopy.storage.base import FileSystemStorageClass, MemoryStorageClass, StorageApi
@@ -17,10 +17,11 @@ from datacopy.storage.memory.engines.python import PythonStorageApi
 from datacopy.utils.common import DcpJsonEncoder
 from datacopy.utils.data import read_csv, write_csv
 from datacopy.utils.pandas import dataframe_to_records
+from pyarrow import Table
 from pyarrow import json as pa_json
 
 
-@datacopy(
+@datacopier(
     from_storage_classes=[FileSystemStorageClass],
     from_data_formats=[CsvFileFormat],
     to_storage_classes=[MemoryStorageClass],
@@ -30,16 +31,18 @@ from pyarrow import json as pa_json
 def copy_csv_file_to_records(req: CopyRequest):
     assert isinstance(req.from_storage_api, FileSystemStorageApi)
     assert isinstance(req.to_storage_api, PythonStorageApi)
+    create_empty_if_not_exists(req)
+    existing_records = req.to_storage_api.get(req.to_name)
     with req.from_storage_api.open(req.from_name) as f:
         records = list(read_csv(f.readlines()))
-        req.to_storage_api.put(req.to_name, records)
+        req.to_storage_api.put(req.to_name, existing_records + records)
         # This cast step is necessary because CSVs preserve no logical type information
         req.to_format_handler.cast_to_schema(
             req.to_name, req.to_storage_api.storage, req.get_schema()
         )
 
 
-# @datacopy(
+# @datacopier(
 #     from_storage_classes=[FileSystemStorageClass],
 #     from_data_formats=[DelimitedFileFormat],
 #     to_storage_classes=[MemoryStorageClass],
@@ -62,7 +65,7 @@ def copy_csv_file_to_records(req: CopyRequest):
 #         to_storage_api.put(to_name, mdr)
 
 
-@datacopy(
+@datacopier(
     from_storage_classes=[FileSystemStorageClass],
     from_data_formats=[JsonLinesFileFormat],
     to_storage_classes=[MemoryStorageClass],
@@ -72,9 +75,14 @@ def copy_csv_file_to_records(req: CopyRequest):
 def copy_json_file_to_arrow(req: CopyRequest):
     assert isinstance(req.from_storage_api, FileSystemStorageApi)
     assert isinstance(req.to_storage_api, PythonStorageApi)
+    create_empty_if_not_exists(req)
     pth = req.from_storage_api.get_path(req.from_name)
     at = pa_json.read_json(pth)
-    req.to_storage_api.put(req.to_name, at)
+    # TODO: this will almost always break as the "read" json schema will differ from existing
+    #       may want to use ParseOptions(explicit_schema=)?
+    existing_table: Table = req.to_storage_api.get(req.to_name)
+    new_table = Table.from_batches(existing_table.to_batches() + at.to_batches())
+    req.to_storage_api.put(req.to_name, new_table)
     # This cast step is necessary because JSON preserves no logical type information
     req.to_format_handler.cast_to_schema(
         req.to_name, req.to_storage_api.storage, req.get_schema()
