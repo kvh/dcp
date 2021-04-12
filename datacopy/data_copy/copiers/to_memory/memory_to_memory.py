@@ -61,6 +61,39 @@ def copy_df_to_records(req: CopyRequest):
     # )
 
 
+# Self copy?
+@datacopier(
+    from_storage_classes=[MemoryStorageClass],
+    from_data_formats=[RecordsFormat],
+    to_storage_classes=[MemoryStorageClass],
+    to_data_formats=[RecordsFormat],
+    cost=MemoryToMemoryCost,
+)
+def copy_records_to_records(req: CopyRequest):
+    assert isinstance(req.from_storage_api, PythonStorageApi)
+    assert isinstance(req.to_storage_api, PythonStorageApi)
+    records = req.from_storage_api.get(req.from_name)
+    create_empty_if_not_exists(req)
+    existing_records = req.to_storage_api.get(req.to_name)
+    req.to_storage_api.put(req.to_name, existing_records + records)
+
+
+@datacopier(
+    from_storage_classes=[MemoryStorageClass],
+    from_data_formats=[DataFrameFormat],
+    to_storage_classes=[MemoryStorageClass],
+    to_data_formats=[DataFrameFormat],
+    cost=MemoryToMemoryCost,
+)
+def copy_df_to_df(req: CopyRequest):
+    assert isinstance(req.from_storage_api, PythonStorageApi)
+    assert isinstance(req.to_storage_api, PythonStorageApi)
+    df = req.from_storage_api.get(req.from_name)
+    create_empty_if_not_exists(req)
+    existing_df = req.to_storage_api.get(req.to_name)
+    req.to_storage_api.put(req.to_name, pd.concat([existing_df, df]))
+
+
 # @datacopier(
 #     from_storage_classes=[MemoryStorageClass],
 #     from_data_formats=[DataFrameIteratorFormat],
