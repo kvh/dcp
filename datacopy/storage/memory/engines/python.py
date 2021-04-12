@@ -78,11 +78,10 @@ class PythonStorageApi(StorageApi):
         return pth in LOCAL_PYTHON_STORAGE
 
     def record_count(self, name: str) -> Optional[int]:
-        # obj = self.get(name)
-        # get_record_count(
-        #     obj
-        # )  # TODO: going in circles? this would be a handler thing -> infer format -> get cnt
-        raise NotImplementedError
+        from datacopy.data_format.handler import get_handler_for_name
+
+        handler = get_handler_for_name(name, self.storage)
+        return handler().get_record_count(name, self.storage)
 
     def copy(self, name: str, to_name: str):
         obj = self.get(name)

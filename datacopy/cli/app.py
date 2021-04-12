@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datacopy.data_format.base import get_format_for_nickname
 
 from cleo import Application, Command
 from datacopy.data_copy.base import CopyRequest
@@ -16,13 +17,12 @@ def make_copy_request(
     from_storage_url = "/".join(from_split[:-1])
     to_storage_url = "/".join(to_split[:-1])
     to_storage = Storage(to_storage_url)
-    to_fmt = to_storage.storage_engine.get_natural_format()
+    if fmt:
+        to_fmt = get_format_for_nickname(fmt)
+    else:
+        to_fmt = to_storage.storage_engine.get_natural_format()
     return CopyRequest(
-        from_name,
-        Storage(from_storage_url),
-        to_name,
-        to_storage,
-        to_fmt,
+        from_name, Storage(from_storage_url), to_name, to_storage, to_fmt,
     )
 
 
@@ -34,13 +34,15 @@ class DcpCommand(Command):
         {from? : URL or local path of source object}
         {to? : URL or local path of destination object}
         {--c|cast : Cast level}
+        {--f|to_format : DataFormat of destination object}
     """
 
     def handle(self):
         from_url = self.argument("from")
         to_url = self.argument("to")
+        to_format = self.option("to_format")
         # cast = self.option("cast")
-        req: CopyRequest = make_copy_request(from_url, to_url)
+        req: CopyRequest = make_copy_request(from_url, to_url, fmt=to_format)
 
         self.line(
             f"Copying `{req.from_name}`"

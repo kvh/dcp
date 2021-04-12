@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import enum
-import os
-from copy import deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
 from urllib.parse import urlparse
@@ -67,6 +64,7 @@ class FileSystemStorageClass(StorageClass):
 class StorageEngine:
     storage_class: Type[StorageClass]
     schemes: List[str] = []
+    natural_format: str
 
     def __init__(self):
         raise NotImplementedError("Do not instantiate StorageEngine classes")
@@ -99,13 +97,15 @@ class StorageEngine:
 
     @classmethod
     def get_natural_format(cls) -> DataFormat:
-        raise NotImplementedError
-        # return cls.storage_class.natural_format
+        from datacopy.data_format.base import get_format_for_nickname
+
+        return get_format_for_nickname(cls.natural_format)
 
 
 class SqliteStorageEngine(StorageEngine):
     storage_class = DatabaseStorageClass
     schemes = ["sqlite"]
+    natural_format = "table"
 
     @classmethod
     def get_api_cls(cls) -> Type[StorageApi]:
@@ -117,6 +117,7 @@ class SqliteStorageEngine(StorageEngine):
 class PostgresStorageEngine(StorageEngine):
     storage_class = DatabaseStorageClass
     schemes = ["postgres", "postgresql"]
+    natural_format = "table"
 
     @classmethod
     def get_api_cls(cls) -> Type[StorageApi]:
@@ -130,6 +131,7 @@ class PostgresStorageEngine(StorageEngine):
 class MysqlStorageEngine(StorageEngine):
     storage_class = DatabaseStorageClass
     schemes = ["mysql"]
+    natural_format = "table"
 
     @classmethod
     def get_api_cls(cls) -> Type[StorageApi]:
@@ -141,11 +143,13 @@ class MysqlStorageEngine(StorageEngine):
 class LocalFileSystemStorageEngine(StorageEngine):
     storage_class = FileSystemStorageClass
     schemes = ["file"]
+    natural_format = "jsonl"  # TODO: arrow?
 
 
 class LocalPythonStorageEngine(StorageEngine):
     storage_class = MemoryStorageClass
     schemes = ["python"]
+    natural_format = "records"  # TODO: arrow?
 
 
 def get_engine_for_scheme(scheme: str) -> Type[StorageEngine]:
@@ -174,7 +178,9 @@ class Storage:
         return get_engine_for_scheme(parsed.scheme)
 
 
-def ensure_storage(s: Union[Storage, str]) -> Storage:
+def ensure_storage(s: Union[Storage, str, None]) -> Storage:
+    if s is None:
+        return None
     if isinstance(s, str):
         s = Storage.from_url(s)
     return s

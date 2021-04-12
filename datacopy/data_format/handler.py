@@ -14,7 +14,7 @@ from datacopy.storage.base import (
     StorageEngine,
 )
 from datacopy.storage.memory.iterator import SampleableIterator
-from openmodel.base import Field, Schema
+from openmodel.base import Field, Schema, SchemaTranslation
 from openmodel.field_types import FieldType
 
 
@@ -123,6 +123,15 @@ class FormatHandler:
 
     def get_record_count(self, name: str, storage: Storage) -> Optional[int]:
         # Will come directly from storage engine most of time, except python memory implemented here
+        if storage.storage_engine == LocalPythonStorageEngine:
+            obj = storage.get_api().get(name)
+            return len(obj)
+        raise NotImplementedError
+
+    def apply_schema_transation(
+        self, name: str, storage: Storage, translation: SchemaTranslation
+    ) -> Optional[int]:
+        # Will come directly from storage engine most of time, except python memory implemented here
         raise NotImplementedError
 
 
@@ -199,8 +208,7 @@ class FormatHandler:
 
 
 def get_handler(
-    data_format: DataFormat,
-    storage_engine: Type[StorageEngine],
+    data_format: DataFormat, storage_engine: Type[StorageEngine],
 ) -> Type[FormatHandler]:
     # TODO: can cache this stuff
     format_handlers = [

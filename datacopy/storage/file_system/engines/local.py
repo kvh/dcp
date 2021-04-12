@@ -3,10 +3,8 @@ from __future__ import annotations
 import os
 import shutil
 from contextlib import contextmanager
-from itertools import repeat, takewhile
 from typing import ContextManager, Generator, Iterable, Iterator, Optional, TextIO, Type
 
-from datacopy.data_format.base import DataFormat
 from datacopy.storage.base import Storage, StorageApi
 
 
@@ -74,9 +72,7 @@ class FileSystemStorageApi(StorageApi):
         shutil.copy(pth, to_pth)
 
     def write_lines_to_file(
-        self,
-        name: str,
-        lines: Iterable[str],  # TODO: support bytes?
+        self, name: str, lines: Iterable[str],  # TODO: support bytes?
     ):
         with self.open(name, "w") as f:
             f.writelines(ln + "\n" for ln in lines)

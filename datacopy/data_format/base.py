@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
-ALL_DATA_FORMATS = []
+ALL_DATA_FORMATS: List[DataFormat] = []
 
 
 class DataFormatBase(Generic[T]):
@@ -62,3 +62,10 @@ class DataFormatBase(Generic[T]):
 
 DataFormat = Type[DataFormatBase]
 # IterableDataFormat = Type[IterableDataFormatBase]
+
+
+def get_format_for_nickname(name: str) -> DataFormat:
+    for fmt in ALL_DATA_FORMATS:
+        if fmt.nickname == name:
+            return fmt
+    raise NameError(f"DataFormat '{name}' not found.")

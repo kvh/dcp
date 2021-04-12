@@ -29,7 +29,7 @@ from datacopy.data_copy.base import (
 from datacopy.data_format.base import ALL_DATA_FORMATS, DataFormat
 from datacopy.data_format.handler import FormatHandler
 from datacopy.storage.base import ALL_STORAGE_ENGINES, Storage, StorageEngine
-from datacopy.utils.common import rand_str
+from datacopy.utils.common import rand_str, to_json
 from loguru import logger
 
 
@@ -55,6 +55,13 @@ class CopyPath:
         return sum(
             c.copier.cost.total_cost(self.expected_record_count) for c in self.edges
         )
+
+
+@dataclass
+class CopyResult:
+    request: CopyRequest
+    copy_path: CopyPath
+    intermediate_created: List[Tuple[str, Storage, DataFormat]]
 
 
 class CopyLookup:
@@ -160,11 +167,11 @@ def get_copy_path(req: CopyRequest) -> Optional[CopyPath]:
     return copy_path
 
 
-def execute_copy_request(req: CopyRequest):
+def execute_copy_request(req: CopyRequest) -> CopyResult:
     copy_path = get_copy_path(req)
     if not copy_path or not copy_path.edges:
         # Nothing to do?
-        return
+        return CopyResult(request=req, copy_path=copy_path, intermediate_created=[])
     return execute_copy_path(req, copy_path)
 
 
@@ -172,7 +179,9 @@ def execute_copy_path(original_req: CopyRequest, pth: CopyPath):
     prev_storage = original_req.from_storage
     next_storage: Optional[Storage] = None
     prev_name: str = original_req.from_name
+    prev_format: DataFormat = None
     n = len(pth.edges)
+    created = []
     for i, conversion_edge in enumerate(pth.edges):
         conversion = conversion_edge.conversion
         target_storage_format = conversion.to_storage_format
@@ -202,29 +211,18 @@ def execute_copy_path(original_req: CopyRequest, pth: CopyPath):
         if i >= 1 and original_req.delete_intermediate:
             # If not first conversion (we don't want to delete original source)
             edge_req.from_storage_api.remove(prev_name)
-
-        # if (
-        #     prev_sdb.data_format.is_python_format()
-        #     and not prev_sdb.data_format.is_storable()
-        # ):
-        #     # If the records obj is in python and not storable, and we just used it, then it can be removed
-        #     # TODO: Bit of a hack. Is there a central place we can do this?
-        #     #       also is reusable a better name than storable?
-        #     prev_storage.get_api().remove(prev_sdb.get_name())
-        #     prev_sdb.data_block.stored_data_blocks.remove(prev_sdb)
-        #     if prev_sdb in sess.new:
-        #         sess.expunge(prev_sdb)
-        #     else:
-        #         sess.delete(prev_sdb)
+        else:
+            # If not deleting previous (and not source) than add as created
+            created.append((prev_name, prev_storage, prev_format))
         prev_name = to_name
         prev_storage = next_storage
-    return
+        prev_format = edge_req.get_to_format()
+    # Add final destination to created
+    return CopyResult(request=original_req, copy_path=pth, intermediate_created=created)
 
 
 def select_storage(
-    target_storage: Storage,
-    storages: List[Storage],
-    storage_format: StorageFormat,
+    target_storage: Storage, storages: List[Storage], storage_format: StorageFormat,
 ) -> Storage:
     eng = storage_format.storage_engine
     # By default, stay on target storage if possible (minimize transfer)
