@@ -128,11 +128,11 @@ class FormatHandler:
             return len(obj)
         raise NotImplementedError
 
-    def apply_schema_transation(
-        self, name: str, storage: Storage, translation: SchemaTranslation
-    ) -> Optional[int]:
-        # Will come directly from storage engine most of time, except python memory implemented here
-        raise NotImplementedError
+    # def apply_schema_translation(
+    #     self, name: str, storage: Storage, translation: SchemaTranslation
+    # ):
+    #     # Will come directly from storage engine most of time, except python memory implemented here
+    #     raise NotImplementedError
 
 
 # Too complex, messy
@@ -257,6 +257,10 @@ def get_handlers_for_storage(storage: Storage) -> List[Type[FormatHandler]]:
 
 def infer_schema_for_name(name: str, storage: Storage) -> Schema:
     return get_handler_for_name(name, storage)().infer_schema(name, storage)
+
+
+# def apply_schema_translation_for_name(name: str, storage: Storage, translation: SchemaTranslation):
+#     get_handler_for_name(name, storage)().apply_schema_translation(name, storage, translation)
 
 
 # def infer_data_format(name: str, storage: Storage) -> Optional[DataFormat]:
