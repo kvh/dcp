@@ -5,26 +5,26 @@ import warnings
 from typing import Type
 
 import pytest
-from datacopy.data_copy.base import Conversion, CopyRequest, StorageFormat
-from datacopy.data_copy.copiers.to_database.memory_to_database import copy_records_to_db
-from datacopy.data_copy.copiers.to_file.memory_to_file import copy_records_to_csv_file
-from datacopy.data_format.formats.database.base import DatabaseTableFormat
-from datacopy.data_format.formats.file_system.csv_file import CsvFileFormat
-from datacopy.data_format.formats.memory.records import RecordsFormat
-from datacopy.data_format.handler import get_handler, get_handler_for_name
-from datacopy.storage.base import (
+from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
+from dcp.data_copy.copiers.to_database.memory_to_database import copy_records_to_db
+from dcp.data_copy.copiers.to_file.memory_to_file import copy_records_to_csv_file
+from dcp.data_format.formats.database.base import DatabaseTableFormat
+from dcp.data_format.formats.file_system.csv_file import CsvFileFormat
+from dcp.data_format.formats.memory.records import RecordsFormat
+from dcp.data_format.handler import get_handler, get_handler_for_name
+from dcp.storage.base import (
     DatabaseStorageClass,
     LocalPythonStorageEngine,
     Storage,
 )
-from datacopy.storage.database.api import DatabaseApi, DatabaseStorageApi
-from datacopy.storage.file_system.engines.local import FileSystemStorageApi
-from datacopy.storage.memory.engines.python import (
+from dcp.storage.database.api import DatabaseApi, DatabaseStorageApi
+from dcp.storage.file_system.engines.local import FileSystemStorageApi
+from dcp.storage.memory.engines.python import (
     PythonStorageApi,
     new_local_python_storage,
 )
-from datacopy.utils.common import rand_str
-from datacopy.utils.data import read_csv
+from dcp.utils.common import rand_str
+from dcp.utils.data import read_csv
 from tests.utils import conformed_test_records, test_records_schema
 
 
@@ -43,8 +43,7 @@ def test_records_to_file():
         recs = list(read_csv(f))
         handler = get_handler(RecordsFormat, mem_s.storage_engine)
         mem_api.put(
-            "output",
-            recs,
+            "output", recs,
         )
         handler().cast_to_schema("output", mem_s, schema=test_records_schema)
         recs = mem_api.get("output")

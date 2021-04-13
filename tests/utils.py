@@ -5,15 +5,15 @@ from typing import Callable
 
 import pandas as pd
 import pyarrow as pa
-from datacopy.data_format.base import DataFormat
-from datacopy.data_format.formats.memory.arrow_table import ArrowTableFormat
-from datacopy.data_format.formats.memory.dataframe import DataFrameFormat
-from datacopy.data_format.formats.memory.records import (
+from dcp.data_format.base import DataFormat
+from dcp.data_format.formats.memory.arrow_table import ArrowTableFormat
+from dcp.data_format.formats.memory.dataframe import DataFrameFormat
+from dcp.data_format.formats.memory.records import (
     PythonRecordsHandler,
     RecordsFormat,
 )
 from numpy import dtype
-from openmodel.base import create_quick_schema
+from commonmodel.base import create_quick_schema
 
 #  python_sample_values
 nullish = [None, "None", "null", "none"]
@@ -49,13 +49,7 @@ test_records = [
     {"f1": "hi", "f2": 1, "f3": None, "f4": "2020-01-01", "f5": "2020-01-01 00:00:00"},
     {"f1": "bye", "f2": 2, "f3": None, "f4": "2020-01-01", "f5": "2020-01-01 00:00:00"},
     {"f1": None, "f2": 2, "f3": None, "f4": "2020-01-01", "f5": "2020-01-01 00:00:00"},
-    {
-        "f1": "bye",
-        "f2": 3,
-        "f3": None,
-        "f4": "2020-01-01",
-        "f5": "202001 bad data",
-    },
+    {"f1": "bye", "f2": 3, "f3": None, "f4": "2020-01-01", "f5": "202001 bad data",},
 ]
 conformed_test_records = []
 for r in test_records:

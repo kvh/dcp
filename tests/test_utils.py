@@ -6,15 +6,15 @@ from datetime import date, datetime, time, timedelta
 import pytest
 from numpy import NaN
 from pandas import DataFrame
-from datacopy.utils.common import (
+from dcp.utils.common import (
     DcpJsonEncoder,
     StringEnum,
     is_datetime_str,
     snake_to_title_case,
     title_to_snake_case,
 )
-from datacopy.utils.data import clean_record, is_nullish, with_header
-from datacopy.utils.pandas import (
+from dcp.utils.data import clean_record, is_nullish, with_header
+from dcp.utils.pandas import (
     assert_dataframes_are_almost_equal,
     dataframe_to_records,
     empty_dataframe_for_schema,

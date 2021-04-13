@@ -3,9 +3,9 @@ from __future__ import annotations
 from itertools import product
 
 import pytest
-from datacopy.data_copy.base import Conversion, CopyRequest, StorageFormat
-from datacopy.data_copy.graph import get_datacopy_lookup
-from datacopy.storage.memory.engines.python import (
+from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
+from dcp.data_copy.graph import get_datacopy_lookup
+from dcp.storage.memory.engines.python import (
     PythonStorageApi,
     new_local_python_storage,
 )
@@ -17,8 +17,7 @@ to_formats = [rf, dff]  # , af]
 
 
 @pytest.mark.parametrize(
-    "from_fmt,to_fmt",
-    product(from_formats, to_formats),
+    "from_fmt,to_fmt", product(from_formats, to_formats),
 )
 def test_mem_to_mem(from_fmt, to_fmt):
     from_fmt, obj = from_fmt

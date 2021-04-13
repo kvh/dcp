@@ -4,16 +4,16 @@ import warnings
 from typing import Type
 
 import pytest
-from datacopy.data_copy.base import Conversion, CopyRequest, StorageFormat
-from datacopy.data_copy.copiers.to_database.memory_to_database import copy_records_to_db
-from datacopy.data_format.formats.database.base import DatabaseTableFormat
-from datacopy.storage.base import (
+from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
+from dcp.data_copy.copiers.to_database.memory_to_database import copy_records_to_db
+from dcp.data_format.formats.database.base import DatabaseTableFormat
+from dcp.storage.base import (
     DatabaseStorageClass,
     LocalPythonStorageEngine,
     Storage,
 )
-from datacopy.storage.database.api import DatabaseApi, DatabaseStorageApi
-from datacopy.storage.memory.engines.python import (
+from dcp.storage.database.api import DatabaseApi, DatabaseStorageApi
+from dcp.storage.memory.engines.python import (
     PythonStorageApi,
     new_local_python_storage,
 )
@@ -21,12 +21,7 @@ from tests.utils import conformed_test_records, test_records, test_records_schem
 
 
 @pytest.mark.parametrize(
-    "url",
-    [
-        "sqlite://",
-        "postgresql://localhost",
-        "mysql://",
-    ],
+    "url", ["sqlite://", "postgresql://localhost", "mysql://",],
 )
 def test_records_to_db(url):
     s: Storage = Storage.from_url(url)

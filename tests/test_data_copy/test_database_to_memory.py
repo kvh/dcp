@@ -3,17 +3,17 @@ from __future__ import annotations
 from typing import Type
 
 import pytest
-from datacopy.data_copy.base import Conversion, CopyRequest, StorageFormat
-from datacopy.data_copy.copiers.to_memory.database_to_memory import copy_db_to_records
-from datacopy.data_format.formats.database.base import DatabaseTableFormat
-from datacopy.data_format.formats.memory.records import RecordsFormat
-from datacopy.storage.base import (
+from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
+from dcp.data_copy.copiers.to_memory.database_to_memory import copy_db_to_records
+from dcp.data_format.formats.database.base import DatabaseTableFormat
+from dcp.data_format.formats.memory.records import RecordsFormat
+from dcp.storage.base import (
     DatabaseStorageClass,
     LocalPythonStorageEngine,
     Storage,
 )
-from datacopy.storage.database.api import DatabaseApi, DatabaseStorageApi
-from datacopy.storage.memory.engines.python import (
+from dcp.storage.database.api import DatabaseApi, DatabaseStorageApi
+from dcp.storage.memory.engines.python import (
     PythonStorageApi,
     new_local_python_storage,
 )
@@ -21,12 +21,7 @@ from tests.utils import test_records_schema
 
 
 @pytest.mark.parametrize(
-    "url",
-    [
-        "sqlite://",
-        "postgresql://localhost",
-        "mysql://",
-    ],
+    "url", ["sqlite://", "postgresql://localhost", "mysql://",],
 )
 def test_db_to_mem(url):
     s: Storage = Storage.from_url(url)

@@ -69,15 +69,15 @@ the StorageEngine since none was specified, in the case of S3 a CSV).
 The python library gives you a powerful API for more complex operations:
 
 ```python
-import datacopy
-from datacopy import Storage
+import
+from dcp import Storage
 
 records = [{"f1":"hello", "f2": "world"}]
-fields = datacopy.infer_fields(records)
+fields = .infer_fields(records)
 print(fields)
 # >>> [Field(name="f1", type=Text), Field(name="f2", type=Text)]
 
-datacopy.copy(
+.copy(
     from_obj=records,
     to_name='records',
     to_format="csv",
@@ -90,17 +90,17 @@ with Storage('file:///tmp/dcp').get_api().open('records') as f:
     # >>> f1,f2
     # >>> hello,world
 
-datacopy.copy(
+.copy(
     from_name='records',
     from_storage='file:///tmp/dcp/',
     to_storage='postgres://localhost:5432/mydb'
 )
 
-data_format = datacopy.infer_format("records", storage='file:///tmp/dcp')
+data_format = .infer_format("records", storage='file:///tmp/dcp')
 print(data_format)
 # >>> CsvFileFormat
 
-datacopy.copy(
+.copy(
     from_name='records',
     from_storage='file:///tmp/dcp/',
     to_storage='postgres://localhost:5432/mydb'

@@ -3,21 +3,25 @@ authors = ["Ken Van Haren <kenvanharen@gmail.com>"]
 description = "dcp - Data Copy"
 license = "BSD-3-Clause"
 name = "datacopy"
+packages = [
+  {include = "dcp"},
+]
 version = "0.1.0"
 
 [tool.poetry.dependencies]
 PyYAML = "^5.4.1"
 SQLAlchemy = "^1.4.1"
 cleo = "^0.8.1"
+# common-model = "^0.1.0"
 loguru = "^0.5.3"
 networkx = "^2.5"
-openmodel = "^0.1.0"
 pandas = "^1.2.3"
 python = "^3.7.4"
 python-dateutil = "^2.8.1"
 
 [tool.poetry.dev-dependencies]
 black = "^19.10b0"
+common-model = {path = "../common-model/python", develop = true}
 flake8 = "^3.8.1"
 ipython = "^7.13.0"
 isort = "^4.3.21"
@@ -25,7 +29,6 @@ mkdocs = "^1.1.2"
 mkdocs-material = "^6.1.7"
 mypy = "^0.770"
 mysqlclient = "^2.0.3"
-# openmodel = {path = "../openmodel/python", develop = true}
 pre-commit = "^2.1.1"
 psycopg2-binary = "2.8.4"
 pyarrow = "^3.0.0"
@@ -34,7 +37,7 @@ pytest = "^4.6"
 pytest-cov = "^2.8.1"
 
 [tool.poetry.scripts]
-snapflow = "datacopy.cli:app"
+snapflow = ".cli:app"
 
 [tool.black]
 exclude = '''

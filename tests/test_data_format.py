@@ -5,14 +5,14 @@ from io import StringIO
 from typing import Any, Callable
 
 import pytest
-from datacopy import data_format
-from datacopy.data_format.base import ALL_DATA_FORMATS, DataFormat, DataFormatBase
-from datacopy.data_format.formats.database.base import DatabaseTableFormat
-from datacopy.data_format.handler import get_handler
-from datacopy.storage.base import Storage, StorageClass, StorageEngine
-from datacopy.storage.database.utils import get_tmp_sqlite_db_url
-from datacopy.utils.pandas import assert_dataframes_are_almost_equal
-from openmodel.field_types import DEFAULT_FIELD_TYPE, Date, DateTime, Integer, Text
+from dcp import data_format
+from dcp.data_format.base import ALL_DATA_FORMATS, DataFormat, DataFormatBase
+from dcp.data_format.formats.database.base import DatabaseTableFormat
+from dcp.data_format.handler import get_handler
+from dcp.storage.base import Storage, StorageClass, StorageEngine
+from dcp.storage.database.utils import get_tmp_sqlite_db_url
+from dcp.utils.pandas import assert_dataframes_are_almost_equal
+from commonmodel.field_types import DEFAULT_FIELD_TYPE, Date, DateTime, Integer, Text
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from tests.utils import test_data_format_objects, test_records, test_records_schema

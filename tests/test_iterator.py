@@ -1,5 +1,5 @@
 import pytest
-from datacopy.storage.memory.iterator import SampleableIterator
+from dcp.storage.memory.iterator import SampleableIterator
 
 
 def test_sampleable_iterator():
