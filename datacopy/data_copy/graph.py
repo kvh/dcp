@@ -159,11 +159,19 @@ def get_datacopy_lookup(
 
 
 def get_copy_path(req: CopyRequest) -> Optional[CopyPath]:
-    copy_path = get_datacopy_lookup(
+    lookup = get_datacopy_lookup(
         available_storage_engines=set(
             s.storage_engine for s in req.get_available_storages()
         ),
-    ).get_lowest_cost_path(req.conversion)
+    )
+    if req.conversion.from_storage_format == req.conversion.to_storage_format:
+        # If converting self, this can mean different things based on if_exists
+        # TODO: this vs create an alias?
+        # TODO: self-copy is just .append(name1, name2) ??
+        copiers = lookup.get_capable_copiers(req.conversion)
+        assert len(copiers) == 1, copiers
+        return CopyPath(edges=[CopyEdge(copiers[0], req.conversion)])
+    copy_path = lookup.get_lowest_cost_path(req.conversion)
     return copy_path
 
 
@@ -171,7 +179,8 @@ def execute_copy_request(req: CopyRequest) -> CopyResult:
     copy_path = get_copy_path(req)
     if copy_path is None:
         # Nothing to do?
-        return CopyResult(request=req, copy_path=copy_path, intermediate_created=[])
+        raise NotImplementedError(req.conversion)
+        # return CopyResult(request=req, copy_path=copy_path, intermediate_created=[])
     return execute_copy_path(req, copy_path)
 
 
@@ -181,17 +190,17 @@ def execute_copy_path(original_req: CopyRequest, pth: CopyPath):
     prev_name: str = original_req.from_name
     prev_format: DataFormat = None
     n = len(pth.edges)
-    if n == 0:
-        # TODO: handle copy between identical StorageFormats
-        # No copy required, BUT may need an alias
-        if original_req.from_name != original_req.to_name:
-            if original_req.from_storage.url != original_req.to_storage.url:
-                raise NotImplementedError(
-                    "Copy between same StorageFormats not supported yet"
-                )
-            original_req.from_storage_api.create_alias(
-                original_req.from_name, original_req.to_name
-            )
+    # if n == 0:
+    #     # TODO: handle copy between identical StorageFormats
+    #     # No copy required, BUT may need an alias
+    #     if original_req.from_name != original_req.to_name:
+    #         if original_req.from_storage.url != original_req.to_storage.url:
+    #             raise NotImplementedError(
+    #                 "Copy between same StorageFormats not supported yet"
+    #             )
+    #         original_req.from_storage_api.create_alias(
+    #             original_req.from_name, original_req.to_name
+    #         )
     created = []
     for i, conversion_edge in enumerate(pth.edges):
         conversion = conversion_edge.conversion

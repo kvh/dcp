@@ -255,6 +255,10 @@ def get_handlers_for_storage(storage: Storage) -> List[Type[FormatHandler]]:
     return format_handlers
 
 
+def infer_schema_for_name(name: str, storage: Storage) -> Schema:
+    return get_handler_for_name(name, storage)().infer_schema(name, storage)
+
+
 # def infer_data_format(name: str, storage: Storage) -> Optional[DataFormat]:
 #     # TODO
 #     raise NotImplementedError
