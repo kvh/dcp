@@ -169,7 +169,10 @@ def get_copy_path(req: CopyRequest) -> Optional[CopyPath]:
         # TODO: this vs create an alias?
         # TODO: self-copy is just .append(name1, name2) ??
         copiers = lookup.get_capable_copiers(req.conversion)
-        assert len(copiers) == 1, copiers
+        if not copiers:
+            # TODO: implement rest of these
+            raise NotImplementedError
+        # assert len(copiers) == 1, copiers
         return CopyPath(edges=[CopyEdge(copiers[0], req.conversion)])
     copy_path = lookup.get_lowest_cost_path(req.conversion)
     return copy_path
@@ -243,9 +246,7 @@ def execute_copy_path(original_req: CopyRequest, pth: CopyPath):
 
 
 def select_storage(
-    target_storage: Storage,
-    storages: List[Storage],
-    storage_format: StorageFormat,
+    target_storage: Storage, storages: List[Storage], storage_format: StorageFormat,
 ) -> Storage:
     eng = storage_format.storage_engine
     # By default, stay on target storage if possible (minimize transfer)

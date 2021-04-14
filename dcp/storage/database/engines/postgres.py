@@ -75,11 +75,7 @@ def pg_execute_values(
     try:
         with conn.cursor() as curs:
             execute_values(
-                curs,
-                sql,
-                records,
-                template=None,
-                page_size=page_size,
+                curs, sql, records, template=None, page_size=page_size,
             )
         conn.commit()
     except Exception as e:
@@ -101,7 +97,7 @@ class PostgresDatabaseApi(DatabaseApi):
     @classmethod
     @contextmanager
     def temp_local_database(cls) -> Iterator[str]:
-        test_db = f"__tmp_snapflow_{rand_str(8).lower()}"
+        test_db = f"__tmp_dcp_{rand_str(8).lower()}"
         url = "postgresql://localhost"
         pg_url = f"{url}/postgres"
         create_db(pg_url, test_db)

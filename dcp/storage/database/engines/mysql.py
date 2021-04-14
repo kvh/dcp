@@ -46,7 +46,7 @@ class MysqlDatabaseApi(DatabaseApi):
     @classmethod
     @contextmanager
     def temp_local_database(cls) -> Iterator[str]:
-        test_db = f"__tmp_snapflow_{rand_str(8).lower()}"
+        test_db = f"__tmp_dcp_{rand_str(8).lower()}"
         url = "mysql://root@localhost"
         create_db(url, test_db)
         test_url = f"{url}/{test_db}"

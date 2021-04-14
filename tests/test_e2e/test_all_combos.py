@@ -87,8 +87,8 @@ existence_options = ["error", "append", "replace"]
     product(all_storage_formats, all_storage_formats, existence_options),
 )
 def test_copy(from_storage_fmt, to_storage_fmt, if_exists):
-    if from_storage_fmt == to_storage_fmt:
-        return
+    # if from_storage_fmt == to_storage_fmt:
+    #     return
     with make_storage(from_storage_fmt[0]) as from_storage:
         with make_storage(to_storage_fmt[0]) as to_storage:
             from_name = "test_" + rand_str().lower()
@@ -103,9 +103,9 @@ def test_copy(from_storage_fmt, to_storage_fmt, if_exists):
                 available_storages=[Storage(python_url)],
                 if_exists=if_exists,
             )
-            pth = get_copy_path(req)
-            assert 1 <= len(pth.edges) <= 4  # Bring this 4 down!
             try:
+                pth = get_copy_path(req)
+                assert 1 <= len(pth.edges) <= 4  # Bring this 4 down!
                 execute_copy_request(req)
             except NotImplementedError:
                 return

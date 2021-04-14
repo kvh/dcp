@@ -97,7 +97,7 @@ def test_json_encoder():
 #         assert_dataframes_are_almost_equal(df1, df4, TestSchema4)
 
 
-def test_is_emptyish():
+def test_is_nullish():
     assert is_nullish(None)
     assert is_nullish("None")
     assert is_nullish("NULL")
@@ -108,6 +108,7 @@ def test_is_emptyish():
     assert not is_nullish(0)
     assert not is_nullish(".")
     assert not is_nullish("0")
+    assert not is_nullish("-")
 
 
 def test_dataframe_to_records():
