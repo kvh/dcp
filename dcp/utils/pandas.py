@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 import pandas as pd
-from dcp.utils.common import is_nullish
 from commonmodel import Schema
+from dcp.utils.common import is_nullish
 from pandas import DataFrame, Index, Series
 from pandas._testing import assert_almost_equal
 
@@ -24,6 +24,7 @@ def assert_dataframes_are_almost_equal(
     df2: DataFrame,
     schema: Optional[Schema] = None,
     ignored_columns: List[str] = None,
+    check_dtypes: bool = False,
 ):
     if ignored_columns:
         df1 = df1[[c for c in df1.columns if c not in ignored_columns]]
@@ -37,7 +38,7 @@ def assert_dataframes_are_almost_equal(
         for c in r.keys():
             if is_nullish(r[c]) and is_nullish(r2[c]):
                 continue
-            assert_almost_equal(r[c], r2[c])
+            assert_almost_equal(r[c], r2[c], check_dtype=check_dtypes)
 
 
 def empty_dataframe_for_schema(schema: Schema) -> DataFrame:

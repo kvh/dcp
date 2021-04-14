@@ -18,17 +18,10 @@ from dcp.data_format.formats.file_system.csv_file import CsvFileFormat
 from dcp.data_format.formats.memory.arrow_table import ArrowTableFormat
 from dcp.data_format.formats.memory.records import RecordsFormat
 from dcp.data_format.handler import get_handler, get_handler_for_name
-from dcp.storage.base import (
-    DatabaseStorageClass,
-    LocalPythonStorageEngine,
-    Storage,
-)
+from dcp.storage.base import DatabaseStorageClass, LocalPythonStorageEngine, Storage
 from dcp.storage.database.api import DatabaseApi, DatabaseStorageApi
 from dcp.storage.file_system.engines.local import FileSystemStorageApi
-from dcp.storage.memory.engines.python import (
-    PythonStorageApi,
-    new_local_python_storage,
-)
+from dcp.storage.memory.engines.python import PythonStorageApi, new_local_python_storage
 from dcp.utils.data import read_csv
 from tests.utils import conformed_test_records, test_records_schema
 

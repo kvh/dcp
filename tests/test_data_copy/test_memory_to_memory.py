@@ -5,10 +5,7 @@ from itertools import product
 import pytest
 from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
 from dcp.data_copy.graph import get_datacopy_lookup
-from dcp.storage.memory.engines.python import (
-    PythonStorageApi,
-    new_local_python_storage,
-)
+from dcp.storage.memory.engines.python import PythonStorageApi, new_local_python_storage
 from tests.test_data_format import assert_objects_equal
 from tests.utils import dff, rf, test_records_schema
 
@@ -17,7 +14,8 @@ to_formats = [rf, dff]  # , af]
 
 
 @pytest.mark.parametrize(
-    "from_fmt,to_fmt", product(from_formats, to_formats),
+    "from_fmt,to_fmt",
+    product(from_formats, to_formats),
 )
 def test_mem_to_mem(from_fmt, to_fmt):
     from_fmt, obj = from_fmt

@@ -6,11 +6,6 @@ from typing import Any, Dict, Iterable, List, Optional, Type, TypeVar, Union, ca
 
 import dcp.storage.base as storage
 import pandas as pd
-from dcp.data_format.base import DataFormat, DataFormatBase
-from dcp.data_format.handler import FormatHandler
-from dcp.utils.data import read_json
-from dateutil import parser
-from loguru import logger
 from commonmodel import (
     DEFAULT_FIELD_TYPE,
     Boolean,
@@ -33,6 +28,11 @@ from commonmodel.field_types import (
     Text,
     ensure_field_type,
 )
+from dateutil import parser
+from dcp.data_format.base import DataFormat, DataFormatBase
+from dcp.data_format.handler import FormatHandler
+from dcp.utils.data import read_json
+from loguru import logger
 from pandas import DataFrame
 
 try:

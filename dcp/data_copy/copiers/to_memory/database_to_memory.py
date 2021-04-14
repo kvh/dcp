@@ -1,3 +1,4 @@
+from commonmodel.base import Schema
 from dcp.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
 from dcp.data_copy.costs import (
     FormatConversionCost,
@@ -11,7 +12,6 @@ from dcp.storage.base import DatabaseStorageClass, MemoryStorageClass, StorageAp
 from dcp.storage.database.api import DatabaseStorageApi
 from dcp.storage.database.utils import result_proxy_to_records
 from dcp.storage.memory.engines.python import PythonStorageApi
-from commonmodel.base import Schema
 
 
 @datacopier(

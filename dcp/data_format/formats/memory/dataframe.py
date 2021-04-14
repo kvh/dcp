@@ -4,14 +4,6 @@ from typing import Dict, List, Optional, Type, cast
 
 import dcp.storage.base as storage
 import pandas as pd
-from dcp.data_format.base import DataFormat, DataFormatBase
-from dcp.data_format.formats.memory.records import (
-    cast_python_object_to_field_type,
-    select_field_type,
-)
-from dcp.data_format.handler import FormatHandler
-from dateutil import parser
-from loguru import logger
 from commonmodel import (
     DEFAULT_FIELD_TYPE,
     Boolean,
@@ -25,6 +17,14 @@ from commonmodel import (
     Time,
 )
 from commonmodel.field_types import Binary, Decimal, Json, LongBinary, LongText, Text
+from dateutil import parser
+from dcp.data_format.base import DataFormat, DataFormatBase
+from dcp.data_format.formats.memory.records import (
+    cast_python_object_to_field_type,
+    select_field_type,
+)
+from dcp.data_format.handler import FormatHandler
+from loguru import logger
 from pandas import DataFrame
 
 
@@ -61,7 +61,8 @@ class PythonDataframeHandler(FormatHandler):
     ):
         df = storage.get_api().get(name)
         cast(DataFrame, df)
-        df[field] = cast_series_to_field_type(df[field], field_type)
+        if field in df.columns:
+            df[field] = cast_series_to_field_type(df[field], field_type)
         storage.get_api().put(name, df)  # Unnecessary?
 
     def create_empty(self, name, storage, schema: Schema):

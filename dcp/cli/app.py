@@ -1,9 +1,9 @@
 from __future__ import annotations
-from dcp.data_format.base import get_format_for_nickname
 
 from cleo import Application, Command
 from dcp.data_copy.base import CopyRequest
 from dcp.data_copy.graph import execute_copy_request
+from dcp.data_format.base import get_format_for_nickname
 from dcp.storage.base import Storage
 
 
@@ -22,7 +22,11 @@ def make_copy_request(
     else:
         to_fmt = to_storage.storage_engine.get_natural_format()
     return CopyRequest(
-        from_name, Storage(from_storage_url), to_name, to_storage, to_fmt,
+        from_name,
+        Storage(from_storage_url),
+        to_name,
+        to_storage,
+        to_fmt,
     )
 
 

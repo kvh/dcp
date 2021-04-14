@@ -19,6 +19,7 @@ from typing import (
 )
 
 import networkx as nx
+from commonmodel.base import AnySchema, Schema
 from dcp.data_copy.costs import DataCopyCost
 from dcp.data_format.base import DataFormat
 from dcp.data_format.handler import (
@@ -29,7 +30,6 @@ from dcp.data_format.handler import (
     infer_format_for_name,
 )
 from dcp.storage.base import Storage, StorageApi, StorageClass, StorageEngine
-from commonmodel.base import AnySchema, Schema
 
 
 @dataclass(frozen=True)

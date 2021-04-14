@@ -1,5 +1,5 @@
-from dcp.utils.common import rand_str
 from commonmodel.base import Schema
+from dcp.utils.common import rand_str
 
 
 def generate_auto_schema(fields, **kwargs) -> Schema:

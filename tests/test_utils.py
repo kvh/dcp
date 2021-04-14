@@ -4,8 +4,6 @@ import json
 from datetime import date, datetime, time, timedelta
 
 import pytest
-from numpy import NaN
-from pandas import DataFrame
 from dcp.utils.common import (
     DcpJsonEncoder,
     StringEnum,
@@ -19,6 +17,8 @@ from dcp.utils.pandas import (
     dataframe_to_records,
     empty_dataframe_for_schema,
 )
+from numpy import NaN
+from pandas import DataFrame
 
 
 def test_snake_and_title_cases():

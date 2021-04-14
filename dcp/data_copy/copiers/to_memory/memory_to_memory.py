@@ -30,15 +30,12 @@ def copy_records_to_df(req: CopyRequest):
     df = pd.DataFrame(records_object)
     create_empty_if_not_exists(req)
     existing_df = req.to_storage_api.get(req.to_name)
-    final_df = existing_df.append(df).convert_dtypes()
+    final_df = existing_df.append(df)
     req.to_storage_api.put(req.to_name, final_df)
-    # Does this belong here? Or is this a separate step?
-    # The copier is responsible for preserving logical types, but not fixing mis-typed values
-    # So, if the type is right in the python records, when will it NOT be right in pandas? that's
-    # all we are worried about
-    # req.to_format_handler.cast_to_schema(
-    #     req.to_name, req.to_storage_api.storage, req.get_schema()
-    # )
+    # Pandas does not preserve types well through operations, so we need to cast here
+    req.to_format_handler.cast_to_schema(
+        req.to_name, req.to_storage_api.storage, req.get_schema()
+    )
 
 
 @datacopier(
@@ -92,9 +89,11 @@ def copy_df_to_df(req: CopyRequest):
     df = req.from_storage_api.get(req.from_name)
     create_empty_if_not_exists(req)
     existing_df = req.to_storage_api.get(req.to_name)
-    # TODO: do we want to do convert_dtypes everywhere?
-    final_df = existing_df.append(df).convert_dtypes()
+    final_df = existing_df.append(df)
     req.to_storage_api.put(req.to_name, final_df)
+    req.to_format_handler.cast_to_schema(
+        req.to_name, req.to_storage_api.storage, req.get_schema()
+    )
 
 
 # @datacopier(

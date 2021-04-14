@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Sequence
 
+from commonmodel.base import Schema
 from dcp.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
 from dcp.data_copy.costs import (
     FormatConversionCost,
@@ -14,7 +15,6 @@ from dcp.data_format.formats.memory.records import Records, RecordsFormat
 from dcp.storage.base import DatabaseStorageClass, MemoryStorageClass, StorageApi
 from dcp.storage.database.api import DatabaseStorageApi
 from dcp.storage.memory.engines.python import PythonStorageApi
-from commonmodel.base import Schema
 
 
 @datacopier(

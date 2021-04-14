@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Type
 
+from commonmodel.base import Field, Schema, SchemaTranslation
+from commonmodel.field_types import FieldType
 from dcp.data_format.base import DataFormat
 from dcp.data_format.inference import generate_auto_schema
 from dcp.storage.base import (
@@ -14,8 +16,6 @@ from dcp.storage.base import (
     StorageEngine,
 )
 from dcp.storage.memory.iterator import SampleableIterator
-from commonmodel.base import Field, Schema, SchemaTranslation
-from commonmodel.field_types import FieldType
 
 
 class ErrorBehavior(Enum):
@@ -208,7 +208,8 @@ class FormatHandler:
 
 
 def get_handler(
-    data_format: DataFormat, storage_engine: Type[StorageEngine],
+    data_format: DataFormat,
+    storage_engine: Type[StorageEngine],
 ) -> Type[FormatHandler]:
     # TODO: can cache this stuff
     format_handlers = [
