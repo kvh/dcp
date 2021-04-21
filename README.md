@@ -23,7 +23,7 @@ for available storages.
 
 ### _Safe_
 
-dcp uses OpenModel Schemas under the hood as the "lingua franca" of
+dcp uses [Common Model](github.com/kvh/common-model) Schemas under the hood as the "lingua franca" of
 structured data, allowing for careful preservation of logical data types and
 values across many formats and storage engines. Error handling behavior
 is configurable so when type conversion errors are encountered -- a
