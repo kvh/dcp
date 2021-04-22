@@ -93,7 +93,7 @@ with Storage('file:///tmp/dcp').get_api().open('records') as f:
 .copy(
     from_name='records',
     from_storage='file:///tmp/dcp/',
-    to_storage='postgres://localhost:5432/mydb'
+    to_storage='postgresql://localhost:5432/mydb'
 )
 
 data_format = .infer_format("records", storage='file:///tmp/dcp')
@@ -103,12 +103,12 @@ print(data_format)
 .copy(
     from_name='records',
     from_storage='file:///tmp/dcp/',
-    to_storage='postgres://localhost:5432/mydb'
+    to_storage='postgresql://localhost:5432/mydb'
     fields=fields,
     cast_level='strict',
 )
 
-assert Storage('postgres://localhost:5432/mydb').get_api().exists("records")
+assert Storage('postgresql://localhost:5432/mydb').get_api().exists("records")
 ```
 
 # [WIP] Adding your own Storage Engine or Data Format

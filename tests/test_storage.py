@@ -25,7 +25,7 @@
 # def test_storage():
 #     s = Storage.from_url("sqlite://")
 #     assert s.storage_engine is SqliteStorageEngine
-#     s = Storage.from_url("postgres://localhost")
+#     s = Storage.from_url("postgresql://localhost")
 #     assert s.storage_engine is PostgresStorageEngine
 #     s = Storage.from_url("mysql://localhost")
 #     assert s.storage_engine is MysqlStorageEngine
@@ -38,7 +38,7 @@
 # def test_storage_api():
 #     s = Storage.from_url("sqlite://").get_api()
 #     assert isinstance(s, DatabaseStorageApi)
-#     s = Storage.from_url("postgres://localhost").get_api()
+#     s = Storage.from_url("postgresql://localhost").get_api()
 #     assert isinstance(s, PostgresDatabaseStorageApi)
 #     s = Storage.from_url("mysql://localhost").get_api()
 #     assert isinstance(s, MysqlDatabaseStorageApi)

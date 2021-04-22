@@ -8,7 +8,7 @@
 # import pandas as pd
 # import pytest
 # from snapflow.core.module import DEFAULT_LOCAL_MODULE_NAME
-# from snapflow.core.snap_interface import get_schema_translation
+# from snapflow.core.function_interface import get_schema_translation
 # from snapflow.core.typing.inference import infer_schema_from_records
 # from snapflow.modules import core
 # from snapflow.schema.base import (
