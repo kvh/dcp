@@ -2,6 +2,7 @@ import tempfile
 from contextlib import contextmanager
 from itertools import product
 from typing import Iterator, Type
+from dcp.data_format.formats.memory.csv_file_object import CsvFileObjectFormat
 
 import pytest
 from dcp.data_copy.base import CopyRequest, NameExistsError
@@ -38,6 +39,7 @@ all_storage_formats = [
     [python_url, RecordsFormat],
     [python_url, DataFrameFormat],
     [python_url, ArrowTableFormat],
+    [python_url, CsvFileObjectFormat],
 ]
 
 
@@ -105,6 +107,7 @@ def test_copy(from_storage_fmt, to_storage_fmt, if_exists):
             )
             try:
                 pth = get_copy_path(req)
+                assert pth is not None
                 assert 1 <= len(pth.edges) <= 4  # Bring this 4 down!
                 execute_copy_request(req)
             except NotImplementedError:

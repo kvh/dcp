@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Type, TypeVar, cast
+from typing import Any, Dict, List, Optional, TextIO, Type, TypeVar, cast
 
+import csv
 import dcp.storage.base as storage
+from dcp.utils.data import infer_csv_dialect, is_maybe_csv
 import pandas as pd
 import sqlalchemy as sa
 import sqlalchemy.types as satypes
@@ -50,18 +52,17 @@ class CsvFileHandler(FormatHandler):
             return CsvFileFormat
         # TODO: how hacky is this? very
         with storage.get_api().open(name) as f:
-            ln = f.readline()
-            if ln.startswith("{"):
-                return None
-            l2 = f.readline()
-            if len(ln.split(self.delimiter)) == len(l2.split(self.delimiter)):
+            s = f.read(1024)
+            if is_maybe_csv(s):
                 return CsvFileFormat
         return None
 
     def infer_field_names(self, name, storage) -> List[str]:
         with storage.get_api().open(name) as f:
+            dialect = infer_csv_dialect(f.read(1024))
+            f.seek(0)
             ln = f.readline()
-            return [c.strip() for c in ln.split(",")]
+            return [c.strip() for c in ln.split(dialect.delimiter)]
 
     def infer_field_type(
         self, name: str, storage: storage.Storage, field: str

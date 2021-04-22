@@ -1,8 +1,14 @@
 from typing import TypeVar
+from dcp.data_format.formats.memory.csv_file_object import CsvFileObjectFormat
+from dcp.utils.data import read_csv, write_csv
 
 import pandas as pd
 from dcp.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
-from dcp.data_copy.costs import FormatConversionCost, MemoryToMemoryCost
+from dcp.data_copy.costs import (
+    FormatConversionCost,
+    MemoryToBufferCost,
+    MemoryToMemoryCost,
+)
 from dcp.data_format.formats.memory.arrow_table import ArrowTableFormat
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
@@ -176,23 +182,46 @@ def copy_df_to_df(req: CopyRequest):
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
 
-# @datacopier(
-#     from_storage_classes=[MemoryStorageClass],
-#     from_data_formats=[DelimitedFileObjectFormat],
-#     to_storage_classes=[MemoryStorageClass],
-#     to_data_formats=[RecordsFormat],
-#     cost=MemoryToBufferCost + FormatConversionCost,
-# )
-# def copy_file_object_to_records(
-# req: CopyRequest
-# ):
-#     assert isinstance(req.from_storage_api, PythonStorageApi)
-#     assert isinstance(req.to_storage_api, PythonStorageApi)
-#     records_object = req.from_storage_api.get(req.from_name)
-#     obj = read_csv(records_object)
-#     to_records_object = as_records(obj, data_format=RecordsFormat, schema=req.get_schema())
-#     to_records_object = to_records_object.conform_to_schema()
-#     req.to_storage_api.put(req.to_name, to_records_object)
+@datacopier(
+    from_storage_classes=[MemoryStorageClass],
+    from_data_formats=[CsvFileObjectFormat],
+    to_storage_classes=[MemoryStorageClass],
+    to_data_formats=[RecordsFormat],
+    cost=MemoryToBufferCost + FormatConversionCost,
+)
+def copy_csv_file_object_to_records(req: CopyRequest):
+    assert isinstance(req.from_storage_api, PythonStorageApi)
+    assert isinstance(req.to_storage_api, PythonStorageApi)
+    file_obj = req.from_storage_api.get(req.from_name)
+    records = read_csv(file_obj)
+    create_empty_if_not_exists(req)
+    existing_records = req.to_storage_api.get(req.to_name)
+    req.to_storage_api.put(req.to_name, existing_records + records)
+    # Must cast because csv does a poor job of preserving logical types
+    req.to_format_handler.cast_to_schema(
+        req.to_name, req.to_storage_api.storage, req.get_schema()
+    )
+
+
+@datacopier(
+    from_storage_classes=[MemoryStorageClass],
+    from_data_formats=[RecordsFormat],
+    to_storage_classes=[MemoryStorageClass],
+    to_data_formats=[CsvFileObjectFormat],
+    cost=MemoryToBufferCost + FormatConversionCost,
+)
+def copy_records_to_csv_file_object(req: CopyRequest):
+    assert isinstance(req.from_storage_api, PythonStorageApi)
+    assert isinstance(req.to_storage_api, PythonStorageApi)
+    records = req.from_storage_api.get(req.from_name)
+    create_empty_if_not_exists(req)
+    file_obj = req.to_storage_api.get(req.to_name)
+    write_csv(records, file_obj, append=True)
+    req.to_storage_api.put(req.to_name, file_obj)
+    # Casting does no good for a csv (no concept of types)
+    # req.to_format_handler.cast_to_schema(
+    #     req.to_name, req.to_storage_api.storage, req.get_schema()
+    # )
 
 
 # @datacopier(

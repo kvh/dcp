@@ -32,12 +32,11 @@ def test_records_to_file():
     mem_api.put(name, obj)
     req = CopyRequest(name, mem_s, name, s, CsvFileFormat)
     copy_records_to_csv_file.copy(req)
-    with fs_api.open(name) as f:
+    with fs_api.open(name, newline="") as f:
         recs = list(read_csv(f))
         handler = get_handler(RecordsFormat, mem_s.storage_engine)
         mem_api.put(
-            "output",
-            recs,
+            "output", recs,
         )
         handler().cast_to_schema("output", mem_s, schema=test_records_schema)
         recs = mem_api.get("output")

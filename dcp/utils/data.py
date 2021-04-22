@@ -100,7 +100,32 @@ def with_header(iterator: Iterator[Iterable[T]]) -> Iterator[Iterable[T]]:
         yield chunk
 
 
-def read_csv(lines: Iterable[AnyStr], dialect=DcpCsvDialect) -> Iterator[Dict]:
+def infer_csv_dialect(s: str) -> Type[csv.Dialect]:
+    dialect = csv.Sniffer().sniff(s, delimiters=";,|\t")
+    return dialect
+
+
+def is_maybe_csv(s: str) -> bool:
+    if s.strip().startswith("{"):
+        # Jsonl looks a lot like a csv...
+        # This could generate a rare false negative if data happens to start with {
+        return False
+    try:
+        infer_csv_dialect(s)
+    except csv.Error:
+        return False
+    return True
+
+
+def read_csv(lines: Iterable[AnyStr], dialect=None) -> Iterator[Dict]:
+    lines, lines_copy = tee(lines, 2)
+    if dialect is None:
+        s = ""
+        for i, ln in enumerate(lines_copy):
+            if i >= 10:
+                break
+            s += ln + "\n"
+        dialect = infer_csv_dialect(s)
     lines = ensure_strings(lines)
     reader = csv.reader(lines, dialect=dialect)
     try:

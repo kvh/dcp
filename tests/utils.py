@@ -1,7 +1,10 @@
 import decimal
 from copy import copy, deepcopy
 from datetime import date, datetime, time
+from io import StringIO
 from typing import Callable
+from dcp.data_format.formats.memory.csv_file_object import CsvFileObjectFormat
+import csv
 
 import pandas as pd
 import pyarrow as pa
@@ -46,19 +49,22 @@ test_records = [
     {"f1": "hi", "f2": 1, "f3": None, "f4": "2020-01-01", "f5": "2020-01-01 00:00:00"},
     {"f1": "bye", "f2": 2, "f3": None, "f4": "2020-01-01", "f5": "2020-01-01 00:00:00"},
     {"f1": None, "f2": 2, "f3": None, "f4": "2020-01-01", "f5": "2020-01-01 00:00:00"},
-    {
-        "f1": "bye",
-        "f2": 3,
-        "f3": None,
-        "f4": "2020-01-01",
-        "f5": "202001 bad data",
-    },
+    {"f1": "bye", "f2": 3, "f3": None, "f4": "2020-01-01", "f5": "202001 bad data",},
 ]
 conformed_test_records = []
 for r in test_records:
     rc = copy(r)
     rc["f4"] = datetime.strptime(rc["f4"], "%Y-%m-%d").date()
     conformed_test_records.append(rc)
+
+
+def buffer(records):
+    f = StringIO()
+    w = csv.writer(f)
+    w.writerows(records)
+    return f
+
+
 rf = (RecordsFormat, lambda: deepcopy(conformed_test_records))
 dff = (DataFrameFormat, lambda: pd.DataFrame.from_records(conformed_test_records))
 af = (
@@ -67,6 +73,7 @@ af = (
         {k: [r[k] for r in conformed_test_records] for k in test_records[0].keys()}
     ),
 )
+cfof = (CsvFileObjectFormat, lambda: buffer(conformed_test_records))
 # dlff = (DelimitedFileObjectFormat, lambda: StringIO("f1,f2\nhi,1\nbye,2"))
 # rif = (RecordsIteratorFormat, lambda: ([r] for r in records))
 # dfif = (DataFrameIteratorFormat, lambda: (pd.DataFrame([r]) for r in records))
@@ -75,7 +82,7 @@ test_data_format_objects = [dff, rf, af]
 
 
 def get_test_records_for_format(fmt: DataFormat) -> Callable:
-    for f in [rf, dff, af]:
+    for f in [rf, dff, af, cfof]:
         if f[0] == fmt:
             return f[1]
     raise NotImplementedError(fmt)
