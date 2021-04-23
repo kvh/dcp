@@ -208,8 +208,7 @@ class FormatHandler:
 
 
 def get_handler(
-    data_format: DataFormat,
-    storage_engine: Type[StorageEngine],
+    data_format: DataFormat, storage_engine: Type[StorageEngine],
 ) -> Type[FormatHandler]:
     # TODO: can cache this stuff
     format_handlers = [
@@ -239,7 +238,11 @@ def infer_format_for_name(name: str, storage: Storage) -> DataFormat:
         fmt = handler().infer_data_format(name, storage)
         if fmt is not None:
             return fmt
-    raise NotImplementedError(storage)
+    msg = f"Could not infer format of object '{name}' on storage {storage}"
+    if storage.storage_engine is LocalPythonStorageEngine:
+        obj = storage.get_api().get(name)
+        msg = f"Could not infer format of object '{name}' `{obj}`"
+    raise NotImplementedError(msg)
 
 
 def get_handler_for_name(name: str, storage: Storage) -> Type[FormatHandler]:
