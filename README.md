@@ -28,7 +28,7 @@ structured data, allowing for careful preservation of logical data types and
 values across many formats and storage engines. Error handling behavior
 is configurable so when type conversion errors are encountered -- a
 value is truncated or cannot be cast -- dcp can fail, relax the datatype,
-or set the value null depending on what the user wants.
+or set the value null depending on the desired behavior.
 
 **Currently supported formats:**
 
