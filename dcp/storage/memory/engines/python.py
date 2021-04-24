@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+from io import IOBase
 import os
 from collections import abc
 from contextlib import contextmanager
@@ -15,7 +16,7 @@ from dcp.storage.base import (
     Storage,
     StorageApi,
 )
-from dcp.storage.memory.iterator import SampleableIterator
+from dcp.storage.memory.iterator import SampleableIOBase, SampleableIterator
 from dcp.utils.common import rand_str
 
 LOCAL_PYTHON_STORAGE: Dict[str, Any] = {}  # TODO: global state...
@@ -34,9 +35,11 @@ def wrap_records_object(obj: Any) -> Any:
     Wrap records object that are exhaustable (eg generators, file objects, db cursors)
     so that we can sample them for inspection and inference without losing records.
     """
-    if isinstance(obj, SampleableIterator):
+    if isinstance(obj, SampleableIterator) or isinstance(obj, SampleableIOBase):
         # Already wrapped
         return obj
+    if isinstance(obj, IOBase):
+        return SampleableIOBase(obj)
     if isinstance(obj, abc.Iterator):
         return SampleableIterator(obj)
     return obj

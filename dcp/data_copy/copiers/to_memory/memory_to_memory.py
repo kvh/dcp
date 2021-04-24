@@ -1,5 +1,6 @@
 from typing import TypeVar
 from dcp.data_format.formats.memory.csv_file_object import CsvFileObjectFormat
+from dcp.storage.memory.iterator import SampleableIOBase
 from dcp.utils.data import read_csv, write_csv
 
 import pandas as pd
@@ -192,8 +193,8 @@ def copy_df_to_df(req: CopyRequest):
 def copy_csv_file_object_to_records(req: CopyRequest):
     assert isinstance(req.from_storage_api, PythonStorageApi)
     assert isinstance(req.to_storage_api, PythonStorageApi)
-    file_obj = req.from_storage_api.get(req.from_name)
-    records = read_csv(file_obj)
+    file_obj: SampleableIOBase = req.from_storage_api.get(req.from_name)
+    records = list(read_csv(file_obj.read().split("\n")))
     create_empty_if_not_exists(req)
     existing_records = req.to_storage_api.get(req.to_name)
     req.to_storage_api.put(req.to_name, existing_records + records)

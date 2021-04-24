@@ -62,6 +62,7 @@ def buffer(records):
     f = StringIO()
     w = csv.writer(f)
     w.writerows(records)
+    f.seek(0)
     return f
 
 

@@ -100,6 +100,17 @@ def with_header(iterator: Iterator[Iterable[T]]) -> Iterator[Iterable[T]]:
         yield chunk
 
 
+def sample_lines(lines: Iterator[str], n: int) -> List[str]:
+    i = 0
+    sample = []
+    for ln in lines:
+        sample.append(ln)
+        i += 1
+        if i == n:
+            break
+    return sample
+
+
 def infer_csv_dialect(s: str) -> Type[csv.Dialect]:
     dialect = csv.Sniffer().sniff(s, delimiters=";,|\t")
     return dialect
@@ -112,7 +123,7 @@ def is_maybe_csv(s: str) -> bool:
         return False
     try:
         infer_csv_dialect(s)
-    except csv.Error:
+    except csv.Error as e:
         return False
     return True
 

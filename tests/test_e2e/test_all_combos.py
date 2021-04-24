@@ -14,7 +14,7 @@ from dcp.data_format.formats.file_system.json_lines_file import JsonLinesFileFor
 from dcp.data_format.formats.memory.arrow_table import ArrowTableFormat
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 from dcp.data_format.formats.memory.records import RecordsFormat
-from dcp.data_format.handler import get_handler
+from dcp.data_format.handler import get_handler, infer_format_for_name
 from dcp.storage.base import (
     DatabaseStorageClass,
     FileSystemStorageClass,
@@ -89,13 +89,14 @@ existence_options = ["error", "append", "replace"]
     product(all_storage_formats, all_storage_formats, existence_options),
 )
 def test_copy(from_storage_fmt, to_storage_fmt, if_exists):
-    # if from_storage_fmt == to_storage_fmt:
-    #     return
+    if from_storage_fmt == to_storage_fmt:
+        return
     with make_storage(from_storage_fmt[0]) as from_storage:
         with make_storage(to_storage_fmt[0]) as to_storage:
             from_name = "test_" + rand_str().lower()
             to_name = "test_" + rand_str().lower()
             put_records_in_storage_format(from_name, from_storage, from_storage_fmt[1])
+            assert infer_format_for_name(from_name, from_storage) == from_storage_fmt[1]
             req = CopyRequest(
                 from_name,
                 from_storage,
