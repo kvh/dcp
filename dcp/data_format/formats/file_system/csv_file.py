@@ -35,6 +35,9 @@ from sqlalchemy.sql.ddl import CreateTable
 CsvFile = TypeVar("CsvFile")
 
 
+SAMPLE_SIZE_CHARACTERS = 1024 * 10
+
+
 class CsvFileFormat(DataFormatBase[CsvFile]):
     natural_storage_class = storage.FileSystemStorageClass
     nickname = "csv"
@@ -52,14 +55,14 @@ class CsvFileHandler(FormatHandler):
             return CsvFileFormat
         # TODO: how hacky is this? very
         with storage.get_api().open(name) as f:
-            s = f.read(1024)
+            s = f.read(SAMPLE_SIZE_CHARACTERS)
             if is_maybe_csv(s):
                 return CsvFileFormat
         return None
 
     def infer_field_names(self, name, storage) -> List[str]:
         with storage.get_api().open(name) as f:
-            dialect = infer_csv_dialect(f.read(1024))
+            dialect = infer_csv_dialect(f.read(SAMPLE_SIZE_CHARACTERS))
             f.seek(0)
             ln = f.readline()
             return [c.strip() for c in ln.split(dialect.delimiter)]
