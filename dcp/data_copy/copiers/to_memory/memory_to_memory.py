@@ -1,6 +1,8 @@
+from io import StringIO
+from itertools import chain
 from typing import TypeVar
-from dcp.data_format.formats.memory.csv_file_object import CsvFileObjectFormat
-from dcp.storage.memory.iterator import SampleableIOBase
+
+# from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
 from dcp.utils.data import read_csv, write_csv
 
 import pandas as pd
@@ -183,46 +185,48 @@ def copy_df_to_df(req: CopyRequest):
 #     req.to_storage_api.put(req.to_name, to_records_object)
 
 
-@datacopier(
-    from_storage_classes=[MemoryStorageClass],
-    from_data_formats=[CsvFileObjectFormat],
-    to_storage_classes=[MemoryStorageClass],
-    to_data_formats=[RecordsFormat],
-    cost=MemoryToBufferCost + FormatConversionCost,
-)
-def copy_csv_file_object_to_records(req: CopyRequest):
-    assert isinstance(req.from_storage_api, PythonStorageApi)
-    assert isinstance(req.to_storage_api, PythonStorageApi)
-    file_obj: SampleableIOBase = req.from_storage_api.get(req.from_name)
-    records = list(read_csv(file_obj.read().split("\n")))
-    create_empty_if_not_exists(req)
-    existing_records = req.to_storage_api.get(req.to_name)
-    req.to_storage_api.put(req.to_name, existing_records + records)
-    # Must cast because csv does a poor job of preserving logical types
-    req.to_format_handler.cast_to_schema(
-        req.to_name, req.to_storage_api.storage, req.get_schema()
-    )
+# @datacopier(
+#     from_storage_classes=[MemoryStorageClass],
+#     from_data_formats=[CsvLinesIteratorFormat],
+#     to_storage_classes=[MemoryStorageClass],
+#     to_data_formats=[RecordsFormat],
+#     cost=MemoryToBufferCost + FormatConversionCost,
+# )
+# def copy_csv_lines_to_records(req: CopyRequest):
+#     assert isinstance(req.from_storage_api, PythonStorageApi)
+#     assert isinstance(req.to_storage_api, PythonStorageApi)
+#     csv_lines = req.from_storage_api.get(req.from_name)
+#     records = list(read_csv(csv_lines))
+#     create_empty_if_not_exists(req)
+#     existing_records = req.to_storage_api.get(req.to_name)
+#     req.to_storage_api.put(req.to_name, existing_records + records)
+#     # Must cast because csv does a poor job of preserving logical types
+#     req.to_format_handler.cast_to_schema(
+#         req.to_name, req.to_storage_api.storage, req.get_schema()
+#     )
 
 
-@datacopier(
-    from_storage_classes=[MemoryStorageClass],
-    from_data_formats=[RecordsFormat],
-    to_storage_classes=[MemoryStorageClass],
-    to_data_formats=[CsvFileObjectFormat],
-    cost=MemoryToBufferCost + FormatConversionCost,
-)
-def copy_records_to_csv_file_object(req: CopyRequest):
-    assert isinstance(req.from_storage_api, PythonStorageApi)
-    assert isinstance(req.to_storage_api, PythonStorageApi)
-    records = req.from_storage_api.get(req.from_name)
-    create_empty_if_not_exists(req)
-    file_obj = req.to_storage_api.get(req.to_name)
-    write_csv(records, file_obj, append=True)
-    req.to_storage_api.put(req.to_name, file_obj)
-    # Casting does no good for a csv (no concept of types)
-    # req.to_format_handler.cast_to_schema(
-    #     req.to_name, req.to_storage_api.storage, req.get_schema()
-    # )
+# @datacopier(
+#     from_storage_classes=[MemoryStorageClass],
+#     from_data_formats=[RecordsFormat],
+#     to_storage_classes=[MemoryStorageClass],
+#     to_data_formats=[CsvLinesIteratorFormat],
+#     cost=MemoryToBufferCost + FormatConversionCost,
+# )
+# def copy_records_to_csv_lines(req: CopyRequest):
+#     assert isinstance(req.from_storage_api, PythonStorageApi)
+#     assert isinstance(req.to_storage_api, PythonStorageApi)
+#     records = req.from_storage_api.get(req.from_name)
+#     create_empty_if_not_exists(req)
+#     csv_lines = req.to_storage_api.get(req.to_name)
+#     f = StringIO()
+#     write_csv(records, f, append=True)
+#     f.seek(0)
+#     req.to_storage_api.put(req.to_name, chain(csv_lines, (ln for ln in f)))
+#     # Casting does no good for a csv (no concept of types)
+#     # req.to_format_handler.cast_to_schema(
+#     #     req.to_name, req.to_storage_api.storage, req.get_schema()
+#     # )
 
 
 # @datacopier(

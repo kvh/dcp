@@ -23,7 +23,7 @@ from dcp.data_format.formats.memory.records import Records, select_field_type
 
 import dcp.storage.base as storage
 from dcp.storage.file_system.engines.local import FileSystemStorageApi
-from dcp.storage.memory.iterator import SampleableIOBase
+from dcp.storage.memory.iterator import SampleableIterator
 import pandas as pd
 from commonmodel import (
     DEFAULT_FIELD_TYPE,
@@ -63,52 +63,46 @@ from loguru import logger
 from pandas import DataFrame
 
 
-class CsvFileObject(IOBase):
+class CsvLinesIterator(IOBase):
     pass
 
 
-class CsvFileObjectFormat(DataFormatBase[CsvFileObject]):
-    nickname = "csv_file_object"
+class CsvLinesIteratorFormat(DataFormatBase[CsvLinesIterator]):
+    nickname = "csv_lines"
     natural_storage_class = storage.MemoryStorageClass
     storable = False
 
 
 SAMPLE_SIZE = 1024 * 10
-SAMPLE_SIZE_LINES = 10
+SAMPLE_SIZE_LINES = 100
 
 
-class PythonCsvFileObjectHandler(FormatHandler):
-    for_data_formats = [CsvFileObjectFormat]
+class PythonCsvLinesIteratorHandler(FormatHandler):
+    for_data_formats = [CsvLinesIteratorFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
-    @contextmanager
-    def with_file_object(self, name: str, storage: storage.Storage):
-        obj = storage.get_api().get(name)
-        assert isinstance(obj, SampleableIOBase)
-        obj.seek(0)
-        yield obj
-        obj.seek(0)
-
     def get_sample_string(self, name: str, storage: storage.Storage) -> str:
-        with self.with_file_object(name, storage) as obj:
-            s = obj.read(SAMPLE_SIZE)
-        if isinstance(s, bytes):
-            s = s.decode("utf8")
+        obj = storage.get_api().get(name)
+        assert isinstance(obj, SampleableIterator)
+        sample = obj.head(SAMPLE_SIZE_LINES)
+        s = "".join(sample)
         return s
 
     def get_sample_records(self, name: str, storage: storage.Storage) -> Records:
-        s = self.get_sample_string(name, storage)
-        for r in read_csv(s.split("\n")):
+        obj = storage.get_api().get(name)
+        assert isinstance(obj, SampleableIterator)
+        sample = obj.head(SAMPLE_SIZE_LINES)
+        for r in read_csv(sample):
             yield r
 
     def infer_data_format(
         self, name: str, storage: storage.Storage
     ) -> Optional[DataFormat]:
         obj = storage.get_api().get(name)
-        if isinstance(obj, SampleableIOBase):
+        if isinstance(obj, SampleableIterator):
             s = self.get_sample_string(name, storage)
             if is_maybe_csv(s):
-                return CsvFileObjectFormat
+                return CsvLinesIteratorFormat
         return None
 
     # TODO: get sample
@@ -140,7 +134,7 @@ class PythonCsvFileObjectHandler(FormatHandler):
 
     def create_empty(self, name, storage, schema: Schema):
         s = ",".join(schema.field_names()) + "\n"
-        storage.get_api().put(name, StringIO(s))
+        storage.get_api().put(name, (ln for ln in [s]))
 
     def get_record_count(self, name: str, storage: storage.Storage) -> Optional[int]:
         return None

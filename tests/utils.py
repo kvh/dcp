@@ -3,8 +3,7 @@ from copy import copy, deepcopy
 from datetime import date, datetime, time
 from io import StringIO
 from typing import Callable
-from dcp.data_format.formats.memory.csv_file_object import CsvFileObjectFormat
-import csv
+from dcp.utils.data import write_csv
 
 import pandas as pd
 import pyarrow as pa
@@ -58,12 +57,11 @@ for r in test_records:
     conformed_test_records.append(rc)
 
 
-def buffer(records):
+def csv_lines(records):
     f = StringIO()
-    w = csv.writer(f)
-    w.writerows(records)
+    write_csv(records, f)
     f.seek(0)
-    return f
+    return (ln for ln in f.readlines())
 
 
 rf = (RecordsFormat, lambda: deepcopy(conformed_test_records))
@@ -74,7 +72,7 @@ af = (
         {k: [r[k] for r in conformed_test_records] for k in test_records[0].keys()}
     ),
 )
-cfof = (CsvFileObjectFormat, lambda: buffer(conformed_test_records))
+# clif = (CsvLinesIteratorFormat, lambda: csv_lines(conformed_test_records))
 # dlff = (DelimitedFileObjectFormat, lambda: StringIO("f1,f2\nhi,1\nbye,2"))
 # rif = (RecordsIteratorFormat, lambda: ([r] for r in records))
 # dfif = (DataFrameIteratorFormat, lambda: (pd.DataFrame([r]) for r in records))
@@ -83,7 +81,7 @@ test_data_format_objects = [dff, rf, af]
 
 
 def get_test_records_for_format(fmt: DataFormat) -> Callable:
-    for f in [rf, dff, af, cfof]:
+    for f in [rf, dff, af]:
         if f[0] == fmt:
             return f[1]
     raise NotImplementedError(fmt)

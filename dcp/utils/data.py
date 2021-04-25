@@ -112,6 +112,7 @@ def sample_lines(lines: Iterator[str], n: int) -> List[str]:
 
 
 def infer_csv_dialect(s: str) -> Type[csv.Dialect]:
+    s = s.strip()
     dialect = csv.Sniffer().sniff(s, delimiters=";,|\t")
     return dialect
 
@@ -135,7 +136,7 @@ def read_csv(lines: Iterable[AnyStr], dialect=None) -> Iterator[Dict]:
         for i, ln in enumerate(lines_copy):
             if i >= 10:
                 break
-            s += ln + "\n"
+            s += ln
         dialect = infer_csv_dialect(s)
     lines = ensure_strings(lines)
     reader = csv.reader(lines, dialect=dialect)

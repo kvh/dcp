@@ -2,7 +2,8 @@ import tempfile
 from contextlib import contextmanager
 from itertools import product
 from typing import Iterator, Type
-from dcp.data_format.formats.memory.csv_file_object import CsvFileObjectFormat
+
+# from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
 
 import pytest
 from dcp.data_copy.base import CopyRequest, NameExistsError
@@ -39,7 +40,7 @@ all_storage_formats = [
     [python_url, RecordsFormat],
     [python_url, DataFrameFormat],
     [python_url, ArrowTableFormat],
-    [python_url, CsvFileObjectFormat],
+    # [python_url, CsvLinesIteratorFormat],
 ]
 
 

@@ -1,6 +1,7 @@
 import json
 from typing import Iterator, TypeVar
-from dcp.data_format.formats.memory.csv_file_object import CsvFileObjectFormat
+
+# from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
 
 import pandas as pd
 from dcp.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
@@ -41,25 +42,25 @@ def copy_records_to_csv_file(req: CopyRequest):
             write_csv(records, f, append=True)  # Append because we created empty
 
 
-@datacopier(
-    from_storage_classes=[MemoryStorageClass],
-    from_data_formats=[CsvFileObjectFormat],
-    to_storage_classes=[FileSystemStorageClass],
-    to_data_formats=[CsvFileFormat],
-    cost=DiskToMemoryCost,
-)
-def copy_csv_file_object_to_csv_file(req: CopyRequest):
-    assert isinstance(req.from_storage_api, PythonStorageApi)
-    assert isinstance(req.to_storage_api, FileSystemStorageApi)
-    file_obj = req.from_storage_api.get(req.from_name)
-    create_empty_if_not_exists(req)
-    with req.to_storage_api.open(req.to_name, "a") as to_file:
-        try:
-            # Skip header, already written by `create_empty_...`
-            next(file_obj)
-        except StopIteration:
-            return
-        to_file.writelines((ln for ln in file_obj))
+# @datacopier(
+#     from_storage_classes=[MemoryStorageClass],
+#     from_data_formats=[CsvLinesIteratorFormat],
+#     to_storage_classes=[FileSystemStorageClass],
+#     to_data_formats=[CsvFileFormat],
+#     cost=DiskToMemoryCost,
+# )
+# def copy_csv_lines_to_csv_file(req: CopyRequest):
+#     assert isinstance(req.from_storage_api, PythonStorageApi)
+#     assert isinstance(req.to_storage_api, FileSystemStorageApi)
+#     csv_lines = req.from_storage_api.get(req.from_name)
+#     create_empty_if_not_exists(req)
+#     with req.to_storage_api.open(req.to_name, "a") as to_file:
+#         try:
+#             # Skip header, already written by `create_empty_...`
+#             next(csv_lines)
+#         except StopIteration:
+#             return
+#         to_file.writelines(csv_lines)
 
 
 @datacopier(

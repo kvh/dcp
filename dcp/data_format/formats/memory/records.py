@@ -222,7 +222,9 @@ def cast_python_object_to_field_type(
         logger.error(
             f"Error casting python object ({obj}) to type {field_type}: {traceback.format_exc()}"
         )
-    raise NotImplementedError
+    raise NotImplementedError(
+        f"Error casting python object ({obj}) to type {field_type}: {traceback.format_exc()}"
+    )
 
 
 class BooleanHelper(FieldTypeHelper):
@@ -249,7 +251,15 @@ class IntegerHelper(FieldTypeHelper):
             int(obj)
             return True
         except (ValueError, TypeError):
-            return False
+            pass
+        if isinstance(obj, str):
+            # Handle numbers with commas? what about currencies?
+            try:
+                int(obj.replace(",", ""))
+                return True
+            except (ValueError, TypeError):
+                pass
+        return False
 
     def is_definitely(self, obj: Any) -> bool:
         if isinstance(obj, bool):
@@ -257,6 +267,8 @@ class IntegerHelper(FieldTypeHelper):
         return isinstance(obj, int)
 
     def cast(self, obj: Any, strict: bool = False) -> Any:
+        if isinstance(obj, str):
+            return int(obj.replace(",", ""))
         return int(obj)
 
 
@@ -270,9 +282,19 @@ class FloatHelper(FieldTypeHelper):
             float(obj)
             return True
         except (ValueError, TypeError):
-            return False
+            pass
+        if isinstance(obj, str):
+            # Handle numbers with commas? what about currencies?
+            try:
+                float(obj.replace(",", ""))
+                return True
+            except (ValueError, TypeError):
+                pass
+        return False
 
     def cast(self, obj: Any, strict: bool = False) -> Any:
+        if isinstance(obj, str):
+            return float(obj.replace(",", ""))
         return float(obj)
 
 
