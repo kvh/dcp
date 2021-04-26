@@ -168,8 +168,8 @@ def get_copy_path(req: CopyRequest) -> Optional[CopyPath]:
         # If converting self, this can mean different things based on if_exists
         # TODO: this vs create an alias?
         # TODO: self-copy is just .append(name1, name2) ??
-        if req.from_storage == req.to_storage:
-            return CopyPath(edges=[])
+        # if req.from_storage == req.to_storage:
+        #     return CopyPath(edges=[])
         copiers = lookup.get_capable_copiers(req.conversion)
         if not copiers:
             # TODO: implement rest of these
