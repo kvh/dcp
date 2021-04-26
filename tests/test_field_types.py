@@ -1,33 +1,33 @@
+import decimal
+from dataclasses import dataclass
+from datetime import date, datetime, time
+from typing import Any, List, Type
+
+import pandas as pd
+import pytest
+from commonmodel.field_types import (
+    DEFAULT_FIELD_TYPE,
+    Boolean,
+    Date,
+    DateTime,
+    Decimal,
+    FieldType,
+    Float,
+    Integer,
+    Json,
+    LongText,
+    Text,
+    Time,
+    all_types,
+    ensure_field_type,
+)
+from dateutil.tz import tzoffset
 from dcp.data_format.formats.memory.dataframe import pandas_series_to_field_type
 from dcp.data_format.formats.memory.records import (
     ALL_FIELD_TYPE_HELPERS,
     cast_python_object_to_field_type,
     select_field_type,
 )
-import decimal
-from dataclasses import dataclass
-from datetime import date, datetime, time
-from typing import Any, List, Type
-from commonmodel.field_types import (
-    DEFAULT_FIELD_TYPE,
-    Decimal,
-    FieldType,
-    Float,
-    Integer,
-    DateTime,
-    Date,
-    Time,
-    Boolean,
-    Text,
-    LongText,
-    Json,
-    ensure_field_type,
-    all_types,
-)
-
-import pandas as pd
-import pytest
-from dateutil.tz import tzoffset
 
 LONG_TEXT = 65536
 
@@ -60,20 +60,66 @@ numeric_types: List[FieldType] = [Integer, Float, Decimal]
 string_types: List[FieldType] = [Text, LongText]
 
 cases = [
-    Case(obj=bool_, maybes=[Boolean] + numeric_types, definitelys=[Boolean],),
-    Case(obj=int_, maybes=numeric_types, definitelys=[Integer],),
-    Case(obj=big_int, maybes=[Integer, Float, Decimal], definitelys=[Integer],),
-    Case(obj=float_, maybes=[Float, Decimal, Integer, Integer], definitelys=[Float],),
-    Case(obj=floatstr, maybes=string_types + [Float, Decimal], definitelys=[],),
-    Case(obj=date_, maybes=[DateTime, Date], definitelys=[Date],),
-    Case(obj=datestr, maybes=string_types + [DateTime, Date], definitelys=[],),
-    Case(obj=dateisostr, maybes=string_types + [DateTime, Date], definitelys=[Date],),
-    Case(obj=datetime_, maybes=[DateTime, Date], definitelys=[DateTime],),
     Case(
-        obj=datetimestr, maybes=string_types + [DateTime, Date], definitelys=[DateTime],
+        obj=bool_,
+        maybes=[Boolean] + numeric_types,
+        definitelys=[Boolean],
     ),
-    Case(obj=time_, maybes=[Time], definitelys=[Time],),
-    Case(obj=timestr, maybes=string_types + [Time], definitelys=[],),
+    Case(
+        obj=int_,
+        maybes=numeric_types,
+        definitelys=[Integer],
+    ),
+    Case(
+        obj=big_int,
+        maybes=[Integer, Float, Decimal],
+        definitelys=[Integer],
+    ),
+    Case(
+        obj=float_,
+        maybes=[Float, Decimal, Integer, Integer],
+        definitelys=[Float],
+    ),
+    Case(
+        obj=floatstr,
+        maybes=string_types + [Float, Decimal],
+        definitelys=[],
+    ),
+    Case(
+        obj=date_,
+        maybes=[DateTime, Date],
+        definitelys=[Date],
+    ),
+    Case(
+        obj=datestr,
+        maybes=string_types + [DateTime, Date],
+        definitelys=[],
+    ),
+    Case(
+        obj=dateisostr,
+        maybes=string_types + [DateTime, Date],
+        definitelys=[Date],
+    ),
+    Case(
+        obj=datetime_,
+        maybes=[DateTime, Date],
+        definitelys=[DateTime],
+    ),
+    Case(
+        obj=datetimestr,
+        maybes=string_types + [DateTime, Date],
+        definitelys=[DateTime],
+    ),
+    Case(
+        obj=time_,
+        maybes=[Time],
+        definitelys=[Time],
+    ),
+    Case(
+        obj=timestr,
+        maybes=string_types + [Time],
+        definitelys=[],
+    ),
     Case(obj=long_text, maybes=[LongText], definitelys=[]),
     Case(obj=json_, maybes=[Json], definitelys=[Json]),
 ]

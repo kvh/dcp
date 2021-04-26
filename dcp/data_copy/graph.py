@@ -248,7 +248,9 @@ def execute_copy_path(original_req: CopyRequest, pth: CopyPath):
 
 
 def select_storage(
-    target_storage: Storage, storages: List[Storage], storage_format: StorageFormat,
+    target_storage: Storage,
+    storages: List[Storage],
+    storage_format: StorageFormat,
 ) -> Storage:
     eng = storage_format.storage_engine
     # By default, stay on target storage if possible (minimize transfer)

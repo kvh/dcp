@@ -208,7 +208,8 @@ class FormatHandler:
 
 
 def get_handler(
-    data_format: DataFormat, storage_engine: Type[StorageEngine],
+    data_format: DataFormat,
+    storage_engine: Type[StorageEngine],
 ) -> Type[FormatHandler]:
     # TODO: can cache this stuff
     format_handlers = [

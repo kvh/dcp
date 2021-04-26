@@ -3,8 +3,6 @@ from contextlib import contextmanager
 from itertools import product
 from typing import Iterator, Type
 
-# from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
-
 import pytest
 from dcp.data_copy.base import CopyRequest, NameExistsError
 from dcp.data_copy.graph import execute_copy_request, get_copy_path
@@ -27,6 +25,10 @@ from dcp.utils.common import rand_str, to_json
 from dcp.utils.data import write_csv
 
 from ..utils import get_test_records_for_format, test_records, test_records_schema
+
+# from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
+
+
 
 dr = tempfile.gettempdir()
 python_url = f"python://{rand_str(10)}/"

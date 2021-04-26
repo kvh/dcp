@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import os
 
 from dcp.data_copy.base import CopyRequest
@@ -26,5 +27,9 @@ def make_copy_request(
         pth = os.getcwd()
         from_storage_url = f"file://{pth}"
     return CopyRequest(
-        from_name, Storage(from_storage_url), to_name, to_storage, to_fmt,
+        from_name,
+        Storage(from_storage_url),
+        to_name,
+        to_storage,
+        to_fmt,
     )

@@ -19,6 +19,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Type,
     TypeVar,
     Union,
 )
@@ -124,7 +125,7 @@ def is_maybe_csv(s: str) -> bool:
         return False
     try:
         infer_csv_dialect(s)
-    except csv.Error as e:
+    except csv.Error:
         return False
     return True
 

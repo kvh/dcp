@@ -1,8 +1,8 @@
 from __future__ import annotations
-from contextlib import contextmanager
 
 import decimal
 import traceback
+from contextlib import contextmanager
 from datetime import date, datetime, time
 from io import IOBase, StringIO
 from itertools import tee
@@ -18,12 +18,8 @@ from typing import (
     Union,
     cast,
 )
-from dcp.data_format.formats.file_system.csv_file import is_maybe_csv
-from dcp.data_format.formats.memory.records import Records, select_field_type
 
 import dcp.storage.base as storage
-from dcp.storage.file_system.engines.local import FileSystemStorageApi
-from dcp.storage.memory.iterator import SampleableIterator
 import pandas as pd
 from commonmodel import (
     DEFAULT_FIELD_TYPE,
@@ -48,7 +44,11 @@ from commonmodel.field_types import (
 )
 from dateutil import parser
 from dcp.data_format.base import DataFormat, DataFormatBase
+from dcp.data_format.formats.file_system.csv_file import is_maybe_csv
+from dcp.data_format.formats.memory.records import Records, select_field_type
 from dcp.data_format.handler import FormatHandler
+from dcp.storage.file_system.engines.local import FileSystemStorageApi
+from dcp.storage.memory.iterator import SampleableIterator
 from dcp.utils.common import (
     ensure_bool,
     ensure_date,

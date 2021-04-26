@@ -2,9 +2,6 @@ from io import StringIO
 from itertools import chain
 from typing import TypeVar
 
-# from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
-from dcp.utils.data import read_csv, write_csv
-
 import pandas as pd
 from dcp.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
 from dcp.data_copy.costs import (
@@ -17,6 +14,8 @@ from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
 from dcp.storage.base import MemoryStorageClass, StorageApi
 from dcp.storage.memory.engines.python import PythonStorageApi
+# from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
+from dcp.utils.data import read_csv, write_csv
 from dcp.utils.pandas import dataframe_to_records
 
 try:

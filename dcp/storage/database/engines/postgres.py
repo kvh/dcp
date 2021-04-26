@@ -75,7 +75,11 @@ def pg_execute_values(
     try:
         with conn.cursor() as curs:
             execute_values(
-                curs, sql, records, template=None, page_size=page_size,
+                curs,
+                sql,
+                records,
+                template=None,
+                page_size=page_size,
             )
         conn.commit()
     except Exception as e:

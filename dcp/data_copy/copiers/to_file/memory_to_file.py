@@ -1,8 +1,6 @@
 import json
 from typing import Iterator, TypeVar
 
-# from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
-
 import pandas as pd
 from dcp.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
 from dcp.data_copy.costs import (
@@ -20,6 +18,9 @@ from dcp.storage.memory.engines.python import PythonStorageApi
 from dcp.utils.common import DcpJsonEncoder
 from dcp.utils.data import write_csv
 from dcp.utils.pandas import dataframe_to_records
+
+# from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
+
 
 
 @datacopier(

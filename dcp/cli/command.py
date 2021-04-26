@@ -1,6 +1,7 @@
 from __future__ import annotations
-from dcp.cli.helpers import make_copy_request
+
 from cleo import Command
+from dcp.cli.helpers import make_copy_request
 from dcp.data_copy.base import CopyRequest
 from dcp.data_copy.graph import execute_copy_request
 
@@ -32,4 +33,3 @@ class DcpCommand(Command):
             f"({req.to_storage.url})"
         )
         execute_copy_request(req)
-

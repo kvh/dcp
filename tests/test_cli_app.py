@@ -1,16 +1,13 @@
-from dcp.cli.helpers import make_copy_request
+import os
+
+import networkx
+import pytest
+from cleo import Application, CommandTester
 from dcp.cli.command import DcpCommand
+from dcp.cli.helpers import make_copy_request
+from dcp.data_copy.base import CopyRequest
 from dcp.data_format.formats.database.base import DatabaseTableFormat
 from dcp.storage.base import Storage
-from dcp.data_copy.base import CopyRequest
-import os
-import networkx
-
-
-import pytest
-
-from cleo import Application
-from cleo import CommandTester
 
 
 def test_make_copy_request():
@@ -36,4 +33,3 @@ def test_execute():
     command_tester = CommandTester(command)
     with pytest.raises(networkx.exception.NodeNotFound):
         command_tester.execute("orders.csv mysql://localhost:3306/mydb/orders")
-

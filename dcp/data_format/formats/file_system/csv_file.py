@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+import csv
 from typing import Any, Dict, List, Optional, TextIO, Type, TypeVar, cast
 
-import csv
 import dcp.storage.base as storage
-from dcp.utils.data import infer_csv_dialect, is_maybe_csv
 import pandas as pd
 import sqlalchemy as sa
 import sqlalchemy.types as satypes
@@ -28,6 +27,7 @@ from dcp.data_format.formats.memory.records import (
     select_field_type,
 )
 from dcp.data_format.handler import FormatHandler
+from dcp.utils.data import infer_csv_dialect, is_maybe_csv
 from loguru import logger
 from pandas import DataFrame
 from sqlalchemy.sql.ddl import CreateTable

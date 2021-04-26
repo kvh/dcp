@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import enum
-from io import IOBase
 import os
 from collections import abc
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
+from io import IOBase
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import urlparse
 

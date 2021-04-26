@@ -36,7 +36,8 @@ def test_records_to_file():
         recs = list(read_csv(f))
         handler = get_handler(RecordsFormat, mem_s.storage_engine)
         mem_api.put(
-            "output", recs,
+            "output",
+            recs,
         )
         handler().cast_to_schema("output", mem_s, schema=test_records_schema)
         recs = mem_api.get("output")

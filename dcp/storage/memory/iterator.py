@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import traceback
-from io import BytesIO, IOBase, SEEK_SET, SEEK_END, StringIO, TextIOBase
 import typing
+from io import SEEK_END, SEEK_SET, BytesIO, IOBase, StringIO, TextIOBase
 from itertools import tee
 from typing import Any, Generic, Iterable, Iterator, List, Optional, TypeVar, Union
 
