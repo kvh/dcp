@@ -127,24 +127,28 @@ def sqlalchemy_type_to_field_type(sa_type: satypes.TypeEngine) -> FieldType:
     s = repr(sa_type)
     satype_aliases = {
         # Sqlalchemy
-        "int": Integer,
-        "integer": Integer,
-        "biginteger": Integer,
-        "bigint": Integer,
-        "numeric": Decimal,
-        "real": Float,
-        "date": Date,
-        "datetime": DateTime,
-        "time": Time,
-        "text": Text,
-        "varchar": Text,
-        "unicode": Text,
-        "unicodetext": Text,
-        "json": Json,
+        "Int": Integer,
+        "Integer": Integer,
+        "BigInteger": Integer,
+        "BigInt": Integer,
+        "Numeric": Decimal,
+        "Real": Float,
+        "Date": Date,
+        "Datetime": DateTime,
+        "Timestamp": DateTime,
+        "Time": Time,
+        "Text": Text,
+        "Varchar": Text,
+        "Unicode": Text,
+        "Unicodetext": Text,
+        "Json": Json,
     }
+    all_aliases = {}
+    for k, v in satype_aliases.items():
+        all_aliases[k.upper()] = v
+        all_aliases[k] = v
     try:
-        ls = s.lower()
-        ft = eval(ls, {"__builtins__": None}, satype_aliases)
+        ft = eval(s, {"__builtins__": None}, all_aliases)
         if isinstance(ft, type):
             ft = ft()
         return ft
