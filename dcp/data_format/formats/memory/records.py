@@ -268,6 +268,8 @@ class IntegerHelper(FieldTypeHelper):
 
     def cast(self, obj: Any, strict: bool = False) -> Any:
         if isinstance(obj, str):
+            if not obj.strip():
+                return None
             return int(obj.replace(",", ""))
         return int(obj)
 
