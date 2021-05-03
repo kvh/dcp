@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+import pprint
 import random
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -146,7 +147,7 @@ class CopyLookup:
 
 def get_datacopy_lookup(
     copiers: Iterable[DataCopier] = None,
-    available_storage_engines: Set[Type[StorageEngine]] = None,
+    available_storage_engines: Iterable[Type[StorageEngine]] = None,
     available_data_formats: Iterable[DataFormat] = None,
     expected_record_count: int = 10000,
 ) -> CopyLookup:

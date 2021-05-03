@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import dcp.storage.base as storage
-from commonmodel import (
-    FieldType,
-    Schema,
-)
+from commonmodel import FieldType, Schema
 from commonmodel.field_types import Text
 from dcp.data_format.formats.database.base import (
     GenericDatabaseTableHandler,

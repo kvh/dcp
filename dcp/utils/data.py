@@ -131,8 +131,8 @@ def is_maybe_csv(s: str) -> bool:
 
 
 def read_csv(lines: Iterable[AnyStr], dialect=None) -> Iterator[Dict]:
-    lines, lines_copy = tee(lines, 2)
     if dialect is None:
+        lines, lines_copy = tee(lines, 2)
         s = ""
         for i, ln in enumerate(lines_copy):
             if i >= 10:

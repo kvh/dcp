@@ -22,7 +22,6 @@ from dcp.utils.pandas import dataframe_to_records
 # from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
 
 
-
 @datacopier(
     from_storage_classes=[MemoryStorageClass],
     from_data_formats=[RecordsFormat],  # , RecordsIteratorFormat],

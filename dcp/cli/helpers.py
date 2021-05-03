@@ -6,6 +6,7 @@ from dcp.data_copy.base import CopyRequest
 from dcp.data_copy.graph import execute_copy_request
 from dcp.data_format.base import get_format_for_nickname
 from dcp.storage.base import Storage
+from loguru import logger
 
 
 def make_copy_request(
@@ -27,9 +28,9 @@ def make_copy_request(
         pth = os.getcwd()
         from_storage_url = f"file://{pth}"
     return CopyRequest(
-        from_name,
-        Storage(from_storage_url),
-        to_name,
-        to_storage,
-        to_fmt,
+        from_name=from_name,
+        from_storage=Storage(from_storage_url),
+        to_name=to_name,
+        to_storage=to_storage,
+        to_format=to_fmt,
     )

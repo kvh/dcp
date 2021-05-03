@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 import pandas as pd
 from commonmodel import Schema
 from dcp.utils.common import is_nullish
+from loguru import logger
 from pandas import DataFrame, Index, Series
 from pandas._testing import assert_almost_equal
 
@@ -26,6 +27,8 @@ def assert_dataframes_are_almost_equal(
     ignored_columns: List[str] = None,
     check_dtypes: bool = False,
 ):
+    logger.debug(df1)
+    logger.debug(df2)
     if ignored_columns:
         df1 = df1[[c for c in df1.columns if c not in ignored_columns]]
         df2 = df2[[c for c in df2.columns if c not in ignored_columns]]

@@ -29,7 +29,6 @@ from ..utils import get_test_records_for_format, test_records, test_records_sche
 # from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
 
 
-
 dr = tempfile.gettempdir()
 python_url = f"python://{rand_str(10)}/"
 

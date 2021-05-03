@@ -65,7 +65,8 @@ class CsvFileHandler(FormatHandler):
             dialect = infer_csv_dialect(f.read(SAMPLE_SIZE_CHARACTERS))
             f.seek(0)
             ln = f.readline()
-            return [c.strip() for c in ln.split(dialect.delimiter)]
+            headers = next(csv.reader([ln], dialect=dialect))
+            return headers
 
     def infer_field_type(
         self, name: str, storage: storage.Storage, field: str
