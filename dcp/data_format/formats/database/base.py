@@ -127,12 +127,15 @@ def sqlalchemy_type_to_field_type(sa_type: satypes.TypeEngine) -> FieldType:
     s = repr(sa_type)
     satype_aliases = {
         # Sqlalchemy
+        "Boolean": Boolean,
         "Int": Integer,
         "Integer": Integer,
         "BigInteger": Integer,
         "Bigint": Integer,
         "Smallint": Integer,
+        "Decimal": Decimal,
         "Numeric": Decimal,
+        "Float": Float,
         "Real": Float,
         "Double": Float,
         "Double_Precision": Float,
@@ -140,6 +143,7 @@ def sqlalchemy_type_to_field_type(sa_type: satypes.TypeEngine) -> FieldType:
         "Datetime": DateTime,
         "Timestamp": DateTime,
         "Time": Time,
+        "Binary": Binary,
         "Text": Text,
         "Varchar": Text,
         "Unicode": Text,
