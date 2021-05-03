@@ -24,7 +24,8 @@ except ImportError:
 
 
 class MysqlDatabaseApi(DatabaseApi):
-    def dialect_is_supported(self) -> bool:
+    @classmethod
+    def dialect_is_supported(cls) -> bool:
         return MYSQL_SUPPORTED
 
     def _bulk_insert(self, table_name: str, records: List[Dict]):

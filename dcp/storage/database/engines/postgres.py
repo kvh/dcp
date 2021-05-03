@@ -75,11 +75,7 @@ def pg_execute_values(
     try:
         with conn.cursor() as curs:
             execute_values(
-                curs,
-                sql,
-                records,
-                template=None,
-                page_size=page_size,
+                curs, sql, records, template=None, page_size=page_size,
             )
         conn.commit()
     except Exception as e:
@@ -90,7 +86,8 @@ def pg_execute_values(
 
 
 class PostgresDatabaseApi(DatabaseApi):
-    def dialect_is_supported(self) -> bool:
+    @classmethod
+    def dialect_is_supported(cls) -> bool:
         return POSTGRES_SUPPORTED
 
     def _bulk_insert(self, table_name: str, records: List[Dict], **kwargs):
