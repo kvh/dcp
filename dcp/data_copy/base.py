@@ -30,6 +30,7 @@ from dcp.data_format.handler import (
     infer_format_for_name,
 )
 from dcp.storage.base import Storage, StorageApi, StorageClass, StorageEngine
+from dcp.storage.memory.engines.python import DEFAULT_PYTHON_STORAGE
 
 
 @dataclass(frozen=True)
@@ -95,7 +96,10 @@ class CopyRequest:
 
     def get_available_storages(self) -> List[Storage]:
         return list(
-            set([self.from_storage, self.to_storage] + (self.available_storages or []))
+            set(
+                [self.from_storage, self.to_storage]
+                + (self.available_storages or [DEFAULT_PYTHON_STORAGE])
+            )
         )
 
     def get_schema(self) -> Schema:

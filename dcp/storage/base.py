@@ -138,6 +138,18 @@ class MysqlStorageEngine(StorageEngine):
         return MysqlDatabaseStorageApi
 
 
+class RedshiftStorageEngine(StorageEngine):
+    storage_class = DatabaseStorageClass
+    schemes = ["redshift", "redshift+psycopg2"]
+    natural_format = "table"
+
+    @classmethod
+    def get_api_cls(cls) -> Type[StorageApi]:
+        from dcp.storage.database.engines.redshift import RedshiftDatabaseStorageApi
+
+        return RedshiftDatabaseStorageApi
+
+
 class LocalFileSystemStorageEngine(StorageEngine):
     storage_class = FileSystemStorageClass
     schemes = ["file"]

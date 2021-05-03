@@ -31,5 +31,5 @@ def test_execute():
     application.add(DcpCommand())
     command = application.find("dcp")
     command_tester = CommandTester(command)
-    with pytest.raises(networkx.exception.NodeNotFound):
+    with pytest.raises(FileNotFoundError):
         command_tester.execute("orders.csv mysql://localhost:3306/mydb/orders")

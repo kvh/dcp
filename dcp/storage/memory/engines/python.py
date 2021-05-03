@@ -99,3 +99,6 @@ class PythonStorageApi(StorageApi):
 
     def remove_alias(self, alias: str):
         self.remove(alias)
+
+
+DEFAULT_PYTHON_STORAGE = Storage("python://_default")
