@@ -29,6 +29,8 @@ if TYPE_CHECKING:
 # so we don't have unnecessary dupes
 _sa_engines: Dict[str, Engine] = {}
 
+_sa_table_cache: Dict[Tuple[str, str], sqlalchemy.Table] = {}
+
 
 def dispose_all(keyword: Optional[str] = None):
     for k, e in _sa_engines.items():
@@ -40,9 +42,7 @@ def dispose_all(keyword: Optional[str] = None):
 
 class DatabaseApi:
     def __init__(
-        self,
-        url: str,
-        json_serializer: Callable = None,
+        self, url: str, json_serializer: Callable = None,
     ):
         self.url = url
         self.json_serializer = (
@@ -62,9 +62,7 @@ class DatabaseApi:
         if key in _sa_engines:
             return _sa_engines[key]
         self.eng = sqlalchemy.create_engine(
-            self.url,
-            json_serializer=self.json_serializer,
-            echo=False,
+            self.url, json_serializer=self.json_serializer, echo=False,
         )
         _sa_engines[key] = self.eng
         return self.eng
@@ -163,9 +161,7 @@ class DatabaseApi:
         self.execute_sql(insert_sql)
 
     def create_table_from_sql(
-        self,
-        name: str,
-        sql: str,
+        self, name: str, sql: str,
     ):
         sql = self.clean_sub_sql(sql)
         create_sql = f"""
@@ -179,13 +175,15 @@ class DatabaseApi:
         self.execute_sql(create_sql)
 
     def get_as_sqlalchemy_table(self, name: str) -> sqlalchemy.Table:
-        sa_table = sqlalchemy.Table(
-            name,
-            self.get_sqlalchemy_metadata(),
-            autoload=True,
-            autoload_with=self.get_engine(),
-        )
-        return sa_table
+        if (self.url, name) not in _sa_table_cache:
+            sa_table = sqlalchemy.Table(
+                name,
+                self.get_sqlalchemy_metadata(),
+                autoload=True,
+                autoload_with=self.get_engine(),
+            )
+            _sa_table_cache[(self.url, name)] = sa_table
+        return _sa_table_cache[(self.url, name)]
 
     def create_sqlalchemy_table(self, table: sqlalchemy.Table):
         table.metadata = self.get_sqlalchemy_metadata()
@@ -231,8 +229,7 @@ class DatabaseApi:
 
 class DatabaseStorageApi(DatabaseApi, StorageApi):
     def __init__(
-        self,
-        storage: storage,
+        self, storage: storage,
     ):
         super().__init__(storage.url)
         self.storage = storage

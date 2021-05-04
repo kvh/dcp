@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 from contextlib import contextmanager
+import tempfile
 from typing import ContextManager, Generator, Iterable, Iterator, Optional, TextIO, Type
 
 from dcp.storage.base import Storage, StorageApi
@@ -22,9 +23,11 @@ def raw_line_count(filename: str) -> int:
     return sum(buf.count(b"\n") for buf in f_gen)
 
 
+def get_tmp_local_file_url() -> str:
+    return f"file://{tempfile.gettempdir()}"
+
+
 # TODO: this is just _local_ file api, lets call it that
-
-
 class FileSystemStorageApi(StorageApi):
     def __init__(self, storage: Storage):
         self.storage = storage
@@ -72,9 +75,7 @@ class FileSystemStorageApi(StorageApi):
         shutil.copy(pth, to_pth)
 
     def write_lines_to_file(
-        self,
-        name: str,
-        lines: Iterable[str],  # TODO: support bytes?
+        self, name: str, lines: Iterable[str],  # TODO: support bytes?
     ):
         with self.open(name, "w") as f:
             f.writelines(ln + "\n" for ln in lines)
