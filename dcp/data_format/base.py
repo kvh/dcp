@@ -31,7 +31,8 @@ class DataFormatBase(Generic[T]):
     nickname: str = None
 
     def __init__(self):
-        raise NotImplementedError("Do not instantiate DataFormat classes")
+        # raise NotImplementedError("Do not instantiate DataFormat classes")
+        pass
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
