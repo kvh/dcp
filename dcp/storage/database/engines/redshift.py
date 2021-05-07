@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from dcp.storage.database.engines.postgres import PostgresDatabaseApi
-
 from dcp.storage.database.api import DatabaseStorageApi
-
+from dcp.storage.database.engines.postgres import PostgresDatabaseApi
 
 REDSHIFT_SUPPORTED = False
 try:
@@ -22,4 +20,3 @@ class RedshiftDatabaseApi(PostgresDatabaseApi):
 
 class RedshiftDatabaseStorageApi(DatabaseStorageApi, RedshiftDatabaseApi):
     pass
-
