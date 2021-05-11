@@ -6,8 +6,7 @@ from typing import Type
 
 import pytest
 from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
-from dcp.data_copy.copiers.to_database.memory_to_database import copy_records_to_db
-from dcp.data_copy.copiers.to_file.memory_to_file import copy_records_to_csv_file
+from dcp.data_copy.copiers.to_file.memory_to_file import RecordsToCsvFile
 from dcp.data_format.formats.database.base import DatabaseTableFormat
 from dcp.data_format.formats.file_system.csv_file import CsvFileFormat
 from dcp.data_format.formats.memory.records import RecordsFormat
@@ -31,7 +30,7 @@ def test_records_to_file():
     obj = [{"f1": "hi", "f2": 2}]
     mem_api.put(name, obj)
     req = CopyRequest(name, mem_s, name, s, CsvFileFormat)
-    copy_records_to_csv_file.copy(req)
+    RecordsToCsvFile().copy(req)
     with fs_api.open(name, newline="") as f:
         recs = list(read_csv(f))
         handler = get_handler(RecordsFormat, mem_s.storage_engine)

@@ -121,10 +121,9 @@ class NameExistsError(Exception):
     pass
 
 
-@dataclass(frozen=True)
-class DataCopier:
+class DataCopierBase:
     cost: DataCopyCost
-    copier_function: CopierCallabe
+    requires_schema_cast: bool
     from_storage_classes: Optional[List[Type[StorageClass]]] = None
     from_storage_engines: Optional[List[Type[StorageEngine]]] = None
     from_data_formats: Optional[List[DataFormat]] = None
@@ -132,12 +131,34 @@ class DataCopier:
     to_storage_engines: Optional[List[Type[StorageEngine]]] = None
     to_data_formats: Optional[List[DataFormat]] = None
     supports_append: bool = True
+    request: CopyRequest
+    unregistered: bool = False
 
-    def copy(self, request: CopyRequest):
-        self.check_if_exists(request)
-        self.copier_function(request)
+    def __init_subclass__(cls) -> None:
+        if not cls.unregistered:
+            ALL_DATA_COPIERS.append(cls())
 
-    __call__ = copy
+    def __eq__(self, o: object) -> bool:
+        return o.__class__ is self.__class__
+
+    def create_empty(self, req: CopyRequest):
+        create_empty_if_not_exists(req)
+        # raise NotImplementedError
+
+    def append(self, req: CopyRequest):
+        raise NotImplementedError
+
+    def copy(self, req: CopyRequest):
+        self.check_if_exists(req)
+        self.create_empty(req)
+        self.append(req)
+        if self.requires_schema_cast:
+            self.cast_to_schema(req)
+
+    def cast_to_schema(self, req: CopyRequest):
+        req.to_format_handler.cast_to_schema(
+            req.to_name, req.to_storage_api.storage, req.get_schema()
+        )
 
     def check_if_exists(self, req: CopyRequest):
         if req.if_exists == "replace":
@@ -204,34 +225,6 @@ def create_empty_if_not_exists(req: CopyRequest):
 
 
 ALL_DATA_COPIERS = []
-
-
-def datacopier(
-    cost: DataCopyCost,
-    from_storage_classes: Optional[List[Type[StorageClass]]] = None,
-    from_storage_engines: Optional[List[Type[StorageEngine]]] = None,
-    from_data_formats: Optional[List[DataFormat]] = None,
-    to_storage_classes: Optional[List[Type[StorageClass]]] = None,
-    to_storage_engines: Optional[List[Type[StorageEngine]]] = None,
-    to_data_formats: Optional[List[DataFormat]] = None,
-    unregistered: bool = False,
-):
-    def f(copier_function: CopierCallabe) -> DataCopier:
-        dc = DataCopier(
-            copier_function=copier_function,
-            cost=cost,
-            from_storage_classes=from_storage_classes,
-            from_storage_engines=from_storage_engines,
-            from_data_formats=from_data_formats,
-            to_storage_classes=to_storage_classes,
-            to_storage_engines=to_storage_engines,
-            to_data_formats=to_data_formats,
-        )
-        if not unregistered:
-            ALL_DATA_COPIERS.append(dc)
-        return dc
-
-    return f
 
 
 def copy(

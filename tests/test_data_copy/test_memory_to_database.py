@@ -6,7 +6,7 @@ from typing import Type
 
 import pytest
 from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
-from dcp.data_copy.copiers.to_database.memory_to_database import copy_records_to_db
+from dcp.data_copy.copiers.to_database.memory_to_database import RecordsToDatabaseTable
 from dcp.data_format.formats.database.base import DatabaseTableFormat
 from dcp.storage.base import DatabaseStorageClass, LocalPythonStorageEngine, Storage
 from dcp.storage.database.api import DatabaseApi, DatabaseStorageApi
@@ -41,7 +41,7 @@ def test_records_to_db(url):
         req = CopyRequest(
             name, mem_s, name, db_s, DatabaseTableFormat, test_records_schema
         )
-        copy_records_to_db.copy(req)
+        RecordsToDatabaseTable().copy(req)
         with db_api.execute_sql_result(f"select * from {name}") as res:
             if url.startswith("sqlite"):
                 assert [dict(r) for r in res] == test_records

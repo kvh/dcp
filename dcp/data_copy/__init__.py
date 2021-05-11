@@ -2,8 +2,8 @@ from .base import (
     ALL_DATA_COPIERS,
     Conversion,
     CopyRequest,
+    DataCopierBase,
     StorageFormat,
     copy,
-    datacopier,
 )
 from .copiers import *

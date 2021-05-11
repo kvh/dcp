@@ -1,166 +1,119 @@
-# from __future__ import annotations
+from __future__ import annotations
 
-# import tempfile
-# import types
-# from io import StringIO
-# from typing import Optional, Type
+from typing import Optional, Tuple
 
-# import pytest
-# from snapflow.core.data_block import DataBlockMetadata, create_data_block_from_records
-# from snapflow.storage.data_copy.base import (
-#     Conversion,
-#     DataCopier,
-#     NetworkToMemoryCost,
-#     NoOpCost,
-#     StorageFormat,
-#     datacopy,
-#     get_datacopy_lookup,
-# )
-# from snapflow.storage.data_copy.database_to_memory import copy_db_to_records
-# from snapflow.storage.data_copy.memory_to_database import copy_records_to_db
-# from snapflow.storage.data_formats import (
-#     DatabaseCursorFormat,
-#     DatabaseTableFormat,
-#     DatabaseTableRefFormat,
-#     DataFrameFormat,
-#     DelimitedFileFormat,
-#     JsonLinesFileFormat,
-#     RecordsFormat,
-#     RecordsIteratorFormat,
-# )
-# from snapflow.storage.data_formats.data_frame import DataFrameIteratorFormat
-# from snapflow.storage.data_formats.delimited_file_object import (
-#     DelimitedFileObjectFormat,
-# )
-# from snapflow.storage.data_records import MemoryRecordsObject, as_records
-# from snapflow.storage.db.api import DatabaseApi, DatabaseStorageApi
-# from snapflow.storage.storage import (
-#     DatabaseStorageClass,
-#     FileSystemStorageClass,
-#     LocalFileSystemStorageEngine,
-#     LocalPythonStorageEngine,
-#     PostgresStorageEngine,
-#     PythonStorageApi,
-#     MemoryStorageClass,
-#     SqliteStorageEngine,
-#     Storage,
-#     clear_local_storage,
-#     new_local_python_storage,
-# )
-# from tests.utils import TestSchema1, TestSchema4
+import pytest
+from dcp.data_copy.base import Conversion, DataCopierBase, StorageFormat
+from dcp.data_copy.costs import NoOpCost
+from dcp.data_copy.graph import get_datacopy_lookup
+from dcp.data_format.formats.database.base import DatabaseTableFormat
+from dcp.data_format.formats.file_system.csv_file import CsvFileFormat
+from dcp.data_format.formats.memory.arrow_table import ArrowTableFormat
+from dcp.data_format.formats.memory.dataframe import DataFrameFormat
+from dcp.data_format.formats.memory.records import RecordsFormat
+from dcp.storage.base import (
+    DatabaseStorageClass,
+    FileSystemStorageClass,
+    LocalFileSystemStorageEngine,
+    LocalPythonStorageEngine,
+    MemoryStorageClass,
+    MysqlStorageEngine,
+    PostgresStorageEngine,
+    SqliteStorageEngine,
+)
 
 
-# def test_data_copy_decorator():
-#     @datacopier(cost=NoOpCost, unregistered=True)
-#     def copy(*args):
-#         pass
+def test_data_copy_lookup():
+    class Db2Recs(DataCopierBase):
+        from_storage_classes = [DatabaseStorageClass]
+        from_data_formats = [DatabaseTableFormat]
+        to_storage_classes = [MemoryStorageClass]
+        to_data_formats = [RecordsFormat]
+        cost = NoOpCost
 
-#     assert copy.cost is NoOpCost
+    class Recs2Csv(DataCopierBase):
+        from_storage_classes = [MemoryStorageClass]
+        from_data_formats = [RecordsFormat]
+        to_storage_classes = [FileSystemStorageClass]
+        to_data_formats = [CsvFileFormat]
+        cost = NoOpCost
+
+    assert Db2Recs().can_handle_from(
+        StorageFormat(MysqlStorageEngine, DatabaseTableFormat)
+    )
+    assert Db2Recs().can_handle_from(
+        StorageFormat(PostgresStorageEngine, DatabaseTableFormat)
+    )
+    assert not Db2Recs().can_handle_from(
+        StorageFormat(LocalFileSystemStorageEngine, CsvFileFormat)
+    )
+    assert not Db2Recs().can_handle_from(
+        StorageFormat(LocalPythonStorageEngine, RecordsFormat)
+    )
+
+    assert not Db2Recs().can_handle_to(
+        StorageFormat(MysqlStorageEngine, DatabaseTableFormat)
+    )
+    assert not Db2Recs().can_handle_to(
+        StorageFormat(PostgresStorageEngine, DatabaseTableFormat)
+    )
+    assert not Db2Recs().can_handle_to(
+        StorageFormat(LocalFileSystemStorageEngine, CsvFileFormat)
+    )
+    assert Db2Recs().can_handle_to(
+        StorageFormat(LocalPythonStorageEngine, RecordsFormat)
+    )
+
+    lkup = get_datacopy_lookup(copiers=[Db2Recs(), Recs2Csv()])
+    pth = lkup.get_lowest_cost_path(
+        Conversion(
+            StorageFormat(PostgresStorageEngine, DatabaseTableFormat),
+            StorageFormat(LocalFileSystemStorageEngine, CsvFileFormat),
+        )
+    )
+    assert [e.copier for e in pth.edges] == [Db2Recs(), Recs2Csv()]
 
 
-# def test_data_copy_lookup():
-#     @datacopier(
-#         cost=NoOpCost, from_storage_classes=[FileSystemStorageClass], unregistered=True
-#     )
-#     def noop_all(*args):
-#         pass
-
-#     @datacopier(
-#         from_storage_classes=[DatabaseStorageClass],
-#         from_data_formats=[DatabaseTableFormat],
-#         to_storage_classes=[MemoryStorageClass],
-#         to_data_formats=[RecordsFormat],
-#         cost=NetworkToMemoryCost,
-#         unregistered=True,
-#     )
-#     def db_to_mem(*args):
-#         pass
-
-#     lkup = get_datacopy_lookup(copiers=[noop_all, db_to_mem])
-#     dcp = lkup.get_lowest_cost(
-#         Conversion(
-#             StorageFormat(PostgresStorageEngine, DatabaseTableFormat),
-#             StorageFormat(LocalPythonStorageEngine, RecordsFormat),
-#         )
-#     )
-#     assert dcp is db_to_mem
-
-
-# @pytest.mark.parametrize(
-#     "conversion,length",
-#     [
-#         # Memory to DB
-#         (
-#             (
-#                 StorageFormat(LocalPythonStorageEngine, RecordsFormat),
-#                 StorageFormat(PostgresStorageEngine, DatabaseTableFormat),
-#             ),
-#             1,
-#         ),
-#         (
-#             (
-#                 StorageFormat(LocalPythonStorageEngine, DataFrameFormat),
-#                 StorageFormat(PostgresStorageEngine, DatabaseTableFormat),
-#             ),
-#             2,
-#         ),
-#         (
-#             (
-#                 StorageFormat(LocalPythonStorageEngine, DataFrameIteratorFormat),
-#                 StorageFormat(LocalPythonStorageEngine, DataFrameFormat),
-#             ),
-#             1,
-#         ),
-#         (
-#             (
-#                 StorageFormat(LocalPythonStorageEngine, DataFrameIteratorFormat),
-#                 StorageFormat(LocalPythonStorageEngine, RecordsIteratorFormat),
-#             ),
-#             1,
-#         ),
-#         (
-#             (
-#                 StorageFormat(LocalPythonStorageEngine, RecordsIteratorFormat),
-#                 StorageFormat(PostgresStorageEngine, DatabaseTableFormat),
-#             ),
-#             1,
-#         ),
-#         (
-#             (
-#                 StorageFormat(PostgresStorageEngine, DatabaseTableFormat),
-#                 StorageFormat(LocalPythonStorageEngine, DataFrameIteratorFormat),
-#             ),
-#             2,  # DTF -> RIF -> DIF
-#         ),
-#         (
-#             (
-#                 StorageFormat(LocalPythonStorageEngine, RecordsIteratorFormat),
-#                 StorageFormat(SqliteStorageEngine, DatabaseTableFormat),
-#             ),
-#             1,
-#         ),
-#         (
-#             (
-#                 StorageFormat(LocalPythonStorageEngine, DelimitedFileObjectFormat),
-#                 StorageFormat(SqliteStorageEngine, DatabaseTableFormat),
-#             ),
-#             2,
-#         ),
-#         (
-#             (
-#                 StorageFormat(LocalFileSystemStorageEngine, DelimitedFileFormat),
-#                 StorageFormat(SqliteStorageEngine, DatabaseTableFormat),
-#             ),
-#             3,  # file -> file obj -> records iter -> db table
-#         ),
-#     ],
-# )
-# def test_conversion_costs(conversion: Conversion, length: Optional[int]):
-#     cp = get_datacopy_lookup().get_lowest_cost_path(Conversion(*conversion))
-#     if length is None:
-#         assert cp is None
-#     else:
-#         assert cp is not None
-#         # for c in cp.conversions:
-#         #     print(f"{c.copier.copier_function} {c.conversion}")
-#         assert len(cp.conversions) == length
+@pytest.mark.parametrize(
+    "conversion,length",
+    [
+        # Memory to DB
+        (
+            (
+                StorageFormat(LocalPythonStorageEngine, RecordsFormat),
+                StorageFormat(PostgresStorageEngine, DatabaseTableFormat),
+            ),
+            1,
+        ),
+        (
+            (
+                StorageFormat(LocalPythonStorageEngine, DataFrameFormat),
+                StorageFormat(PostgresStorageEngine, DatabaseTableFormat),
+            ),
+            2,
+        ),
+        (
+            (
+                StorageFormat(LocalFileSystemStorageEngine, CsvFileFormat),
+                StorageFormat(SqliteStorageEngine, DatabaseTableFormat),
+            ),
+            2,
+        ),
+        (
+            (
+                StorageFormat(SqliteStorageEngine, DatabaseTableFormat),
+                StorageFormat(LocalPythonStorageEngine, ArrowTableFormat),
+            ),
+            3,
+        ),
+    ],
+)
+def test_conversion_costs(conversion: Tuple, length: Optional[int]):
+    cp = get_datacopy_lookup().get_lowest_cost_path(Conversion(*conversion))
+    if length is None:
+        assert cp is None
+    else:
+        assert cp is not None
+        # for c in cp.conversions:
+        #     print(f"{c.copier.copier_function} {c.conversion}")
+        assert len(cp.edges) == length

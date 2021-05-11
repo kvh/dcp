@@ -1,5 +1,5 @@
 from commonmodel.base import Schema
-from dcp.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
+from dcp.data_copy.base import CopyRequest, DataCopierBase
 from dcp.data_copy.costs import (
     FormatConversionCost,
     MemoryToMemoryCost,
@@ -12,24 +12,42 @@ from dcp.storage.base import DatabaseStorageClass, MemoryStorageClass, StorageAp
 from dcp.storage.database.api import DatabaseStorageApi
 from dcp.storage.database.utils import result_proxy_to_records
 from dcp.storage.memory.engines.python import PythonStorageApi
+from sqlalchemy.engine import Result
 
 
-@datacopier(
-    from_storage_classes=[DatabaseStorageClass],
-    from_data_formats=[DatabaseTableFormat],
-    to_storage_classes=[MemoryStorageClass],
-    to_data_formats=[RecordsFormat],
-    cost=NetworkToMemoryCost,
-)
-def copy_db_to_records(req: CopyRequest):
-    assert isinstance(req.from_storage_api, DatabaseStorageApi)
-    assert isinstance(req.to_storage_api, PythonStorageApi)
-    select_sql = f"select * from {req.from_name}"
-    create_empty_if_not_exists(req)
-    existing_records = req.to_storage_api.get(req.to_name)
-    with req.from_storage_api.execute_sql_result(select_sql) as r:
-        records = result_proxy_to_records(r)
-        req.to_storage_api.put(req.to_name, existing_records + records)
+class DatabaseToMemoryMixin:
+    from_storage_classes = [DatabaseStorageClass]
+    to_storage_classes = [MemoryStorageClass]
+
+    def append(self, req: CopyRequest):
+        assert isinstance(req.from_storage_api, DatabaseStorageApi)
+        assert isinstance(req.to_storage_api, PythonStorageApi)
+        existing = req.to_storage_api.get(req.to_name)
+        select_sql = f"select * from {req.from_name}"
+        with req.from_storage_api.execute_sql_result(select_sql) as r:
+            new = self.result_to_object(r)
+        final = self.concat(existing, new)
+        req.to_storage_api.put(req.to_name, final)
+
+    def concat(self, existing, new):
+        raise NotImplementedError
+
+    def result_to_object(self, res: Result):
+        raise NotImplementedError
+
+
+class DatabaseTableToRecords(DatabaseToMemoryMixin, DataCopierBase):
+    from_data_formats = [DatabaseTableFormat]
+    to_data_formats = [RecordsFormat]
+    cost = NetworkToMemoryCost
+    requires_schema_cast = False
+
+    def concat(self, existing: Records, new: Records) -> Records:
+        return existing + new
+
+    def result_to_object(self, res: Result):
+        records = result_proxy_to_records(res)
+        return records
 
 
 # @datacopier(

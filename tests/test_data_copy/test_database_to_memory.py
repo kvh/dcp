@@ -4,7 +4,7 @@ from typing import Type
 
 import pytest
 from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
-from dcp.data_copy.copiers.to_memory.database_to_memory import copy_db_to_records
+from dcp.data_copy.copiers.to_memory.database_to_memory import DatabaseTableToRecords
 from dcp.data_format.formats.database.base import DatabaseTableFormat
 from dcp.data_format.formats.memory.records import RecordsFormat
 from dcp.storage.base import DatabaseStorageClass, LocalPythonStorageEngine, Storage
@@ -34,5 +34,5 @@ def test_db_to_mem(url):
         db_api: DatabaseStorageApi = db_s.get_api()
         db_api.execute_sql(f"create table {name} as select 1 a, 2 b")
         req = CopyRequest(name, db_s, name, mem_s, RecordsFormat, test_records_schema)
-        copy_db_to_records.copy(req)
+        DatabaseTableToRecords().copy(req)
         assert mem_api.get(name) == [{"a": 1, "b": 2}]

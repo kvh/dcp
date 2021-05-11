@@ -3,13 +3,13 @@ from itertools import chain
 from typing import TypeVar
 
 import pandas as pd
-from dcp.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
+from dcp.data_copy.base import CopyRequest, DataCopierBase
 from dcp.data_copy.costs import (
     FormatConversionCost,
     MemoryToBufferCost,
     MemoryToMemoryCost,
 )
-from dcp.data_format.formats.memory.arrow_table import ArrowTableFormat
+from dcp.data_format.formats.memory.arrow_table import ArrowTable, ArrowTableFormat
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
 from dcp.storage.base import MemoryStorageClass, StorageApi
@@ -24,84 +24,65 @@ except ImportError:
     pa = TypeVar("pa")
 
 
-@datacopier(
-    from_storage_classes=[MemoryStorageClass],
-    from_data_formats=[RecordsFormat],
-    to_storage_classes=[MemoryStorageClass],
-    to_data_formats=[DataFrameFormat],
-    cost=MemoryToMemoryCost + FormatConversionCost,
-)
-def copy_records_to_df(req: CopyRequest):
-    assert isinstance(req.from_storage_api, PythonStorageApi)
-    assert isinstance(req.to_storage_api, PythonStorageApi)
-    records_object = req.from_storage_api.get(req.from_name)
-    df = pd.DataFrame(records_object)
-    create_empty_if_not_exists(req)
-    existing_df = req.to_storage_api.get(req.to_name)
-    final_df = existing_df.append(df)
-    req.to_storage_api.put(req.to_name, final_df)
-    # Pandas does not preserve types well through operations, so we need to cast here
-    req.to_format_handler.cast_to_schema(
-        req.to_name, req.to_storage_api.storage, req.get_schema()
-    )
+class MemoryDataCopierMixin:
+    from_storage_classes = [MemoryStorageClass]
+    to_storage_classes = [MemoryStorageClass]
+
+    def append(self, req: CopyRequest):
+        assert isinstance(req.from_storage_api, PythonStorageApi)
+        assert isinstance(req.to_storage_api, PythonStorageApi)
+        new = req.from_storage_api.get(req.from_name)
+        existing = req.to_storage_api.get(req.to_name)
+        final = self.concat(existing, new)
+        req.to_storage_api.put(req.to_name, final)
+
+    def concat(self, existing, new):
+        raise NotImplementedError
 
 
-@datacopier(
-    from_storage_classes=[MemoryStorageClass],
-    from_data_formats=[DataFrameFormat],
-    to_storage_classes=[MemoryStorageClass],
-    to_data_formats=[RecordsFormat],
-    cost=MemoryToMemoryCost + FormatConversionCost,
-)
-def copy_df_to_records(req: CopyRequest):
-    assert isinstance(req.from_storage_api, PythonStorageApi)
-    assert isinstance(req.to_storage_api, PythonStorageApi)
-    records_object = req.from_storage_api.get(req.from_name)
-    records = dataframe_to_records(records_object)
-    create_empty_if_not_exists(req)
-    existing_records = req.to_storage_api.get(req.to_name)
-    req.to_storage_api.put(req.to_name, existing_records + records)
-    # Only necessary if we think there is datatype loss when converting df->records
-    # req.to_format_handler.cast_to_schema(
-    #     req.to_name, req.to_storage_api.storage, req.get_schema()
-    # )
+class RecordsToDataframe(MemoryDataCopierMixin, DataCopierBase):
+    from_data_formats = [RecordsFormat]
+    to_data_formats = [DataFrameFormat]
+    cost = MemoryToMemoryCost + FormatConversionCost
+    requires_schema_cast = True
+
+    def concat(self, existing: pd.DataFrame, new: Records) -> pd.DataFrame:
+        df = pd.DataFrame(new)
+        return existing.append(df)
 
 
-# Self copy?
-@datacopier(
-    from_storage_classes=[MemoryStorageClass],
-    from_data_formats=[RecordsFormat],
-    to_storage_classes=[MemoryStorageClass],
-    to_data_formats=[RecordsFormat],
-    cost=MemoryToMemoryCost,
-)
-def copy_records_to_records(req: CopyRequest):
-    assert isinstance(req.from_storage_api, PythonStorageApi)
-    assert isinstance(req.to_storage_api, PythonStorageApi)
-    records = req.from_storage_api.get(req.from_name)
-    create_empty_if_not_exists(req)
-    existing_records = req.to_storage_api.get(req.to_name)
-    req.to_storage_api.put(req.to_name, existing_records + records)
+class DataframeToRecords(MemoryDataCopierMixin, DataCopierBase):
+    from_data_formats = [DataFrameFormat]
+    to_data_formats = [RecordsFormat]
+    cost = MemoryToMemoryCost + FormatConversionCost
+    requires_schema_cast = False  # TODO: maybe?
+
+    def concat(self, existing: Records, new: pd.DataFrame) -> Records:
+        records = dataframe_to_records(new)
+        return existing + records
 
 
-@datacopier(
-    from_storage_classes=[MemoryStorageClass],
-    from_data_formats=[DataFrameFormat],
-    to_storage_classes=[MemoryStorageClass],
-    to_data_formats=[DataFrameFormat],
-    cost=MemoryToMemoryCost,
-)
-def copy_df_to_df(req: CopyRequest):
-    assert isinstance(req.from_storage_api, PythonStorageApi)
-    assert isinstance(req.to_storage_api, PythonStorageApi)
-    df = req.from_storage_api.get(req.from_name)
-    create_empty_if_not_exists(req)
-    existing_df = req.to_storage_api.get(req.to_name)
-    final_df = existing_df.append(df)
-    req.to_storage_api.put(req.to_name, final_df)
-    req.to_format_handler.cast_to_schema(
-        req.to_name, req.to_storage_api.storage, req.get_schema()
-    )
+# Self copies
+
+
+class RecordsToRecords(MemoryDataCopierMixin, DataCopierBase):
+    from_data_formats = [RecordsFormat]
+    to_data_formats = [RecordsFormat]
+    cost = MemoryToMemoryCost
+    requires_schema_cast = False
+
+    def concat(self, existing: Records, new: Records) -> Records:
+        return existing + new
+
+
+class DataframeToDataframe(MemoryDataCopierMixin, DataCopierBase):
+    from_data_formats = [DataFrameFormat]
+    to_data_formats = [DataFrameFormat]
+    cost = MemoryToMemoryCost
+    requires_schema_cast = False
+
+    def concat(self, existing: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
+        return existing.append(new)
 
 
 # @datacopier(
@@ -276,38 +257,24 @@ def copy_df_to_df(req: CopyRequest):
 #########
 
 
-@datacopier(
-    from_storage_classes=[MemoryStorageClass],
-    from_data_formats=[ArrowTableFormat],
-    to_storage_classes=[MemoryStorageClass],
-    to_data_formats=[DataFrameFormat],
-    cost=MemoryToMemoryCost,  # Sometimes this is a zero-copy no-op (rarely for real world data tho due to lack of null support in numpy)
-)
-def copy_arrow_to_dataframe(req: CopyRequest):
-    assert isinstance(req.from_storage_api, PythonStorageApi)
-    assert isinstance(req.to_storage_api, PythonStorageApi)
-    records_object = req.from_storage_api.get(req.from_name)
-    df = records_object.to_pandas()
-    create_empty_if_not_exists(req)
-    existing_df = req.to_storage_api.get(req.to_name)
-    # No need to cast, should be preserved
-    req.to_storage_api.put(req.to_name, existing_df.append(df))
+class ArrowTableToDataFrame(MemoryDataCopierMixin, DataCopierBase):
+    from_data_formats = [ArrowTableFormat]
+    to_data_formats = [DataFrameFormat]
+    cost = MemoryToMemoryCost
+    requires_schema_cast = False  # TODO: maybe?
+
+    def concat(self, existing: pd.DataFrame, new: ArrowTable) -> pd.DataFrame:
+        new_df = new.to_pandas()
+        return existing.append(new_df)
 
 
-@datacopier(
-    from_storage_classes=[MemoryStorageClass],
-    from_data_formats=[DataFrameFormat],
-    to_storage_classes=[MemoryStorageClass],
-    to_data_formats=[ArrowTableFormat],
-    cost=MemoryToMemoryCost,
-)
-def copy_dataframe_to_arrow(req: CopyRequest):
-    assert isinstance(req.from_storage_api, PythonStorageApi)
-    assert isinstance(req.to_storage_api, PythonStorageApi)
-    records_object = req.from_storage_api.get(req.from_name)
-    at = pa.Table.from_pandas(records_object)
-    create_empty_if_not_exists(req)
-    existing_table: pa.Table = req.to_storage_api.get(req.to_name)
-    new_table = pa.Table.from_batches(existing_table.to_batches() + at.to_batches())
-    # No need to cast, should be preserved (???)
-    req.to_storage_api.put(req.to_name, new_table)
+class DataFrameToArrowTable(MemoryDataCopierMixin, DataCopierBase):
+    from_data_formats = [DataFrameFormat]
+    to_data_formats = [ArrowTableFormat]
+    cost = MemoryToMemoryCost
+    requires_schema_cast = False  # TODO: maybe?
+
+    def concat(self, existing: ArrowTable, new: pd.DataFrame) -> ArrowTable:
+        new_at = pa.Table.from_pandas(new)
+        existing = pa.Table.from_batches(existing.to_batches() + new_at.to_batches())
+        return existing

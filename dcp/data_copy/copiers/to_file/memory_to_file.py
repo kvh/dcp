@@ -1,8 +1,9 @@
 import json
-from typing import Iterator, TypeVar
+from io import IOBase
+from typing import Any, Iterator, TypeVar
 
 import pandas as pd
-from dcp.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
+from dcp.data_copy.base import CopyRequest, DataCopierBase
 from dcp.data_copy.costs import (
     DiskToMemoryCost,
     FormatConversionCost,
@@ -22,24 +23,29 @@ from dcp.utils.pandas import dataframe_to_records
 # from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
 
 
-@datacopier(
-    from_storage_classes=[MemoryStorageClass],
-    from_data_formats=[RecordsFormat],  # , RecordsIteratorFormat],
-    to_storage_classes=[FileSystemStorageClass],
-    to_data_formats=[CsvFileFormat],
-    cost=DiskToMemoryCost + FormatConversionCost,
-)
-def copy_records_to_csv_file(req: CopyRequest):
-    assert isinstance(req.from_storage_api, PythonStorageApi)
-    assert isinstance(req.to_storage_api, FileSystemStorageApi)
-    records_object = req.from_storage_api.get(req.from_name)
-    records_iterator = records_object
-    if not isinstance(records_object, Iterator):
-        records_iterator = [records_iterator]
-    create_empty_if_not_exists(req)
-    with req.to_storage_api.open(req.to_name, "a") as f:
-        for records in records_iterator:
-            write_csv(records, f, append=True)  # Append because we created empty
+class MemoryToFileMixin:
+    from_storage_classes = [MemoryStorageClass]
+    to_storage_classes = [FileSystemStorageClass]
+
+    def append(self, req: CopyRequest):
+        assert isinstance(req.from_storage_api, PythonStorageApi)
+        assert isinstance(req.to_storage_api, FileSystemStorageApi)
+        records = req.from_storage_api.get(req.from_name)
+        with req.to_storage_api.open(req.to_name, "a") as f:
+            self.write_object(f, records)
+
+    def write_object(self, f: IOBase, obj: Any):
+        raise NotImplementedError
+
+
+class RecordsToCsvFile(MemoryToFileMixin, DataCopierBase):
+    from_data_formats = [RecordsFormat]
+    to_data_formats = [CsvFileFormat]
+    cost = DiskToMemoryCost + FormatConversionCost
+    requires_schema_cast = False
+
+    def write_object(self, f: IOBase, obj: Any):
+        write_csv(obj, f, append=True)
 
 
 # @datacopier(
@@ -63,19 +69,13 @@ def copy_records_to_csv_file(req: CopyRequest):
 #         to_file.writelines(csv_lines)
 
 
-@datacopier(
-    from_storage_classes=[MemoryStorageClass],
-    from_data_formats=[RecordsFormat],  # , RecordsIteratorFormat],
-    to_storage_classes=[FileSystemStorageClass],
-    to_data_formats=[JsonLinesFileFormat],
-    cost=DiskToMemoryCost,  # TODO: not much format conversion cost, but some?
-)
-def copy_records_to_json_file(req: CopyRequest):
-    assert isinstance(req.from_storage_api, PythonStorageApi)
-    assert isinstance(req.to_storage_api, FileSystemStorageApi)
-    records = req.from_storage_api.get(req.from_name)
-    create_empty_if_not_exists(req)
-    with req.to_storage_api.open(req.to_name, "a") as f:
-        for r in records:
+class RecordsToJsonLinesFile(MemoryToFileMixin, DataCopierBase):
+    from_data_formats = [RecordsFormat]
+    to_data_formats = [JsonLinesFileFormat]
+    cost = DiskToMemoryCost
+    requires_schema_cast = False
+
+    def write_object(self, f: IOBase, obj: Records):
+        for r in obj:
             s = json.dumps(r, cls=DcpJsonEncoder)
             f.write(s + "\n")

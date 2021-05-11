@@ -24,7 +24,7 @@ from dcp.data_copy.base import (
     ALL_DATA_COPIERS,
     Conversion,
     CopyRequest,
-    DataCopier,
+    DataCopierBase,
     StorageFormat,
 )
 from dcp.data_format.base import ALL_DATA_FORMATS, DataFormat
@@ -36,7 +36,7 @@ from loguru import logger
 
 @dataclass(frozen=True)
 class CopyEdge:
-    copier: DataCopier
+    copier: DataCopierBase
     conversion: Conversion
 
 
@@ -68,13 +68,13 @@ class CopyResult:
 class CopyLookup:
     def __init__(
         self,
-        copiers: Iterable[DataCopier],
+        copiers: Iterable[DataCopierBase],
         available_storage_engines: Set[Type[StorageEngine]] = None,
         available_data_formats: Iterable[DataFormat] = None,
         expected_record_count: int = 10000,
     ):
-        self._lookup: Dict[Conversion, List[DataCopier]] = defaultdict(list)
-        self._copiers: Iterable[DataCopier] = copiers
+        self._lookup: Dict[Conversion, List[DataCopierBase]] = defaultdict(list)
+        self._copiers: Iterable[DataCopierBase] = copiers
         self.available_data_formats = available_data_formats
         self.available_storage_engines = available_storage_engines
         self.available_storage_formats = self._get_all_available_formats()
@@ -106,7 +106,7 @@ class CopyLookup:
                             self._lookup[Conversion(from_fmt, to_fmt)].append(c)
         return g
 
-    def get_capable_copiers(self, conversion: Conversion) -> List[DataCopier]:
+    def get_capable_copiers(self, conversion: Conversion) -> List[DataCopierBase]:
         return self._lookup.get(conversion, [])
 
     def get_lowest_cost_path(self, conversion: Conversion) -> Optional[CopyPath]:
@@ -129,7 +129,7 @@ class CopyLookup:
                 return None
         return copy_path
 
-    def get_lowest_cost(self, conversion: Conversion) -> Optional[DataCopier]:
+    def get_lowest_cost(self, conversion: Conversion) -> Optional[DataCopierBase]:
         copiers = [
             (c.cost.total_cost(self.expected_record_count), random.random(), c)
             for c in self.get_capable_copiers(conversion)
@@ -146,7 +146,7 @@ class CopyLookup:
 
 
 def get_datacopy_lookup(
-    copiers: Iterable[DataCopier] = None,
+    copiers: Iterable[DataCopierBase] = None,
     available_storage_engines: Iterable[Type[StorageEngine]] = None,
     available_data_formats: Iterable[DataFormat] = None,
     expected_record_count: int = 10000,

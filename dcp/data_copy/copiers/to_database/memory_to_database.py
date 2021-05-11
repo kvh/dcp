@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Any, Sequence
 
 from commonmodel.base import Schema
-from dcp.data_copy.base import CopyRequest, create_empty_if_not_exists, datacopier
+from dcp.data_copy.base import CopyRequest, DataCopierBase, create_empty_if_not_exists
 from dcp.data_copy.costs import (
     FormatConversionCost,
     MemoryToMemoryCost,
@@ -17,19 +17,28 @@ from dcp.storage.database.api import DatabaseStorageApi
 from dcp.storage.memory.engines.python import PythonStorageApi
 
 
-@datacopier(
-    from_storage_classes=[MemoryStorageClass],
-    from_data_formats=[RecordsFormat],
-    to_storage_classes=[DatabaseStorageClass],
-    to_data_formats=[DatabaseTableFormat],
-    cost=NetworkToMemoryCost,
-)
-def copy_records_to_db(req: CopyRequest):
-    assert isinstance(req.from_storage_api, PythonStorageApi)
-    assert isinstance(req.to_storage_api, DatabaseStorageApi)
-    records = req.from_storage_api.get(req.from_name)
-    create_empty_if_not_exists(req)
-    req.to_storage_api.bulk_insert_records(req.to_name, records)
+class MemoryToDatabaseMixin:
+    from_storage_classes = [MemoryStorageClass]
+    to_storage_classes = [DatabaseStorageClass]
+
+    def append(self, req: CopyRequest):
+        assert isinstance(req.from_storage_api, PythonStorageApi)
+        assert isinstance(req.to_storage_api, DatabaseStorageApi)
+        obj = req.from_storage_api.get(req.from_name)
+        self.insert_object(req, obj)
+
+    def insert_object(self, req: CopyRequest, obj: Any):
+        raise NotImplementedError
+
+
+class RecordsToDatabaseTable(MemoryToDatabaseMixin, DataCopierBase):
+    from_data_formats = [RecordsFormat]
+    to_data_formats = [DatabaseTableFormat]
+    cost = NetworkToMemoryCost
+    requires_schema_cast = False
+
+    def insert_object(self, req: CopyRequest, obj: Records):
+        req.to_storage_api.bulk_insert_records(req.to_name, obj)
 
 
 # @datacopier(

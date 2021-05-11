@@ -5,7 +5,7 @@ import pytest
 from cleo import Application, CommandTester
 from dcp.cli.command import DcpCommand
 from dcp.cli.helpers import make_copy_request
-from dcp.data_copy.base import CopyRequest
+from dcp.data_copy.base import ALL_DATA_COPIERS, CopyRequest
 from dcp.data_format.formats.database.base import DatabaseTableFormat
 from dcp.storage.base import Storage
 

@@ -7,11 +7,9 @@ from typing import Type
 import pyarrow as pa
 import pytest
 from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
-from dcp.data_copy.copiers.to_database.memory_to_database import copy_records_to_db
-from dcp.data_copy.copiers.to_file.memory_to_file import copy_records_to_csv_file
 from dcp.data_copy.copiers.to_memory.file_to_memory import (
-    copy_csv_file_to_records,
-    copy_json_file_to_arrow,
+    CsvFileToRecords,
+    JsonLinesFileToArrowTable,
 )
 from dcp.data_format.formats.database.base import DatabaseTableFormat
 from dcp.data_format.formats.file_system.csv_file import CsvFileFormat
@@ -37,13 +35,13 @@ def test_file_to_mem():
     # Records
     records_obj = [{"f1": "hi", "f2": 2}]
     req = CopyRequest(name, s, name, mem_s, RecordsFormat, test_records_schema)
-    copy_csv_file_to_records.copy(req)
+    CsvFileToRecords().copy(req)
     assert mem_api.get(name) == records_obj
 
     # # Json lines
     name = "_json_test"
     fs_api.write_lines_to_file(name, ['{"f1":"hi","f2":2}'])
     req = CopyRequest(name, s, name, mem_s, ArrowTableFormat, test_records_schema)
-    copy_json_file_to_arrow.copy(req)
+    JsonLinesFileToArrowTable().copy(req)
     expected = pa.Table.from_pydict({"f1": ["hi"], "f2": [2]})
     assert mem_api.get(name) == expected
