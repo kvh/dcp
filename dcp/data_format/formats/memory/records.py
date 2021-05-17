@@ -264,6 +264,8 @@ class IntegerHelper(FieldTypeHelper):
         return isinstance(obj, int)
 
     def cast(self, obj: Any, strict: bool = False) -> Any:
+        if is_nullish(obj):
+            return None
         if isinstance(obj, str):
             if not obj.strip():
                 return None
@@ -292,6 +294,8 @@ class FloatHelper(FieldTypeHelper):
         return False
 
     def cast(self, obj: Any, strict: bool = False) -> Any:
+        if is_nullish(obj):
+            return None
         if isinstance(obj, str):
             return float(obj.replace(",", ""))
         return float(obj)
@@ -310,6 +314,8 @@ class DecimalHelper(FieldTypeHelper):
             return False
 
     def cast(self, obj: Any, strict: bool = False) -> Any:
+        if is_nullish(obj):
+            return None
         return decimal.Decimal(obj)
 
 
@@ -400,14 +406,14 @@ class DateHelper(FieldTypeHelper):
             return isinstance(obj, date) and not isinstance(obj, datetime)
 
     def cast(self, obj: Any, strict: bool = False) -> Any:
+        if is_nullish(obj):
+            return None
         if strict:
             if isinstance(obj, datetime):
                 obj = obj.date()
             if not isinstance(obj, date):
                 raise TypeError(obj)
             return obj
-        if is_nullish(obj):
-            return None
         return ensure_date(obj)
 
 
