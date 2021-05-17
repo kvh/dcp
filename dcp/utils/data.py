@@ -134,7 +134,7 @@ def read_csv(lines: Iterable[AnyStr], dialect=None) -> Iterator[Dict]:
     if dialect is None:
         lines, lines_copy = tee(lines, 2)
         s = ""
-        for i, ln in enumerate(lines_copy):
+        for i, ln in enumerate(ensure_strings(lines_copy)):
             if i >= 10:
                 break
             s += ln
