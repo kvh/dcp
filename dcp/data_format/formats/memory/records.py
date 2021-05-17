@@ -219,12 +219,9 @@ def cast_python_object_to_field_type(
     try:
         return get_helper(field_type).cast(obj, strict=strict)
     except Exception:
-        logger.error(
-            f"Error casting python object ({obj}) to type {field_type}: {traceback.format_exc()}"
-        )
-    raise NotImplementedError(
-        f"Error casting python object ({obj}) to type {field_type}: {traceback.format_exc()}"
-    )
+        err_msg = f"Error casting python object ({obj}) to type {field_type}: {traceback.format_exc()}"
+        logger.error(err_msg)
+        raise NotImplementedError(err_msg)
 
 
 class BooleanHelper(FieldTypeHelper):
@@ -409,6 +406,8 @@ class DateHelper(FieldTypeHelper):
             if not isinstance(obj, date):
                 raise TypeError(obj)
             return obj
+        if is_nullish(obj):
+            return None
         return ensure_date(obj)
 
 
@@ -457,6 +456,8 @@ class DateTimeHelper(FieldTypeHelper):
             if not isinstance(obj, datetime):
                 raise TypeError(obj)
             return obj
+        if is_nullish(obj):
+            return None
         return ensure_datetime(obj)
 
 
@@ -489,6 +490,8 @@ class TimeHelper(FieldTypeHelper):
             if not isinstance(obj, time):
                 raise TypeError(obj)
             return obj
+        if is_nullish(obj):
+            return None
         return ensure_time(obj)
 
 

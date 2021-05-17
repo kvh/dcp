@@ -188,7 +188,8 @@ def ensure_bool(x: Optional[Union[str, bool]]) -> Optional[bool]:
 
 
 def is_nullish(
-    o: Any, null_strings=set(["None", "null", "na", "", "NULL", "NA", "N/A"])
+    o: Any,
+    null_strings=set(["None", "null", "na", "", "NULL", "NA", "N/A", "0000-00-00"]),
 ) -> bool:
     # TOOD: is "na" too aggressive?
     if o is None:
@@ -391,10 +392,7 @@ def profile_stmt(stmt: str, globals: Dict, locals: Dict):
     from pstats import SortKey
 
     cProfile.runctx(
-        stmt,
-        globals=globals,
-        locals=locals,
-        filename="profile.stats",
+        stmt, globals=globals, locals=locals, filename="profile.stats",
     )
     p = pstats.Stats("profile.stats")
     p.strip_dirs().sort_stats(SortKey.CUMULATIVE).print_stats(100)
