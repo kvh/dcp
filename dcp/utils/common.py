@@ -137,6 +137,8 @@ def ensure_datetime(x: Optional[Union[str, datetime]]) -> Optional[datetime]:
         return None
     if isinstance(x, datetime):
         return x
+    if isinstance(x, date):
+        return datetime.combine(x, datetime.min.time())
     if isinstance(x, int):
         return datetime.utcfromtimestamp(x)
     return parser.parse(x)
