@@ -149,6 +149,7 @@ def sqlalchemy_type_to_field_type(sa_type: satypes.TypeEngine) -> FieldType:
         "Unicode": Text,
         "Unicodetext": Text,
         "Json": Json,
+        "NullType": Text,  # TODO: What is nulltype?
     }
     all_aliases = {}
     for k, v in satype_aliases.items():
