@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Type, TypeVar, cast
+from typing import Any, Dict, List, Optional, Type, TypeVar, cast
 
 import dcp.storage.base as storage
 import pandas as pd

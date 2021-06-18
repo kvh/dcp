@@ -56,6 +56,10 @@ class DataFormatBase(Generic[T]):
         # db cursors -- they depend on open in-memory resources that may go away
         return cls.storable
 
+    @classmethod
+    def to_json(cls) -> str:
+        return cls.nickname or cls.__name__
+
 
 # class IterableDataFormatBase(DataFormatBase[T]):
 #     inner_format: DataFormat
@@ -70,3 +74,7 @@ def get_format_for_nickname(name: str) -> DataFormat:
         if fmt.nickname == name:
             return fmt
     raise NameError(f"DataFormat '{name}' not found.")
+
+
+class UnknownFormat(DataFormatBase):
+    nickname = "unknown"

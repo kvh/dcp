@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from snapflow.core.declarative.base import FrozenPydanticBase
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
 from urllib.parse import urlparse
 
@@ -171,8 +172,7 @@ def get_engine_for_scheme(scheme: str) -> Type[StorageEngine]:
     raise Exception(f"No matching engine for scheme {scheme}")  # TODO
 
 
-@dataclass(frozen=True)
-class Storage:
+class Storage(FrozenPydanticBase):
     url: str
 
     @classmethod
