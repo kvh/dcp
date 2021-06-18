@@ -172,7 +172,8 @@ def get_engine_for_scheme(scheme: str) -> Type[StorageEngine]:
     raise Exception(f"No matching engine for scheme {scheme}")  # TODO
 
 
-class Storage(FrozenPydanticBase):
+@dataclass(frozen=True)
+class Storage:
     url: str
 
     @classmethod
