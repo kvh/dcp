@@ -78,3 +78,5 @@ def get_format_for_nickname(name: str) -> DataFormat:
 
 class UnknownFormat(DataFormatBase):
     nickname = "unknown"
+    natural_storage_class = None
+    natural_storage_engine = None
