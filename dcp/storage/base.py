@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from snapflow.core.declarative.base import FrozenPydanticBase
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
 from urllib.parse import urlparse
 
