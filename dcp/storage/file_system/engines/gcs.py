@@ -22,6 +22,10 @@ except ImportError:
 
 class GoogleCloudStorageApi(FileSystemStorageApi):
     def __init__(self, storage: Storage):
+        if gcs is None:
+            raise ImportError(
+                "You must install google cloud libraries (gcsfs and google-cloud-storage)"
+            )
         self.storage = storage
         self.client = gcs.Client()
         self.fs = gcsfs.GCSFileSystem()
