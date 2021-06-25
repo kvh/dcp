@@ -7,7 +7,12 @@ from typing import Any, Callable
 import pytest
 from commonmodel.field_types import DEFAULT_FIELD_TYPE, Date, DateTime, Integer, Text
 from dcp import data_format
-from dcp.data_format.base import ALL_DATA_FORMATS, DataFormat, DataFormatBase
+from dcp.data_format.base import (
+    ALL_DATA_FORMATS,
+    DataFormat,
+    DataFormatBase,
+    UnknownFormat,
+)
 from dcp.data_format.formats.database.base import DatabaseTableFormat
 from dcp.data_format.handler import get_handler
 from dcp.storage.base import Storage, StorageClass, StorageEngine
@@ -21,6 +26,8 @@ from tests.utils import test_data_format_objects, test_records, test_records_sch
 def test_formats():
     for fmt in ALL_DATA_FORMATS:
         assert issubclass(fmt, DataFormatBase)
+        if fmt is UnknownFormat:
+            continue
         assert issubclass(fmt.get_natural_storage_class(), StorageClass)
         eng = fmt.get_natural_storage_engine()
         if eng is not None:

@@ -1,3 +1,4 @@
+import os
 import tempfile
 from contextlib import contextmanager
 from itertools import product
@@ -21,8 +22,10 @@ from dcp.storage.base import (
     Storage,
 )
 from dcp.storage.database.api import DatabaseApi
+from dcp.storage.file_system.engines.gcs import GOOGLE_CLOUD_STORAGE_SUPPORTED
 from dcp.utils.common import rand_str, to_json
 from dcp.utils.data import write_csv
+from loguru import logger
 
 from ..utils import get_test_records_for_format, test_records, test_records_schema
 
@@ -31,6 +34,7 @@ from ..utils import get_test_records_for_format, test_records, test_records_sche
 
 dr = tempfile.gettempdir()
 python_url = f"python://{rand_str(10)}/"
+gs_test_bucket = os.environ.get("GS_TEST_BUCKET")
 
 all_storage_formats = [
     ["sqlite://", DatabaseTableFormat],
@@ -43,6 +47,16 @@ all_storage_formats = [
     [python_url, ArrowTableFormat],
     # [python_url, CsvLinesIteratorFormat],
 ]
+
+if GOOGLE_CLOUD_STORAGE_SUPPORTED and gs_test_bucket:
+    all_storage_formats += [
+        [f"gs://{gs_test_bucket}", CsvFileFormat],
+    ]
+else:
+    logger.warning(
+        "Google Cloud Storage skipped (provide GS_TEST_BUCKET"
+        " and GOOGLE_APPLICATION_CREDENTIALS env vars)"
+    )
 
 
 def put_records_in_storage_format(

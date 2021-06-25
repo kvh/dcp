@@ -150,10 +150,33 @@ class RedshiftStorageEngine(StorageEngine):
         return RedshiftDatabaseStorageApi
 
 
+#############
+# Filesystems
+#############
+
+
 class LocalFileSystemStorageEngine(StorageEngine):
     storage_class = FileSystemStorageClass
     schemes = ["file"]
     natural_format = "jsonl"  # TODO: arrow?
+
+    @classmethod
+    def get_api_cls(cls) -> Type[StorageApi]:
+        from dcp.storage.file_system.engines.local import LocalFileSystemStorageApi
+
+        return LocalFileSystemStorageApi
+
+
+class GoogleCloudStorageEngine(StorageEngine):
+    storage_class = FileSystemStorageClass
+    schemes = ["gs", "gcs"]
+    natural_format = "jsonl"  # TODO: arrow?
+
+    @classmethod
+    def get_api_cls(cls) -> Type[StorageApi]:
+        from dcp.storage.file_system.engines.gcs import GoogleCloudStorageApi
+
+        return GoogleCloudStorageApi
 
 
 class LocalPythonStorageEngine(StorageEngine):

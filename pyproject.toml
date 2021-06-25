@@ -36,6 +36,8 @@ pydeps = "^1.9.0"
 pytest = "^4.6"
 pytest-cov = "^2.8.1"
 sqlalchemy-redshift = {git = "https://github.com/kvh/sqlalchemy-redshift.git", rev = "2a99b23"}
+google-cloud-storage = "^1.39.0"
+gcsfs = "^2021.6.1"
 
 [tool.poetry.scripts]
 dcp = "dcp.cli:app"

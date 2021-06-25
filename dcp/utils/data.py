@@ -169,8 +169,6 @@ def write_csv(
     append: bool = False,
     dialect=DcpCsvDialect,
 ):
-    if not records:
-        return
     writer = csv.writer(file_like, dialect=dialect)
     if not columns:
         columns = list(records[0].keys())  # Assumes all records have same keys...
