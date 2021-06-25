@@ -27,7 +27,7 @@ from dcp.data_format.formats.memory.records import (
     select_field_type,
 )
 from dcp.data_format.handler import FormatHandler
-from dcp.utils.data import infer_csv_dialect, is_maybe_csv
+from dcp.utils.data import infer_csv_dialect, is_maybe_csv, write_csv
 from loguru import logger
 from pandas import DataFrame
 from sqlalchemy.sql.ddl import CreateTable
@@ -82,6 +82,5 @@ class CsvFileHandler(FormatHandler):
         pass
 
     def create_empty(self, name, storage, schema: Schema):
-        # Not sure you'd really ever want to do this?
         with storage.get_api().open(name, "w") as f:
-            f.write(",".join(schema.field_names()) + "\n")
+            write_csv(records=[], file_like=f, columns=schema.field_names())
