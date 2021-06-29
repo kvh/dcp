@@ -1,43 +1,30 @@
-# from dcp.data_copy.base import datacopy
-# from dcp.data_copy.conversion import Conversion
-# from dcp.data_copy.costs import (
-#     DiskToBufferCost,
-#     FormatConversionCost,
-#     MemoryToMemoryCost,
-# )
-# from dcp.data_format.formats.database.base import DatabaseTableFormat
-# from dcp.data_format.formats.memory.dataframe import DataFrameFormat
-# from dcp.data_format.formats.memory.records import Records, RecordsFormat
-# from dcp.storage.base import (
-#     DatabaseStorageClass,
-#     FileSystemStorageClass,
-#     MemoryStorageClass,
-#     StorageApi,
-# )
-# from dcp.storage.database.api import DatabaseStorageApi
-# from dcp.storage.file_system.engines.local import FileSystemStorageApi
-# from dcp.storage.memory.engines.python import PythonStorageApi
-# from commonmodel.base import Schema
+from dcp.data_format.formats.database.base import DatabaseTableFormat
+from dcp.storage.database.api import DatabaseStorageApi
+
+from dcp.data_copy.base import CopyRequest, DataCopierBase
+from dcp.data_copy.costs import NetworkToBufferCost
+from dcp.data_format.formats.file_system.csv_file import CsvFileFormat
+from dcp.storage.base import (
+    DatabaseStorageClass,
+    FileSystemStorageClass,
+)
+from dcp.storage.file_system.engines.local import FileSystemStorageApi
 
 
-# @datacopier(
-#     from_storage_classes=[FileSystemStorageClass],
-#     from_data_formats=[CsvFileFormat],
-#     to_storage_classes=[DatabaseStorageClass],
-#     to_data_formats=[DatabaseTableFormat],
-#     cost=DiskToBufferCost + FormatConversionCost,  # TODO
-# )
-# def copy_csv_to_table(
-#     from_name: str,
-#     to_name: str,
-#     conversion: Conversion,
-#     from_storage_api: StorageApi,
-#     to_storage_api: StorageApi,
-#     schema: Schema,
-# ):
-#     assert isinstance(from_storage_api, FileSystemStorageApi)
-#     assert isinstance(to_storage_api, DatabaseStorageApi)
+class FileToDatabaseMixin:
+    from_storage_classes = [FileSystemStorageClass]
+    to_storage_classes = [DatabaseStorageClass]
+    requires_schema_cast = False
+    cost = NetworkToBufferCost
 
-#     # create empty destination table
-#     # load file using db command
-#     # Handle errors .... ?
+    def append(self, req: CopyRequest):
+        assert isinstance(req.from_storage_api, FileSystemStorageApi)
+        assert isinstance(req.to_storage_api, DatabaseStorageApi)
+        with req.from_storage_api.open(req.from_name) as f:
+            req.to_storage_api.bulk_insert_file(req.to_name, f, schema=req.get_schema())
+
+
+class CsvFileToDatabaseTable(FileToDatabaseMixin, DataCopierBase):
+    from_data_formats = [CsvFileFormat]
+    to_data_formats = [DatabaseTableFormat]
+

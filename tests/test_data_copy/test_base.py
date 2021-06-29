@@ -30,6 +30,7 @@ def test_data_copy_lookup():
         to_storage_classes = [MemoryStorageClass]
         to_data_formats = [RecordsFormat]
         cost = NoOpCost
+        unregistered = True
 
     class Recs2Csv(DataCopierBase):
         from_storage_classes = [MemoryStorageClass]
@@ -37,6 +38,7 @@ def test_data_copy_lookup():
         to_storage_classes = [FileSystemStorageClass]
         to_data_formats = [CsvFileFormat]
         cost = NoOpCost
+        unregistered = True
 
     assert Db2Recs().can_handle_from(
         StorageFormat(MysqlStorageEngine, DatabaseTableFormat)
@@ -97,7 +99,7 @@ def test_data_copy_lookup():
                 StorageFormat(LocalFileSystemStorageEngine, CsvFileFormat),
                 StorageFormat(SqliteStorageEngine, DatabaseTableFormat),
             ),
-            2,
+            1,
         ),
         (
             (

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from io import BytesIO, IOBase
 
 import json
 import os
@@ -137,7 +138,7 @@ class DatabaseApi:
         self.execute_sql(f"create table {to_name} as select * from {name}")
 
     def remove(self, name: str):
-        self.execute_sql(f"drop table {name} cascade")
+        self.execute_sql(f"drop table if exists {name} cascade")
 
     def rename_table(self, table_name: str, new_name: str):
         self.execute_sql(f"alter table {table_name} rename to {new_name}")
@@ -189,6 +190,10 @@ class DatabaseApi:
         table.metadata = self.get_sqlalchemy_metadata()
         stmt = CreateTable(table).compile(dialect=self.get_engine().dialect)
         self.execute_sql(str(stmt))
+
+    def bulk_insert_file(self, name: str, f: IOBase, schema: Optional[Schema] = None):
+        # TODO: file format details...
+        raise NotImplementedError
 
     def bulk_insert_records(self, name: str, records: Records):
         # Create table whether or not there is anything to insert (side-effect consistency)

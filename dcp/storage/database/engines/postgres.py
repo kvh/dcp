@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Dict, Iterator, List
+from io import IOBase
+from typing import Dict, Iterator, List, Optional
+from commonmodel.base import Schema
 
 from dcp.storage.database.api import (
     DatabaseApi,
@@ -75,11 +77,7 @@ def pg_execute_values(
     try:
         with conn.cursor() as curs:
             execute_values(
-                curs,
-                sql,
-                records,
-                template=None,
-                page_size=page_size,
+                curs, sql, records, template=None, page_size=page_size,
             )
         conn.commit()
     except Exception as e:
@@ -98,6 +96,31 @@ class PostgresDatabaseApi(DatabaseApi):
         bulk_insert(
             eng=self.get_engine(), table_name=table_name, records=records, **kwargs
         )
+
+    def bulk_insert_file(self, name: str, f: IOBase, schema: Optional[Schema] = None):
+        cols = ""
+        if schema is not None:
+            cols = (
+                "("
+                + ",".join(self.get_quoted_identifier(f) for f in schema.field_names())
+                + ")"
+            )
+        conn = self.get_engine().raw_connection()
+        try:
+            with conn.cursor() as curs:
+                # TODO: swap for copy_expert at some point
+                sql = f"""
+                COPY {name} {cols}
+                FROM STDIN
+                csv header;
+                """
+                curs.copy_expert(sql, f)
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
 
     @classmethod
     @contextmanager

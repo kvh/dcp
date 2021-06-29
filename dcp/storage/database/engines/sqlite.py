@@ -8,6 +8,9 @@ from dcp.storage.database.utils import get_tmp_sqlite_db_url
 
 
 class SqliteDatabaseApi(DatabaseApi):
+    def remove(self, name: str):
+        self.execute_sql(f"drop table {name}")
+
     @classmethod
     @contextmanager
     def temp_local_database(cls) -> Iterator[str]:

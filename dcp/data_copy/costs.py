@@ -19,6 +19,8 @@ from typing import (
 
 CostFunction = Callable[[int], int]
 BUFFER_SIZE = 100
+DISK_FACTOR = 1
+NETWORK_FACTOR = 5
 
 
 @dataclass(frozen=True)
@@ -58,11 +60,11 @@ DiskToBufferCost = DataCopyCost(
 DiskToMemoryCost = DataCopyCost(wire_cost=lambda n: n, memory_cost=lambda n: n)
 NetworkToMemoryCost = DataCopyCost(
     wire_cost=(
-        lambda n: n * 5
+        lambda n: n * NETWORK_FACTOR
     ),  # What is this factor in practice? What's a good default (think S3 vs local SSD?)
     memory_cost=lambda n: n,
 )
 NetworkToBufferCost = DataCopyCost(
-    wire_cost=(lambda n: n * 5), memory_cost=lambda n: BUFFER_SIZE
+    wire_cost=(lambda n: n * NETWORK_FACTOR), memory_cost=lambda n: BUFFER_SIZE
 )
 FormatConversionCost = DataCopyCost(cpu_cost=lambda n: n)
