@@ -10,7 +10,6 @@ from dcp.storage.database.api import (
     dispose_all,
     drop_db,
 )
-from dcp.storage.database.utils import conform_columns_for_insert
 from dcp.utils.common import rand_str
 from dcp.utils.data import conform_records_for_insert
 
@@ -27,22 +26,6 @@ class MysqlDatabaseApi(DatabaseApi):
     @classmethod
     def dialect_is_supported(cls) -> bool:
         return MYSQL_SUPPORTED
-
-    def _bulk_insert(self, table_name: str, records: List[Dict]):
-        columns = conform_columns_for_insert(records)
-        records = conform_records_for_insert(records, columns)
-        sql = f"""
-        INSERT INTO `{ table_name }` (
-            `{ '`,`'.join(columns)}`
-        ) VALUES ({','.join(['%s'] * len(columns))})
-        """
-        conn = self.get_engine().raw_connection()
-        curs = conn.cursor()
-        try:
-            curs.executemany(sql, records)
-            conn.commit()
-        finally:
-            conn.close()
 
     @classmethod
     @contextmanager

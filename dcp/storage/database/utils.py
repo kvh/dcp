@@ -28,14 +28,16 @@ def db_result_batcher(result_proxy: Result, batch_size: int = 1000) -> Generator
             return
 
 
-def conform_columns_for_insert(
+def columns_from_records(
     records: List[Dict],
     columns: List[str] = None,
 ) -> List[str]:
-    if columns is None:
-        assert len(records) > 0, "No records to infer columns from"
-        # Use first object's keys as columns. Assumes uniform dicts
-        columns = list(records[0].keys())
+    assert len(records) > 0, "No records to infer columns from"
+    # Use first object's keys as columns. Assumes uniform dicts
+    cols = set()
+    for r in records[:10]:
+        cols |= set(r.keys())
+    columns = list(cols)
     return columns
 
 

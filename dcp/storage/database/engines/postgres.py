@@ -13,8 +13,8 @@ from dcp.storage.database.api import (
     drop_db,
 )
 from dcp.storage.database.utils import (
+    columns_from_records,
     compile_jinja_sql_template,
-    conform_columns_for_insert,
 )
 from dcp.utils.common import rand_str
 from dcp.utils.data import conform_records_for_insert
@@ -47,12 +47,16 @@ def bulk_upsert(
     columns: List[str] = None,
     adapt_objects_to_json: bool = True,
     page_size: int = 5000,
+    schema: Optional[Schema] = None,
 ):
     if not records:
         return
     if update and not unique_on_column:
         raise Exception("Must specify unique_on_column when updating")
-    columns = conform_columns_for_insert(records, columns)
+    if schema:
+        columns = schema.field_names()
+    else:
+        columns = columns_from_records(records)
     records = conform_records_for_insert(records, columns, adapt_objects_to_json)
     if update:
         tmpl = "bulk_upsert.sql"
@@ -77,7 +81,11 @@ def pg_execute_values(
     try:
         with conn.cursor() as curs:
             execute_values(
-                curs, sql, records, template=None, page_size=page_size,
+                curs,
+                sql,
+                records,
+                template=None,
+                page_size=page_size,
             )
         conn.commit()
     except Exception as e:
@@ -92,9 +100,19 @@ class PostgresDatabaseApi(DatabaseApi):
     def dialect_is_supported(cls) -> bool:
         return POSTGRES_SUPPORTED
 
-    def _bulk_insert(self, table_name: str, records: List[Dict], **kwargs):
+    def _bulk_insert(
+        self,
+        table_name: str,
+        records: List[Dict],
+        schema: Optional[Schema] = None,
+        **kwargs,
+    ):
         bulk_insert(
-            eng=self.get_engine(), table_name=table_name, records=records, **kwargs
+            eng=self.get_engine(),
+            table_name=table_name,
+            records=records,
+            schema=schema,
+            **kwargs,
         )
 
     def bulk_insert_file(self, name: str, f: IOBase, schema: Optional[Schema] = None):

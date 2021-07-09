@@ -38,7 +38,7 @@ class RecordsToDatabaseTable(MemoryToDatabaseMixin, DataCopierBase):
     requires_schema_cast = False
 
     def insert_object(self, req: CopyRequest, obj: Records):
-        req.to_storage_api.bulk_insert_records(req.to_name, obj)
+        req.to_storage_api.bulk_insert_records(req.to_name, obj, req.schema)
 
 
 # @datacopier(

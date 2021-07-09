@@ -11,7 +11,7 @@ from commonmodel.base import Schema
 from dcp import storage
 from dcp.data_format.formats.memory.records import Records
 from dcp.storage.base import StorageApi
-from dcp.storage.database.utils import conform_columns_for_insert
+from dcp.storage.database.utils import columns_from_records
 from dcp.utils.common import DcpJsonEncoder
 from dcp.utils.data import conform_records_for_insert
 from loguru import logger
@@ -43,7 +43,9 @@ def dispose_all(keyword: Optional[str] = None):
 
 class DatabaseApi:
     def __init__(
-        self, url: str, json_serializer: Callable = None,
+        self,
+        url: str,
+        json_serializer: Callable = None,
     ):
         self.url = url
         self.json_serializer = (
@@ -63,7 +65,9 @@ class DatabaseApi:
         if key in _sa_engines:
             return _sa_engines[key]
         self.eng = sqlalchemy.create_engine(
-            self.url, json_serializer=self.json_serializer, echo=False,
+            self.url,
+            json_serializer=self.json_serializer,
+            echo=False,
         )
         _sa_engines[key] = self.eng
         return self.eng
@@ -75,6 +79,11 @@ class DatabaseApi:
     def get_quoted_identifier(self, identifier: str) -> str:
         # TODO: actually use this
         return self.get_engine().dialect.identifier_preparer.quote(identifier)
+
+    def get_placeholder_char(self) -> str:
+        if self.url.startswith("mysql"):
+            return "%s"
+        return "?"
 
     @contextmanager
     def connection(self) -> Iterator[Connection]:
@@ -162,7 +171,9 @@ class DatabaseApi:
         self.execute_sql(insert_sql)
 
     def create_table_from_sql(
-        self, name: str, sql: str,
+        self,
+        name: str,
+        sql: str,
     ):
         sql = self.clean_sub_sql(sql)
         create_sql = f"""
@@ -195,22 +206,31 @@ class DatabaseApi:
         # TODO: file format details...
         raise NotImplementedError
 
-    def bulk_insert_records(self, name: str, records: Records):
+    def bulk_insert_records(
+        self, name: str, records: Records, schema: Optional[Schema] = None
+    ):
         # Create table whether or not there is anything to insert (side-effect consistency)
         # TODO: is it right to create the table? Seems useful to have an "empty" datablock, for instance.
         assert self.exists(name)
         # self.ensure_table(name, schema=schema)
         if not records:
             return
-        self._bulk_insert(name, records)
+        self._bulk_insert(name, records, schema)
 
-    def _bulk_insert(self, table_name: str, records: Records):
-        columns = conform_columns_for_insert(records)
+    def _bulk_insert(
+        self, table_name: str, records: Records, schema: Optional[Schema] = None
+    ):
+        if schema:
+            columns = schema.field_names()
+        else:
+            columns = columns_from_records(records)
         records = conform_records_for_insert(records, columns)
+        quoted_cols = [self.get_quoted_identifier(c) for c in columns]
+        placeholders = [self.get_placeholder_char()] * len(columns)
         sql = f"""
-        INSERT INTO "{ table_name }" (
-            "{ '","'.join(columns)}"
-        ) VALUES ({','.join(['?'] * len(columns))})
+        INSERT INTO { self.get_quoted_identifier(table_name) } (
+            {','.join(quoted_cols)}
+        ) VALUES ({','.join(placeholders)})
         """
         conn = self.get_engine().raw_connection()
         curs = conn.cursor()
@@ -234,7 +254,8 @@ class DatabaseApi:
 
 class DatabaseStorageApi(DatabaseApi, StorageApi):
     def __init__(
-        self, storage: storage,
+        self,
+        storage: storage,
     ):
         super().__init__(storage.url)
         self.storage = storage

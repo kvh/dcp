@@ -69,7 +69,7 @@ def test_database_handler():
     name = "_test"
     handler = get_handler(DatabaseTableFormat, s.storage_engine)
     handler().create_empty(name, s, test_records_schema)
-    s.get_api().bulk_insert_records(name, test_records)
+    s.get_api().bulk_insert_records(name, test_records, test_records_schema)
     assert list(handler().infer_field_names(name, s)) == list(test_records[0].keys())
     assert handler().infer_field_type(name, s, "f1") == Text()
     assert handler().infer_field_type(name, s, "f2") == Integer()
