@@ -128,7 +128,7 @@ class PostgresDatabaseApi(DatabaseApi):
             with conn.cursor() as curs:
                 # TODO: swap for copy_expert at some point
                 sql = f"""
-                COPY {name} {cols}
+                COPY {self.get_quoted_identifier(name)} {cols}
                 FROM STDIN
                 csv header;
                 """
