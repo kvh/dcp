@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dcp.data_format.formats.memory.records import PythonRecordsHandler
-from dcp import storage
+from dcp import Storage
 
 import sys
 import json
@@ -25,7 +25,7 @@ class InferCommand(Command):
         for line in sys.stdin:
             s += line
         d = json.loads(s)
-        s = storage("python://infer")
+        s = Storage("python://infer")
         n = "_infer"
         s.get_api().put(n, [d])
         schema = PythonRecordsHandler().infer_schema(n, s)
