@@ -107,6 +107,8 @@ class DatabaseApi:
         sql = sa_stmt.compile(dialect=self.get_engine().dialect)
         return self.execute_sql(str(sql))
 
+    _q = get_quoted_identifier
+
     # def ensure_table(self, name: str, schema: Schema) -> str:
     #     if self.exists(name):
     #         return name
@@ -119,14 +121,16 @@ class DatabaseApi:
     ### StorageApi implementations ###
     def create_alias(self, from_stmt: str, alias: str):
         self.remove_alias(alias)
-        self.execute_sql(f"create view {alias} as select * from {from_stmt}")
+        self.execute_sql(
+            f"create view {self._q(alias)} as select * from {self._q(from_stmt)}"
+        )
 
     def remove_alias(self, alias: str):
-        self.execute_sql(f"drop view if exists {alias}")
+        self.execute_sql(f"drop view if exists {self._q(alias)}")
 
     def exists(self, table_name: str) -> bool:
         try:
-            self.execute_sql(f"select * from {table_name} limit 0")
+            self.execute_sql(f"select * from {self._q(table_name)} limit 0")
             return True
         except (OperationalError, ProgrammingError) as x:
             s = str(x).lower()
@@ -137,29 +141,35 @@ class DatabaseApi:
             raise x
 
     def count(self, table_name: str) -> int:
-        with self.execute_sql_result(f"select count(*) from {table_name}") as res:
+        with self.execute_sql_result(
+            f"select count(*) from {self._q(table_name)}"
+        ) as res:
             row = res.fetchone()
         return row[0]
 
     record_count = count
 
     def copy(self, name: str, to_name: str):
-        self.execute_sql(f"create table {to_name} as select * from {name}")
+        self.execute_sql(
+            f"create table {self._q(to_name)} as select * from {self._q(name)}"
+        )
 
     def remove(self, name: str):
-        self.execute_sql(f"drop table if exists {name} cascade")
+        self.execute_sql(f"drop table if exists {self._q(name)} cascade")
 
     def rename_table(self, table_name: str, new_name: str):
-        self.execute_sql(f"alter table {table_name} rename to {new_name}")
+        self.execute_sql(
+            f"alter table {self._q(table_name)} rename to {self._q(new_name)}"
+        )
 
     def clean_sub_sql(self, sql: str) -> str:
         return sql.strip(" ;")
 
     def insert_sql(self, sess: Session, name: str, sql: str, schema: Schema):
         sql = self.clean_sub_sql(sql)
-        columns = "\n,".join(f.name for f in schema.fields)
+        columns = "\n,".join(self._q(f.name) for f in schema.fields)
         insert_sql = f"""
-        insert into {name} (
+        insert into {self._q(name)} (
             {columns}
         )
         select
@@ -177,7 +187,7 @@ class DatabaseApi:
     ):
         sql = self.clean_sub_sql(sql)
         create_sql = f"""
-        create table {name} as
+        create table {self._q(name)} as
         select
         *
         from (
@@ -228,7 +238,7 @@ class DatabaseApi:
         quoted_cols = [self.get_quoted_identifier(c) for c in columns]
         placeholders = [self.get_placeholder_char()] * len(columns)
         sql = f"""
-        INSERT INTO { self.get_quoted_identifier(table_name) } (
+        INSERT INTO { self._q(table_name) } (
             {','.join(quoted_cols)}
         ) VALUES ({','.join(placeholders)})
         """
