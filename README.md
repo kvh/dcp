@@ -1,5 +1,3 @@
-![dcp](https://github.com/kvh/dcp/workflows/dcp/badge.svg)
-
 <p>&nbsp;</p>
 <p align="center">
   <img width="200" src="assets/dcp.svg">
