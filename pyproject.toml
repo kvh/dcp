@@ -6,7 +6,7 @@ name = "datacopy"
 packages = [
   {include = "dcp"},
 ]
-version = "0.1.8"
+version = "0.1.9"
 
 [tool.poetry.dependencies]
 PyYAML = "^5.4.1"
