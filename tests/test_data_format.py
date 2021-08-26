@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from dcp.data_format.formats.key_value.base import JsonFormat
 from io import StringIO
 from typing import Any, Callable
 
@@ -82,3 +83,21 @@ def test_database_handler():
     # handler().cast_to_field_type(name, s, "f4", Text())
     # round_trip_object = s.get_api().get(name)
     # assert_objects_equal(round_trip_object, obj())
+
+
+def test_kv_handlers():
+    s = Storage("kv+" + get_tmp_sqlite_db_url())
+    name = "_test"
+    s.get_api().put(name, test_records)
+    handler = get_handler(JsonFormat, s.storage_engine)
+    assert list(handler().infer_field_names(name, s)) == list(test_records[0].keys())
+    assert handler().infer_field_type(name, s, "f1") == Text()
+    assert handler().infer_field_type(name, s, "f2") == Integer()
+    assert handler().infer_field_type(name, s, "f3") == DEFAULT_FIELD_TYPE
+    assert handler().infer_field_type(name, s, "f4") == Date()
+    assert handler().infer_field_type(name, s, "f5") == DEFAULT_FIELD_TYPE
+
+    handler().cast_to_field_type(name, s, "f4", Text())
+    handler().cast_to_field_type(name, s, "f4", Date())
+    round_trip_object = s.get_api().get(name)
+    assert_objects_equal(round_trip_object, test_records)
