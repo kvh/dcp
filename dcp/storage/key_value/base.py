@@ -16,6 +16,7 @@ class KeyValueStorageApi(StorageApi):
 
 class KeyValueDatabaseStorageApi(KeyValueStorageApi):
     def __init__(self, storage: Storage, kv_store_name: str = "_kvstore"):
+        super().__init__(storage)
         assert storage.url.startswith("kv+")
         db_url = storage.url[3:]
         self.db_api = Storage(db_url).get_api()
@@ -36,6 +37,9 @@ class KeyValueDatabaseStorageApi(KeyValueStorageApi):
             return table
         self.db_api.create_sqlalchemy_table(table)
         return table
+
+    def record_count(self, name: str) -> Optional[int]:
+        return len(self.get(name))
 
     def exists(self, name: str) -> bool:
         with self.db_api.execute_sql_result(
