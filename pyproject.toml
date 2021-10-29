@@ -9,14 +9,14 @@ packages = [
 version = "0.1.9"
 
 [tool.poetry.dependencies]
-PyYAML = "^5.4.1"
+PyYAML = ">= 5.4.1"
 SQLAlchemy = "^1.4.7"
 cleo = "^0.8.1"
 common-model = "^0.2.0"
 loguru = "^0.5.3"
 networkx = "^2.5"
 pandas = "^1.2.3"
-python = "^3.7.4"
+python = ">= 3.7.4"
 python-dateutil = "^2.8.1"
 
 [tool.poetry.dev-dependencies]
