@@ -29,7 +29,8 @@ class DatabaseToMemoryMixin:
         assert isinstance(req.from_storage_api, DatabaseStorageApi)
         assert isinstance(req.to_storage_api, PythonStorageApi)
         existing = req.to_storage_api.get(req.to_name)
-        select_sql = f"select * from {req.from_name}"
+        quoted_from_name = req.from_storage_api.get_quoted_identifier(req.from_name)
+        select_sql = f"select * from {quoted_from_name}"
         with req.from_storage_api.execute_sql_result(select_sql) as r:
             new = self.result_to_object(r)
         final = self.concat(existing, new)

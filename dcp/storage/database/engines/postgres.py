@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from io import IOBase
-from typing import Dict, Iterator, List, Optional
+from typing import Dict, Iterator, List, Optional, Callable
 from commonmodel.base import Schema
 
 from dcp.storage.database.api import (
@@ -96,6 +96,17 @@ def pg_execute_values(
 
 
 class PostgresDatabaseApi(DatabaseApi):
+    def __init__(
+        self,
+        url: str,
+        json_serializer: Callable = None,
+    ):
+        if url.startswith("postgres:"):
+            url = (
+                "postgresql" + url[8:]
+            )  # sqlalchemy now only works with postgresql scheme
+        super().__init__(url, json_serializer)
+
     @classmethod
     def dialect_is_supported(cls) -> bool:
         return POSTGRES_SUPPORTED
