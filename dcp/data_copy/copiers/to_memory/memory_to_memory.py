@@ -1,5 +1,3 @@
-from dcp.storage.key_value.base import KeyValueStorageApi
-from dcp.data_format.formats.key_value.base import JsonFormat
 from io import StringIO
 from itertools import chain
 from typing import TypeVar
@@ -14,7 +12,7 @@ from dcp.data_copy.costs import (
 from dcp.data_format.formats.memory.arrow_table import ArrowTable, ArrowTableFormat
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
-from dcp.storage.base import KeyValueStorageClass, MemoryStorageClass, StorageApi
+from dcp.storage.base import MemoryStorageClass, StorageApi
 from dcp.storage.memory.engines.python import PythonStorageApi
 
 # from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
@@ -32,8 +30,8 @@ class MemoryDataCopierMixin:
     to_storage_classes = [MemoryStorageClass]
 
     def append(self, req: CopyRequest):
-        assert isinstance(req.from_storage_api, (PythonStorageApi, KeyValueStorageApi))
-        assert isinstance(req.to_storage_api, (PythonStorageApi, KeyValueStorageApi))
+        assert isinstance(req.from_storage_api, PythonStorageApi)
+        assert isinstance(req.to_storage_api, PythonStorageApi)
         new = req.from_storage_api.get(req.from_name)
         existing = req.to_storage_api.get(req.to_name)
         final = self.concat(existing, new)
@@ -66,18 +64,6 @@ class DataframeToRecords(MemoryDataCopierMixin, DataCopierBase):
 
 
 # Self copies
-
-
-class RecordsToRecords(MemoryDataCopierMixin, DataCopierBase):
-    from_storage_classes = [MemoryStorageClass, KeyValueStorageClass]
-    to_storage_classes = [MemoryStorageClass, KeyValueStorageClass]
-    from_data_formats = [RecordsFormat, JsonFormat]
-    to_data_formats = [RecordsFormat, JsonFormat]
-    cost = MemoryToMemoryCost
-    requires_schema_cast = False
-
-    def concat(self, existing: Records, new: Records) -> Records:
-        return existing + new
 
 
 class DataframeToDataframe(MemoryDataCopierMixin, DataCopierBase):

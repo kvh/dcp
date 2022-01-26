@@ -1,4 +1,3 @@
-from dcp.data_format.formats.key_value.base import JsonFormat
 from commonmodel.base import Schema
 from dcp.data_copy.base import CopyRequest, DataCopierBase
 from dcp.data_copy.costs import (
@@ -11,7 +10,6 @@ from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
 from dcp.storage.base import (
     DatabaseStorageClass,
-    KeyValueStorageClass,
     MemoryStorageClass,
     StorageApi,
 )
@@ -55,23 +53,6 @@ class DatabaseTableToRecords(DatabaseToMemoryMixin, DataCopierBase):
     def result_to_object(self, res: Result):
         records = result_proxy_to_records(res)
         return records
-
-
-class KeyValueDatabaseTableToRecords(DataCopierBase):
-    from_storage_classes = [KeyValueStorageClass]
-    from_data_formats = [JsonFormat]
-    to_storage_classes = [MemoryStorageClass]
-    to_data_formats = [RecordsFormat]
-    cost = NetworkToMemoryCost
-    requires_schema_cast = False
-
-    def append(self, req: CopyRequest):
-        assert isinstance(req.from_storage_api, DatabaseStorageApi)
-        assert isinstance(req.to_storage_api, PythonStorageApi)
-        existing = req.to_storage_api.get(req.to_name)
-        records = req.from_storage_api.get(req.from_name)
-        final = existing + records
-        req.to_storage_api.put(req.to_name, final)
 
 
 # @datacopier(

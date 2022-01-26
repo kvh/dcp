@@ -61,17 +61,6 @@ class FileSystemStorageClass(StorageClass):
         return FileSystemStorageApi
 
 
-class KeyValueStorageClass(StorageClass):
-    # natural_format = DatabaseTableFormat
-    # supported_formats = [DatabaseTableFormat]
-
-    @classmethod
-    def get_api_cls(cls) -> Type[StorageApi]:
-        from dcp.storage.key_value import KeyValueStorageApi
-
-        return KeyValueStorageApi
-
-
 class StorageEngine:
     storage_class: Type[StorageClass]
     schemes: List[str] = []
@@ -159,23 +148,6 @@ class RedshiftStorageEngine(StorageEngine):
         from dcp.storage.database.engines.redshift import RedshiftDatabaseStorageApi
 
         return RedshiftDatabaseStorageApi
-
-
-#############
-# Key-value
-#############
-
-
-class KeyValueDatabaseStorageEngine(StorageEngine):
-    storage_class = KeyValueStorageClass
-    schemes = ["kv+postgres", "kv+sqlite", "kv+mysql"]
-    natural_format = "json"
-
-    @classmethod
-    def get_api_cls(cls) -> Type[StorageApi]:
-        from dcp.storage.key_value.base import KeyValueDatabaseStorageApi
-
-        return KeyValueDatabaseStorageApi
 
 
 #############
