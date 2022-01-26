@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Tuple, Type
 
 import sqlalchemy
+import sqlparse
 from commonmodel.base import Schema
 from dcp import storage
 from dcp.data_format.formats.memory.records import Records
@@ -85,12 +86,17 @@ class DatabaseApi:
     def connection(self) -> Iterator[Connection]:
         with self.get_engine().connect() as conn:
             yield conn
+    
+    def clean_sql(self, sql: str) -> str:
+        return sqlparse.format(sql, strip_comments=True).strip()
 
     def execute_sql(self, sql: str) -> Result:
         logger.debug("Executing SQL:")
         logger.debug(sql)
         with self.connection() as conn:
-            return conn.execute(sql)
+            sql = self.clean_sql(sql)
+            for stmt in sqlparse.split(sql):
+                return conn.execute(stmt)
 
     @contextmanager
     def execute_sql_result(self, sql: str) -> Iterator[Result]:
