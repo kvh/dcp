@@ -13,7 +13,7 @@ class SqliteDatabaseApi(DatabaseApi):
 
     @classmethod
     @contextmanager
-    def temp_local_database(cls) -> Iterator[str]:
+    def temp_local_database(cls, conn_url: str = None, **kwargs) -> Iterator[str]:
         db_url = get_tmp_sqlite_db_url("__test_dcp_sqlite")
         yield db_url
 

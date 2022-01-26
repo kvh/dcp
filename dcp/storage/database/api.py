@@ -44,7 +44,9 @@ def dispose_all(keyword: Optional[str] = None):
 
 class DatabaseApi:
     def __init__(
-        self, url: str, json_serializer: Callable = None,
+        self,
+        url: str,
+        json_serializer: Callable = None,
     ):
         self.url = url
         self.json_serializer = (
@@ -64,7 +66,9 @@ class DatabaseApi:
         if key in _sa_engines:
             return _sa_engines[key]
         self.eng = sqlalchemy.create_engine(
-            self.url, json_serializer=self.json_serializer, echo=False,
+            self.url,
+            json_serializer=self.json_serializer,
+            echo=False,
         )
         _sa_engines[key] = self.eng
         return self.eng
@@ -86,7 +90,7 @@ class DatabaseApi:
     def connection(self) -> Iterator[Connection]:
         with self.get_engine().connect() as conn:
             yield conn
-    
+
     def clean_sql(self, sql: str) -> str:
         return sqlparse.format(sql, strip_comments=True).strip()
 
@@ -183,7 +187,9 @@ class DatabaseApi:
         self.execute_sql(insert_sql)
 
     def create_table_from_sql(
-        self, name: str, sql: str,
+        self,
+        name: str,
+        sql: str,
     ):
         sql = self.clean_sub_sql(sql)
         create_sql = f"""
@@ -258,13 +264,14 @@ class DatabaseApi:
 
     @classmethod
     @contextmanager
-    def temp_local_database(cls) -> Iterator[str]:
+    def temp_local_database(cls, conn_url: str = None, **kwargs) -> Iterator[str]:
         raise NotImplementedError
 
 
 class DatabaseStorageApi(DatabaseApi, StorageApi):
     def __init__(
-        self, storage: Storage,
+        self,
+        storage: Storage,
     ):
         super().__init__(storage.url)
         self.storage = storage
@@ -313,4 +320,3 @@ def drop_sqlite_db(url: str, database_name: str):
         # Empty sqlite url (`sqlite://`)
         return
     os.remove(db_path)
-

@@ -153,9 +153,9 @@ class PostgresDatabaseApi(DatabaseApi):
 
     @classmethod
     @contextmanager
-    def temp_local_database(cls) -> Iterator[str]:
+    def temp_local_database(cls, conn_url: str = None, **kwargs) -> Iterator[str]:
         test_db = f"__tmp_dcp_{rand_str(8).lower()}"
-        url = "postgresql://localhost"
+        url = conn_url or "postgresql://localhost"
         pg_url = f"{url}/postgres"
         create_db(pg_url, test_db)
         test_url = f"{url}/{test_db}"
