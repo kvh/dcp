@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Type
 
-from commonmodel.base import Field, Schema, SchemaTranslation
+from commonmodel.base import Field, Schema
 from commonmodel.field_types import FieldType
 from dcp.data_format.base import DataFormat
 from dcp.data_format.inference import generate_auto_schema
