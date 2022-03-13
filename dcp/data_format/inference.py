@@ -1,17 +1,15 @@
 from typing import Union
 from commonmodel.base import Schema
-from dcp.utils.common import rand_str
+from dcp.utils.common import rand_str, utcnow
 
-GENERATED_SCHEMA_NAMESPACE = "_generated"
+GENERATED_SCHEMA_PREFIX = "_GeneratedSchema_"
 
 
 def generate_auto_schema(fields, **kwargs) -> Schema:
-    auto_name = f"GeneratedSchema{rand_str(10)}"
+    auto_name = f"{GENERATED_SCHEMA_PREFIX}{rand_str(10)}"
     args = dict(
         name=auto_name,
-        namespace=GENERATED_SCHEMA_NAMESPACE,
-        version="0.0.1",
-        description="Automatically inferred schema",
+        description=f"Automatically inferred from data at {utcnow()}",
         unique_on=[],
         implementations=[],
         fields=fields,
@@ -22,9 +20,8 @@ def generate_auto_schema(fields, **kwargs) -> Schema:
 
 def is_generated_schema(schema: Union[str, Schema]) -> bool:
     if isinstance(schema, Schema):
-        schema = schema.key
-    return schema.startswith(GENERATED_SCHEMA_NAMESPACE)
+        schema = schema.name
+    return schema.startswith(GENERATED_SCHEMA_PREFIX)
 
 
 is_auto_schema = is_generated_schema  # Deprecated name
-
