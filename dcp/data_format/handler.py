@@ -91,7 +91,7 @@ class FormatHandler:
 
     def infer_schema(self, name: str, storage: Storage) -> Schema:
         fields = [
-            Field(name=n, field_type=self.infer_field_type(name, storage, n))
+            Field(name=n, type=self.infer_field_type(name, storage, n))
             for n in self.infer_field_names(name, storage)
         ]
         schema = generate_auto_schema(fields=fields)

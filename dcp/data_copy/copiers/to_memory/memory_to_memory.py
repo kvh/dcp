@@ -76,6 +76,16 @@ class DataframeToDataframe(MemoryDataCopierMixin, DataCopierBase):
         return existing.append(new)
 
 
+class RecordsToRecords(MemoryDataCopierMixin, DataCopierBase):
+    from_data_formats = [RecordsFormat]
+    to_data_formats = [RecordsFormat]
+    cost = MemoryToMemoryCost
+    requires_schema_cast = False
+
+    def concat(self, existing: Records, new: Records) -> Records:
+        return existing + new
+
+
 # @datacopier(
 #     from_storage_classes=[MemoryStorageClass],
 #     from_data_formats=[DataFrameIteratorFormat],

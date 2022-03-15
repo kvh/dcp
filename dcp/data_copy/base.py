@@ -19,7 +19,7 @@ from typing import (
 )
 
 import networkx as nx
-from commonmodel.base import AnySchema, Schema
+from commonmodel.base import Schema
 from dcp.data_copy.costs import DataCopyCost
 from dcp.data_format.base import DataFormat
 from dcp.data_format.handler import (
