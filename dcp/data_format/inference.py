@@ -11,7 +11,6 @@ def generate_auto_schema(fields, **kwargs) -> Schema:
         name=auto_name,
         description=f"Automatically inferred from data at {utcnow()}",
         unique_on=[],
-        implementations=[],
         fields=fields,
     )
     args.update(kwargs)
