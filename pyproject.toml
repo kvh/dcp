@@ -6,14 +6,14 @@ name = "datacopy"
 packages = [
   {include = "dcp"},
 ]
-version = "0.1.22"
+version = "0.1.23"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.3"
 PyYAML = ">= 5.4.1"
 SQLAlchemy = "^1.4.7"
 cleo = "^0.8.1"
-common-model = "^0.4.0"
+common-model = "^0.4.1"
 loguru = "^0.5.3"
 networkx = "^2.5"
 pandas = "^1.2.3"
@@ -23,7 +23,7 @@ sqlparse = "^0.4.2"
 
 [tool.poetry.dev-dependencies]
 black = "^21.10b0"
-# common-model = {path = "../common-model/python", develop = true}
+# common-model = {path = "../common-model", develop = true}
 flake8 = "^3.8.1"
 gcsfs = "^2021.6.1"
 google-cloud-storage = "^1.39.0"
