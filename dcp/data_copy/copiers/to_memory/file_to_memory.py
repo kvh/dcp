@@ -18,8 +18,16 @@ from dcp.storage.memory.engines.python import PythonStorageApi
 from dcp.utils.common import DcpJsonEncoder
 from dcp.utils.data import read_csv, write_csv
 from dcp.utils.pandas import dataframe_to_records
-from pyarrow import Table
-from pyarrow import json as pa_json
+
+try:
+    from pyarrow import Table
+    from pyarrow import json as pa_json
+
+    PYARROW_SUPPORTED = True
+except ImportError:
+    PYARROW_SUPPORTED = False
+    Table = None
+    pa_json = None
 
 
 class FileToMemoryMixin:
@@ -57,6 +65,8 @@ class CsvFileToRecords(FileToMemoryMixin, DataCopierBase):
 
 
 class JsonLinesFileToArrowTable(FileToMemoryMixin, DataCopierBase):
+    if not PYARROW_SUPPORTED:
+        raise ImportError("Pyarrow is not installed")
     from_data_formats = [JsonLinesFileFormat]
     to_data_formats = [ArrowTableFormat]
     cost = DiskToMemoryCost + FormatConversionCost

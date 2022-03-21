@@ -136,3 +136,5 @@ def test_copy(from_storage_fmt, to_storage_fmt, if_exists):
                 execute_copy_request(req)
             elif if_exists == "replace":
                 execute_copy_request(req)
+            else:
+                raise

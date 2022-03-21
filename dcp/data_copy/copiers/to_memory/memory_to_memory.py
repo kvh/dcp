@@ -21,8 +21,11 @@ from dcp.utils.pandas import dataframe_to_records
 
 try:
     import pyarrow as pa
+
+    PYARROW_SUPPORTED = True
 except ImportError:
-    pa = TypeVar("pa")
+    PYARROW_SUPPORTED = False
+    pa = None
 
 
 class MemoryDataCopierMixin:
@@ -259,6 +262,8 @@ class RecordsToRecords(MemoryDataCopierMixin, DataCopierBase):
 
 
 class ArrowTableToDataFrame(MemoryDataCopierMixin, DataCopierBase):
+    if not PYARROW_SUPPORTED:
+        raise ImportError("Pyarrow is not installed")
     from_data_formats = [ArrowTableFormat]
     to_data_formats = [DataFrameFormat]
     cost = MemoryToMemoryCost
@@ -270,6 +275,8 @@ class ArrowTableToDataFrame(MemoryDataCopierMixin, DataCopierBase):
 
 
 class DataFrameToArrowTable(MemoryDataCopierMixin, DataCopierBase):
+    if not PYARROW_SUPPORTED:
+        raise ImportError("Pyarrow is not installed")
     from_data_formats = [DataFrameFormat]
     to_data_formats = [ArrowTableFormat]
     cost = MemoryToMemoryCost

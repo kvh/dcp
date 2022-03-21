@@ -87,7 +87,7 @@ test_data_format_objects = [dff, rf, af]
 
 
 def get_test_records_for_format(fmt: DataFormat) -> Callable:
-    for f in [rf, dff, af]:
+    for f in test_data_format_objects:
         if f[0] == fmt:
             return f[1]
     raise NotImplementedError(fmt)

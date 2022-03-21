@@ -211,6 +211,7 @@ def test_select_field_type():
 ERROR = "_ERROR"
 
 D = decimal.Decimal
+dt = datetime
 
 
 @pytest.mark.parametrize(
@@ -259,16 +260,16 @@ D = decimal.Decimal
         (Time, "01:00:01", time(1, 0, 1)),
         (Time, "01:00", time(1, 0, 0)),
         (Time, "hello world", ERROR),
-        (DateTime, "2020-01-01", datetime(2020, 1, 1)),
-        (DateTime, "2020-01-01 00:00:00", datetime(2020, 1, 1)),
+        (DateTime, "2020-01-01", dt(2020, 1, 1)),
+        (DateTime, "2020-01-01 00:00:00", dt(2020, 1, 1)),
         (
             DateTime,
             "2020-01-01T00:00:00-08:00",
-            datetime(
+            dt(
                 2020, 1, 1, tzinfo=tzoffset(None, -28800)
             ),  # TODO: this offset is what we want?
         ),
-        (DateTime, 1577836800, datetime(2020, 1, 1)),
+        (DateTime, 1577836800, dt(2020, 1, 1)),
         (DateTime, "Hello world", ERROR),
         (Json, [1, 2], [1, 2]),
         (Json, {"a": 2}, {"a": 2}),

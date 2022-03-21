@@ -73,7 +73,7 @@ from dcp import Storage
 records = [{"f1":"hello", "f2": "world"}]
 fields = .infer_fields(records)
 print(fields)
-# >>> [Field(name="f1", type=Text), Field(name="f2", type=Text)]
+# >>> [Field(name="f1", type=Text), Field(name="f2", field_type=Text)]
 
 .copy(
     from_obj=records,
