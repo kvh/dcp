@@ -65,14 +65,14 @@ class CsvFileToRecords(FileToMemoryMixin, DataCopierBase):
 
 
 class JsonLinesFileToArrowTable(FileToMemoryMixin, DataCopierBase):
-    if not PYARROW_SUPPORTED:
-        raise ImportError("Pyarrow is not installed")
     from_data_formats = [JsonLinesFileFormat]
     to_data_formats = [ArrowTableFormat]
     cost = DiskToMemoryCost + FormatConversionCost
     requires_schema_cast = True
 
     def concat(self, existing: ArrowTable, new: ArrowTable) -> ArrowTable:
+        if not PYARROW_SUPPORTED:
+            raise ImportError("Pyarrow is not installed")
         return Table.from_batches(existing.to_batches() + new.to_batches())
 
     def read_to_object(self, f: IOBase):

@@ -262,27 +262,27 @@ class RecordsToRecords(MemoryDataCopierMixin, DataCopierBase):
 
 
 class ArrowTableToDataFrame(MemoryDataCopierMixin, DataCopierBase):
-    if not PYARROW_SUPPORTED:
-        raise ImportError("Pyarrow is not installed")
     from_data_formats = [ArrowTableFormat]
     to_data_formats = [DataFrameFormat]
     cost = MemoryToMemoryCost
     requires_schema_cast = False  # TODO: maybe?
 
     def concat(self, existing: pd.DataFrame, new: ArrowTable) -> pd.DataFrame:
+        if not PYARROW_SUPPORTED:
+            raise ImportError("Pyarrow is not installed")
         new_df = new.to_pandas()
         return existing.append(new_df)
 
 
 class DataFrameToArrowTable(MemoryDataCopierMixin, DataCopierBase):
-    if not PYARROW_SUPPORTED:
-        raise ImportError("Pyarrow is not installed")
     from_data_formats = [DataFrameFormat]
     to_data_formats = [ArrowTableFormat]
     cost = MemoryToMemoryCost
     requires_schema_cast = False  # TODO: maybe?
 
     def concat(self, existing: ArrowTable, new: pd.DataFrame) -> ArrowTable:
+        if not PYARROW_SUPPORTED:
+            raise ImportError("Pyarrow is not installed")
         new_at = pa.Table.from_pandas(new)
         existing = pa.Table.from_batches(existing.to_batches() + new_at.to_batches())
         return existing
