@@ -7,10 +7,12 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generic,
     Iterable,
     List,
     Optional,
     Type,
+    TypeVar,
     Union,
     cast,
     Iterator,
@@ -56,20 +58,23 @@ from loguru import logger
 from pandas import DataFrame
 
 
-class RecordsIterator:
-    def __init__(self, iterator: Iterable[Dict[str, Any]], closeable: Callable = None):
+T = TypeVar("T")
+
+
+class IteratorBase(Generic[T]):
+    def __init__(self, iterator: Iterable[T], closeable: Callable = None):
         self.iterator = iterator
         self.closeable = closeable
 
-    def __iter__(self) -> Iterator[Dict[str, Any]]:
+    def __iter__(self) -> Iterator[T]:
         yield from self.iterator
 
     def close(self):
         if self.closeable:
             self.closeable()
 
-    def concat(self, append_other: RecordsIterator):
-        def f():
+    def concat(self, append_other: IteratorBase):
+        def f() -> Iterable[T]:
             yield from self.iterator
             yield from append_other.iterator
 
@@ -77,7 +82,11 @@ class RecordsIterator:
             self.close()
             append_other.close()
 
-        return RecordsIterator(f(), c)
+        return type(self)(f(), c)
+
+
+class RecordsIterator(IteratorBase[Dict[str, Any]]):
+    pass
 
 
 class RecordsIteratorFormat(DataFormatBase[RecordsIterator]):

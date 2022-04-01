@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional, Type, cast
+from typing import Callable, Dict, Iterable, List, Optional, Type, cast
+from dcp.data_format.formats.memory.dataframe import (
+    PythonDataframeHandler,
+    cast_series_to_field_type,
+)
 from dcp.data_format.formats.memory.records_iterator import RecordsIterator
 
 import dcp.storage.base as storage
@@ -36,22 +40,39 @@ class DataFrameIteratorFormat(DataFormatBase[DataFrame]):
 
 
 class DataFrameIterator:
-    def __init__(self, iterator: RecordsIterator):
+    def __init__(self, iterator: RecordsIterator, apply: list[Callable] = None):
         self.iterator = iterator
+        self.apply = apply or []
 
     def chunks(self, size: int) -> Iterable[DataFrame]:
-        while True:
-            chunk = []
-            for record in self.iterator:
-                chunk.append(record)
-                if len(chunk) == size:
-                    yield DataFrame.from_records(chunk)
+        chunk = []
+        for record in self.iterator:
+            chunk.append(record)
+            if len(chunk) == size:
+                yield self._build_df(chunk)
+                chunk = []
+        if chunk:
+            yield self._build_df(chunk)
+
+    def _build_df(self, records: List[Dict]) -> DataFrame:
+        df = DataFrame(records)
+        for a in self.apply:
+            df = a(df)
+        return df
 
     def close(self):
         self.iterator.close()
 
     def concat(self, append_other: DataFrameIterator):
-        return DataFrameIterator(self.iterator.concat(append_other.iterator))
+        return DataFrameIterator(
+            self.iterator.concat(append_other.iterator), self.apply
+        )
+
+
+def cast_df_to_schema(df: DataFrame, field: str, field_type: FieldType) -> DataFrame:
+    if field in df.columns:
+        df[field] = cast_series_to_field_type(df[field], field_type)
+    return df
 
 
 class PythonDataframeIteratorHandler(FormatHandler):
@@ -72,7 +93,15 @@ class PythonDataframeIteratorHandler(FormatHandler):
     def cast_to_field_type(
         self, name: str, storage: storage.Storage, field: str, field_type: FieldType
     ):
-        raise NotImplementedError
+        df_iterator = storage.get_api().get(name)
+        cast_df_iterator = DataFrameIterator(
+            df_iterator.iterator,
+            df_iterator.apply + [lambda df: cast_df_to_schema(df, field, field_type)],
+        )
+        storage.get_api().put(
+            name,
+            cast_df_iterator,
+        )
 
     def create_empty(self, name, storage, schema: Schema):
         def f():

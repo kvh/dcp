@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from typing import Type
+from dcp.data_copy.graph import execute_copy_path, get_datacopy_lookup
+from dcp.data_format.formats.memory.dataframe_iterator import DataFrameIteratorFormat
+from dcp.utils.pandas import assert_dataframes_are_almost_equal
 
 
 import pytest
@@ -40,11 +43,11 @@ def test_db_to_mem(url):
         db_s = Storage.from_url(db_url)
         db_api: DatabaseStorageApi = db_s.get_api()
         db_api.execute_sql(
-            f"create table {name} as select 1 a, 2 b union all select 3 a, 4 b"
+            f"create table {name} as select '1' f1, 2 f2 union all select '3' f1, 4 f2"
         )
         records = [
-            {"a": 1, "b": 2},
-            {"a": 3, "b": 4},
+            {"f1": "1", "f2": 2},
+            {"f1": "3", "f2": 4},
         ]
 
         # Records
@@ -64,4 +67,25 @@ def test_db_to_mem(url):
         obj = mem_api.get(to_name)
         assert not isinstance(obj, list)
         assert list(obj) == records
+        obj.close()
+
+        # While we're here
+        to_name = name + "dfiterator"
+        from_name = name
+        req = CopyRequest(
+            from_name,
+            db_s,
+            to_name,
+            mem_s,
+            DataFrameIteratorFormat,
+            test_records_schema,
+        )
+        pth = get_datacopy_lookup().get_lowest_cost_path(req.conversion)
+        assert pth is not None
+        execute_copy_path(req, pth)
+        obj = mem_api.get(to_name)
+        assert not isinstance(obj, list)
+        dfs = list(obj.chunks(100))
+        assert len(dfs) == 1
+        assert_dataframes_are_almost_equal(dfs[0], DataFrame(records))
         obj.close()
