@@ -80,7 +80,7 @@ class PythonDataframeIteratorHandler(FormatHandler):
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
     def infer_data_format(self, name, storage) -> Optional[DataFormat]:
-        raise NotImplementedError
+        return None
 
     def infer_field_names(self, name, storage) -> List[str]:
         raise NotImplementedError
