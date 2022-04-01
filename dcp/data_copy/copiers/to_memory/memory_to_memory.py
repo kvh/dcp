@@ -11,7 +11,15 @@ from dcp.data_copy.costs import (
 )
 from dcp.data_format.formats.memory.arrow_table import ArrowTable, ArrowTableFormat
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
+from dcp.data_format.formats.memory.dataframe_iterator import (
+    DataFrameIterator,
+    DataFrameIteratorFormat,
+)
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
+from dcp.data_format.formats.memory.records_iterator import (
+    RecordsIterator,
+    RecordsIteratorFormat,
+)
 from dcp.storage.base import MemoryStorageClass, StorageApi
 from dcp.storage.memory.engines.python import PythonStorageApi
 
@@ -87,6 +95,19 @@ class RecordsToRecords(MemoryDataCopierMixin, DataCopierBase):
 
     def concat(self, existing: Records, new: Records) -> Records:
         return existing + new
+
+
+### Iterators
+class RecordsIteratorToDataframeIterator(MemoryDataCopierMixin, DataCopierBase):
+    from_data_formats = [RecordsIteratorFormat]
+    to_data_formats = [DataFrameIteratorFormat]
+    cost = MemoryToMemoryCost + FormatConversionCost
+    requires_schema_cast = True
+
+    def concat(
+        self, existing: DataFrameIterator, new: RecordsIterator
+    ) -> DataFrameIterator:
+        return DataFrameIterator(existing.iterator.concat(new))
 
 
 # @datacopier(
