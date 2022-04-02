@@ -1,15 +1,13 @@
-from io import StringIO
-from itertools import chain
-from typing import TypeVar
-
 import pandas as pd
+from sqlalchemy.engine import ResultProxy
+
 from dcp.data_copy.base import CopyRequest, DataCopierBase
 from dcp.data_copy.costs import (
     FormatConversionCost,
-    MemoryToBufferCost,
     MemoryToMemoryCost,
 )
 from dcp.data_format.formats.memory.arrow_table import ArrowTable, ArrowTableFormat
+from dcp.data_format.formats.memory.database_cursor import DatabaseCursorFormat, DatabaseCursor
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 from dcp.data_format.formats.memory.dataframe_iterator import (
     DataFrameIterator,
@@ -20,11 +18,8 @@ from dcp.data_format.formats.memory.records_iterator import (
     RecordsIterator,
     RecordsIteratorFormat,
 )
-from dcp.storage.base import MemoryStorageClass, StorageApi
+from dcp.storage.base import MemoryStorageClass
 from dcp.storage.memory.engines.python import PythonStorageApi
-
-# from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
-from dcp.utils.data import read_csv, write_csv
 from dcp.utils.pandas import dataframe_to_records
 
 try:
@@ -98,6 +93,7 @@ class RecordsToRecords(MemoryDataCopierMixin, DataCopierBase):
 
 
 ### Iterators
+
 class RecordsIteratorToDataframeIterator(MemoryDataCopierMixin, DataCopierBase):
     from_data_formats = [RecordsIteratorFormat]
     to_data_formats = [DataFrameIteratorFormat]
@@ -108,6 +104,24 @@ class RecordsIteratorToDataframeIterator(MemoryDataCopierMixin, DataCopierBase):
         self, existing: DataFrameIterator, new: RecordsIterator
     ) -> DataFrameIterator:
         return DataFrameIterator(existing.iterator.concat(new))
+
+
+### Database
+
+class DatabaseCursorToRecordsIterator(MemoryDataCopierMixin, DataCopierBase):
+    from_data_formats = [DatabaseCursorFormat]
+    to_data_formats = [RecordsIteratorFormat]
+    cost = MemoryToMemoryCost + FormatConversionCost
+    requires_schema_cast = False
+
+    def concat(
+        self, existing: RecordsIterator, new: ResultProxy
+    ) -> DataFrameIterator:
+        def f():
+            keys = new.keys()
+            for row in new:
+                yield dict(zip(keys, row))
+        return existing.concat(RecordsIterator(f(), new.close))
 
 
 # @datacopier(

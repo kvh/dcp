@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from typing import Type
+
+from dcp import DatabaseCursorToRecordsIterator
 from dcp.data_copy.graph import execute_copy_path, get_datacopy_lookup
 from dcp.data_format.formats.memory.dataframe_iterator import DataFrameIteratorFormat
 from dcp.utils.pandas import assert_dataframes_are_almost_equal
@@ -69,7 +71,7 @@ def test_db_to_mem(url):
         assert list(obj) == records
         obj.close()
 
-        # While we're here
+        # While we're here, test some memory to memory conversions
         to_name = name + "dfiterator"
         from_name = name
         req = CopyRequest(
@@ -89,3 +91,21 @@ def test_db_to_mem(url):
         assert len(dfs) == 1
         assert_dataframes_are_almost_equal(dfs[0], DataFrame(records))
         obj.close()
+
+        with db_api.execute_sql_result(f"select * from {name} limit 1") as res:
+            from_name = name + "cursor"
+            to_name = name + "cursor_records"
+            mem_api.put(from_name, res)
+            req = CopyRequest(
+                from_name,
+                mem_s,
+                to_name,
+                mem_s,
+                RecordsIteratorFormat,
+                test_records_schema,
+            )
+            DatabaseCursorToRecordsIterator().copy(req)
+            obj = mem_api.get(to_name)
+            assert not isinstance(obj, list)
+            assert list(obj) == records[:1]
+            obj.close()
