@@ -1,17 +1,12 @@
 from __future__ import annotations
 
-import decimal
-from datetime import date, datetime, time
-from typing import Any, Dict, Iterable, List, Optional, Type, TypeVar, Union, cast
+from typing import List, Optional, TypeVar
 
-import dcp.storage.base as storage
-import pandas as pd
 from commonmodel import (
     DEFAULT_FIELD_TYPE,
     Boolean,
     Date,
     DateTime,
-    Field,
     FieldType,
     Float,
     Integer,
@@ -19,27 +14,23 @@ from commonmodel import (
     Time,
 )
 from commonmodel.field_types import (
-    DEFAULT_FIELD_TYPE_CLASS,
     Binary,
     Decimal,
-    Json,
     LongBinary,
     LongText,
     Text,
-    ensure_field_type,
 )
-from dateutil import parser
+
+import dcp.storage.base as storage
 from dcp.data_format.base import DataFormat, DataFormatBase
 from dcp.data_format.handler import FormatHandler
-from dcp.utils.data import read_json
-from loguru import logger
-from pandas import DataFrame
 
 try:
     import pyarrow as pa
 
     ArrowTable = pa.Table
 except ImportError:
+    pa = None
     ArrowTable = TypeVar("ArrowTable")
 
 
@@ -53,6 +44,8 @@ class ArrowTableHandler(FormatHandler):
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
     def infer_data_format(self, name, storage) -> Optional[DataFormat]:
+        if pa is None:
+            return None
         obj = storage.get_api().get(name)
         if isinstance(obj, pa.Table):
             return ArrowTableFormat

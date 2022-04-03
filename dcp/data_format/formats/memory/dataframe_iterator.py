@@ -45,14 +45,20 @@ class DataFrameIterator:
         self.apply = apply or []
 
     def chunks(self, size: int) -> Iterable[DataFrame]:
-        chunk = []
-        for record in self.iterator:
-            chunk.append(record)
-            if len(chunk) == size:
+        try:
+            chunk = []
+            for record in self.iterator:
+                chunk.append(record)
+                if len(chunk) == size:
+                    yield self._build_df(chunk)
+                    chunk = []
+            if chunk:
                 yield self._build_df(chunk)
-                chunk = []
-        if chunk:
-            yield self._build_df(chunk)
+        finally:
+            self.close()
+    
+    def all(self) -> DataFrame:
+        return self._build_df(list(self.iterator))
 
     def _build_df(self, records: List[Dict]) -> DataFrame:
         df = DataFrame(records)

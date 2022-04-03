@@ -12,6 +12,7 @@ import dcp.storage.base as storage
 from dcp.data_format.formats.database.base import sqlalchemy_type_to_field_type
 from dcp.data_format.base import DataFormat, DataFormatBase
 from dcp.data_format.handler import FormatHandler
+from dcp.data_format.inference import generate_auto_schema
 
 
 class DatabaseCursor:
@@ -51,10 +52,16 @@ class DatabaseCursorHandler(FormatHandler):
     def infer_field_type(
         self, name: str, storage: storage.Storage, field: str
     ) -> FieldType:
+        # TODO: this only works for ORM queries
         cur = storage.get_api().get(name)
         types = {col.name: col.type for col in cur.context.compiled.statement.columns}
         return sqlalchemy_type_to_field_type(types[field])
 
+    def infer_schema(self, name: str, storage: Storage) -> Schema:
+        fields = []
+        schema = generate_auto_schema(fields=fields)
+        return schema
+    
     def cast_to_field_type(
         self, name: str, storage: storage.Storage, field: str, field_type: FieldType
     ):

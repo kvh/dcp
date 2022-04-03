@@ -59,6 +59,7 @@ class CopyRequest:
     available_storages: Optional[List[Storage]] = None
     if_exists: str = "error"  # in {"error", "append", "replace"}
     delete_intermediate: bool = False
+    _from_format: Optional[DataFormat] = None
     # handlers: List[Type[FormatHandler]] = ALL_HANDLERS
 
     @property
@@ -79,6 +80,8 @@ class CopyRequest:
 
     @property
     def from_format(self) -> DataFormat:
+        if self._from_format:
+            return self._from_format
         return infer_format_for_name(self.from_name, self.from_storage)
 
     @property
@@ -237,6 +240,7 @@ def copy(
     available_storages: Optional[List[Storage]] = None,
     if_exists: str = "error",
     delete_intermediate: bool = False,
+    from_format: Optional[DataFormat] = None,
 ):
     from dcp.data_copy.graph import execute_copy_request
 
@@ -251,5 +255,6 @@ def copy(
             available_storages=available_storages,
             if_exists=if_exists,
             delete_intermediate=delete_intermediate,
+            _from_format=from_format,
         )
     )

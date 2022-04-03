@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Dict, Iterable, Iterator, List, Optional, Type
+from typing import Callable, Dict, Iterable, List, Optional, Type
 
 from commonmodel.base import Field, Schema
 from commonmodel.field_types import FieldType
+
 from dcp.data_format.base import DataFormat
 from dcp.data_format.inference import generate_auto_schema
 from dcp.storage.base import (
@@ -15,7 +14,6 @@ from dcp.storage.base import (
     StorageClass,
     StorageEngine,
 )
-from dcp.storage.memory.iterator import SampleableIterator
 
 
 class ErrorBehavior(Enum):
