@@ -55,7 +55,7 @@ class RecordsToDataframe(MemoryDataCopierMixin, DataCopierBase):
 
     def concat(self, existing: pd.DataFrame, new: Records) -> pd.DataFrame:
         df = pd.DataFrame(new)
-        return existing.append(df)
+        return pd.concat([existing, df])
 
 
 class DataframeToRecords(MemoryDataCopierMixin, DataCopierBase):
@@ -79,7 +79,7 @@ class DataframeToDataframe(MemoryDataCopierMixin, DataCopierBase):
     requires_schema_cast = False
 
     def concat(self, existing: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
-        return existing.append(new)
+        return pd.concat([existing, df])
 
 
 class RecordsToRecords(MemoryDataCopierMixin, DataCopierBase):
@@ -306,7 +306,7 @@ class ArrowTableToDataFrame(MemoryDataCopierMixin, DataCopierBase):
         if not PYARROW_SUPPORTED:
             raise ImportError("Pyarrow is not installed")
         new_df = new.to_pandas()
-        return existing.append(new_df)
+        return pd.concat([existing, new_df])
 
 
 class DataFrameToArrowTable(MemoryDataCopierMixin, DataCopierBase):

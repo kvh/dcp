@@ -17,6 +17,10 @@ class SqliteDatabaseApi(DatabaseApi):
         db_url = get_tmp_sqlite_db_url("__test_dcp_sqlite")
         yield db_url
 
+    def exists(self, table_name: str) -> bool:
+        with self.execute_sql_result(f"select name from sqlite_master where type = 'table' and name = '{table_name}'") as res:
+            table_cnt = len(list(res))
+            return table_cnt > 0
 
 class SqliteDatabaseStorageApi(DatabaseStorageApi, SqliteDatabaseApi):
     pass

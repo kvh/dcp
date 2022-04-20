@@ -135,16 +135,10 @@ class DatabaseApi:
         self.execute_sql(f"drop view if exists {self._q(alias)}")
 
     def exists(self, table_name: str) -> bool:
-        try:
-            self.execute_sql(f"select * from {self._q(table_name)} limit 0")
-            return True
-        except (OperationalError, ProgrammingError) as x:
-            s = str(x).lower()
-            if (
-                "does not exist" in s or "no such" in s or "doesn't exist" in s
-            ):  # TODO: HACK, implement this properly for each dialect
-                return False
-            raise x
+        with self.execute_sql_result(f"select * from information_schema.tables where table_name = '{table_name}'") as res:
+            table_cnt = len(list(res))
+            return table_cnt > 0
+
 
     def count(self, table_name: str) -> int:
         with self.execute_sql_result(
