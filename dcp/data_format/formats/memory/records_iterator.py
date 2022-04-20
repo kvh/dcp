@@ -68,6 +68,7 @@ class IteratorBase(Generic[T]):
 
     def __iter__(self) -> Iterator[T]:
         yield from self.iterator
+        self.close()
     
     def chunks(self, chunksize: int) -> Iterator:
         try:

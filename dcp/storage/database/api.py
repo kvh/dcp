@@ -1,15 +1,14 @@
 from __future__ import annotations
-from io import BytesIO, IOBase
+from io import IOBase
 
 import json
 import os
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Callable, Dict, Iterator, Optional, Tuple, Any
 
 import sqlalchemy
 import sqlparse
 from commonmodel.base import Schema
-from dcp import storage
 from dcp.data_format.formats.memory.records import Records
 from dcp.storage.base import StorageApi
 from dcp.storage.database.utils import columns_from_records
@@ -18,14 +17,11 @@ from dcp.utils.data import conform_records_for_insert
 from loguru import logger
 from sqlalchemy import MetaData
 from sqlalchemy.engine import Connection, Engine, Result
-from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.ddl import CreateTable
-from sqlalchemy.sql.elements import quoted_name
 
 if TYPE_CHECKING:
     pass
-
 
 # Track what engines we've created for what urls
 # so we don't have unnecessary dupes
@@ -34,12 +30,33 @@ _sa_engines: Dict[str, Engine] = {}
 _sa_table_cache: Dict[Tuple[str, str], sqlalchemy.Table] = {}
 
 
+def default_json_serializer(o: Any) -> Any:
+    return json.dumps(o, cls=DcpJsonEncoder)
+
+
 def dispose_all(keyword: Optional[str] = None):
     for k, e in _sa_engines.items():
         if keyword:
             if keyword not in str(e.url):
                 continue
         e.dispose()
+
+
+def get_engine_key(url: str, serializer_class_name: str) -> str:
+    return f"{url}_{serializer_class_name}"
+
+
+def get_engine(url: str, json_serializer: Callable = default_json_serializer) -> sqlalchemy.engine.Engine:
+    key = get_engine_key(url, repr(json_serializer))
+    if key in _sa_engines:
+        return _sa_engines[key]
+    eng = sqlalchemy.create_engine(
+        url,
+        json_serializer=json_serializer,
+        echo=False,
+    )
+    _sa_engines[key] = eng
+    return eng
 
 
 class DatabaseApi:
@@ -52,25 +69,15 @@ class DatabaseApi:
         self.json_serializer = (
             json_serializer
             if json_serializer is not None
-            else lambda o: json.dumps(o, cls=DcpJsonEncoder)
+            else default_json_serializer
         )
         self.eng: Optional[sqlalchemy.engine.Engine] = None
 
     def _get_engine_key(self) -> str:
-        return f"{self.url}_{self.json_serializer.__class__.__name__}"
+        return get_engine_key(self.url, self.json_serializer.__class__.__name__)
 
     def get_engine(self) -> sqlalchemy.engine.Engine:
-        if self.eng is not None:
-            return self.eng
-        key = self._get_engine_key()
-        if key in _sa_engines:
-            return _sa_engines[key]
-        self.eng = sqlalchemy.create_engine(
-            self.url,
-            json_serializer=self.json_serializer,
-            echo=False,
-        )
-        _sa_engines[key] = self.eng
+        self.eng = get_engine(self.url, self.json_serializer)
         return self.eng
 
     @classmethod
@@ -107,7 +114,8 @@ class DatabaseApi:
         logger.debug("Executing SQL:")
         logger.debug(sql)
         with self.connection() as conn:
-            yield conn.execute(sql)
+            res = conn.execute(sql)
+            yield res
 
     def execute_sa_statement(self, sa_stmt) -> Result:
         sql = sa_stmt.compile(dialect=self.get_engine().dialect)
@@ -135,10 +143,10 @@ class DatabaseApi:
         self.execute_sql(f"drop view if exists {self._q(alias)}")
 
     def exists(self, table_name: str) -> bool:
-        with self.execute_sql_result(f"select * from information_schema.tables where table_name = '{table_name}'") as res:
+        with self.execute_sql_result(
+            f"select * from information_schema.tables where table_name = '{table_name}'") as res:
             table_cnt = len(list(res))
             return table_cnt > 0
-
 
     def count(self, table_name: str) -> int:
         with self.execute_sql_result(
@@ -238,7 +246,7 @@ class DatabaseApi:
         quoted_cols = [self.get_quoted_identifier(c) for c in columns]
         placeholders = [self.get_placeholder_char()] * len(columns)
         sql = f"""
-        INSERT INTO { self._q(table_name) } (
+        INSERT INTO {self._q(table_name)} (
             {','.join(quoted_cols)}
         ) VALUES ({','.join(placeholders)})
         """
@@ -275,7 +283,7 @@ def create_db(url: str, database_name: str):
     if url.startswith("sqlite"):
         logger.info("create_db is no-op for sqlite")
         return
-    sa = sqlalchemy.create_engine(url)
+    sa = get_engine(url)
     conn = sa.connect()
     try:
         conn.execute(
@@ -294,7 +302,7 @@ def drop_db(url: str, database_name: str, force: bool = False):
         i = input(f"Dropping db {database_name}, are you sure? (y/N)")
         if not i.lower().startswith("y"):
             return
-    sa = sqlalchemy.create_engine(url)
+    sa = get_engine(url)
     conn = sa.connect()
     try:
         conn.execute(
