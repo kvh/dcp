@@ -208,7 +208,8 @@ class DatabaseApi:
         if (self.url, name) not in _sa_table_cache:
             sa_table = sqlalchemy.Table(
                 name,
-                self.get_sqlalchemy_metadata(),
+                MetaData(),
+                # self.get_sqlalchemy_metadata(),
                 autoload=True,
                 autoload_with=self.get_engine(),
             )
@@ -216,7 +217,8 @@ class DatabaseApi:
         return _sa_table_cache[(self.url, name)]
 
     def create_sqlalchemy_table(self, table: sqlalchemy.Table):
-        table.metadata = self.get_sqlalchemy_metadata()
+        # table.metadata = self.get_sqlalchemy_metadata()
+        table.metadata = MetaData()
         stmt = CreateTable(table).compile(dialect=self.get_engine().dialect)
         self.execute_sql(str(stmt))
 
