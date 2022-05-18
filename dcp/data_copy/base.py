@@ -232,9 +232,9 @@ ALL_DATA_COPIERS = []
 
 def copy(
     from_name: str,
-    from_storage: Storage,
+    from_storage: Storage | str,
     to_name: str,
-    to_storage: Storage,
+    to_storage: Storage | str,
     to_format: DataFormat = None,
     schema: Optional[Schema] = None,
     available_storages: Optional[List[Storage]] = None,
@@ -244,6 +244,10 @@ def copy(
 ):
     from dcp.data_copy.graph import execute_copy_request
 
+    if isinstance(from_storage, str):
+        from_storage = Storage(from_storage)
+    if isinstance(to_storage, str):
+        to_storage = Storage(to_storage)
     return execute_copy_request(
         CopyRequest(
             from_name=from_name,

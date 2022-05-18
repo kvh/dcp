@@ -6,7 +6,7 @@ name = "datacopy"
 packages = [
   {include = "dcp"},
 ]
-version = "0.1.31"
+version = "0.1.32"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.3"
