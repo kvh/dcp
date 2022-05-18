@@ -221,3 +221,11 @@
 #             for f in s.fields:
 #                 e = expected.get_field(f.name)
 #                 assert f == e
+
+from dcp.data_copy.helpers import infer_schema_from_python_object
+from tests.test_field_types import sample_records, expected_field_types
+
+
+def test_infer_schema_from_python_object():
+    schema = infer_schema_from_python_object(sample_records)
+    assert {f.name: f.field_type for f in schema.fields} == expected_field_types

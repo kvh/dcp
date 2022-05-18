@@ -3,16 +3,14 @@ from __future__ import annotations
 import decimal
 import traceback
 from datetime import date, datetime, time
-from typing import Any, Dict, Iterable, List, Optional, Type, Union, cast
+from typing import Any, Dict, Iterable, List, Optional, Type, Union
 
-import dcp.storage.base as storage
 import pandas as pd
 from commonmodel import (
     DEFAULT_FIELD_TYPE,
     Boolean,
     Date,
     DateTime,
-    Field,
     FieldType,
     Float,
     Integer,
@@ -20,15 +18,16 @@ from commonmodel import (
     Time,
 )
 from commonmodel.field_types import (
-    Binary,
     Decimal,
     Json,
-    LongBinary,
     LongText,
     Text,
     ensure_field_type,
 )
 from dateutil import parser
+from loguru import logger
+
+import dcp.storage.base as storage
 from dcp.data_format.base import DataFormat, DataFormatBase
 from dcp.data_format.handler import FormatHandler
 from dcp.utils.common import (
@@ -41,8 +40,6 @@ from dcp.utils.common import (
     is_numberish,
 )
 from dcp.utils.data import read_json
-from loguru import logger
-from pandas import DataFrame
 
 Records = List[Dict[str, Any]]
 
@@ -322,7 +319,7 @@ class DecimalHelper(FieldTypeHelper):
 ### TODO: binary types
 
 
-LONG_TEXT = 2 ** 16
+LONG_TEXT = 2**16
 
 
 ### String types

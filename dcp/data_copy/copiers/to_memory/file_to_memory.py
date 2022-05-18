@@ -1,23 +1,18 @@
 from io import IOBase
 
-import pandas as pd
 from dcp.data_copy.base import CopyRequest, DataCopierBase
 from dcp.data_copy.costs import (
     DiskToMemoryCost,
     FormatConversionCost,
-    MemoryToMemoryCost,
 )
 from dcp.data_format.formats.file_system.csv_file import CsvFileFormat
 from dcp.data_format.formats.file_system.json_lines_file import JsonLinesFileFormat
 from dcp.data_format.formats.memory.arrow_table import ArrowTable, ArrowTableFormat
-from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
-from dcp.storage.base import FileSystemStorageClass, MemoryStorageClass, StorageApi
+from dcp.storage.base import FileSystemStorageClass, MemoryStorageClass
 from dcp.storage.file_system.engines.local import FileSystemStorageApi
 from dcp.storage.memory.engines.python import PythonStorageApi
-from dcp.utils.common import DcpJsonEncoder
-from dcp.utils.data import read_csv, write_csv
-from dcp.utils.pandas import dataframe_to_records
+from dcp.utils.data import read_csv
 
 try:
     from pyarrow import Table

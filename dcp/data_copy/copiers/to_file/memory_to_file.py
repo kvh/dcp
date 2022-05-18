@@ -1,24 +1,21 @@
 import json
 from io import IOBase
-from typing import Any, Iterator, TypeVar
+from typing import Any
 
-import pandas as pd
 from dcp.data_copy.base import CopyRequest, DataCopierBase
 from dcp.data_copy.costs import (
     DiskToMemoryCost,
     FormatConversionCost,
-    MemoryToMemoryCost,
 )
 from dcp.data_format.formats.file_system.csv_file import CsvFileFormat
 from dcp.data_format.formats.file_system.json_lines_file import JsonLinesFileFormat
-from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
-from dcp.storage.base import FileSystemStorageClass, MemoryStorageClass, StorageApi
+from dcp.storage.base import FileSystemStorageClass, MemoryStorageClass
 from dcp.storage.file_system.engines.local import FileSystemStorageApi
 from dcp.storage.memory.engines.python import PythonStorageApi
 from dcp.utils.common import DcpJsonEncoder
 from dcp.utils.data import write_csv
-from dcp.utils.pandas import dataframe_to_records
+
 
 # from dcp.data_format.formats.memory.csv_lines_iterator import CsvLinesIteratorFormat
 

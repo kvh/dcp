@@ -3,10 +3,8 @@ from __future__ import annotations
 import os
 
 from dcp.data_copy.base import CopyRequest
-from dcp.data_copy.graph import execute_copy_request
 from dcp.data_format.base import get_format_for_nickname
 from dcp.storage.base import Storage
-from loguru import logger
 
 
 def make_copy_request(

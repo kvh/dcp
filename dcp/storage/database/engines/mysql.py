@@ -11,7 +11,6 @@ from dcp.storage.database.api import (
     drop_db,
 )
 from dcp.utils.common import rand_str
-from dcp.utils.data import conform_records_for_insert
 
 MYSQL_SUPPORTED = False
 try:

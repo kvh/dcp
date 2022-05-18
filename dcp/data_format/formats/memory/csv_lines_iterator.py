@@ -1,66 +1,23 @@
 from __future__ import annotations
 
-import decimal
-import traceback
-from contextlib import contextmanager
-from datetime import date, datetime, time
-from io import IOBase, StringIO
-from itertools import tee
+from io import IOBase
 from typing import (
-    Any,
-    AnyStr,
-    Dict,
-    Iterable,
     List,
     Optional,
-    TextIO,
-    Type,
-    Union,
-    cast,
+)
+
+from commonmodel import (
+    FieldType,
+    Schema,
 )
 
 import dcp.storage.base as storage
-import pandas as pd
-from commonmodel import (
-    DEFAULT_FIELD_TYPE,
-    Boolean,
-    Date,
-    DateTime,
-    Field,
-    FieldType,
-    Float,
-    Integer,
-    Schema,
-    Time,
-)
-from commonmodel.field_types import (
-    Binary,
-    Decimal,
-    Json,
-    LongBinary,
-    LongText,
-    Text,
-    ensure_field_type,
-)
-from dateutil import parser
 from dcp.data_format.base import DataFormat, DataFormatBase
 from dcp.data_format.formats.file_system.csv_file import is_maybe_csv
 from dcp.data_format.formats.memory.records import Records, select_field_type
 from dcp.data_format.handler import FormatHandler
-from dcp.storage.file_system.engines.local import FileSystemStorageApi
 from dcp.storage.memory.iterator import SampleableIterator
-from dcp.utils.common import (
-    ensure_bool,
-    ensure_date,
-    ensure_datetime,
-    ensure_time,
-    is_boolish,
-    is_nullish,
-    is_numberish,
-)
-from dcp.utils.data import read_csv, read_json, sample_lines
-from loguru import logger
-from pandas import DataFrame
+from dcp.utils.data import read_csv
 
 
 class CsvLinesIterator(IOBase):
