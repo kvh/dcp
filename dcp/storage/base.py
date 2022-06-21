@@ -150,6 +150,18 @@ class RedshiftStorageEngine(StorageEngine):
         return RedshiftDatabaseStorageApi
 
 
+class BigQueryStorageEngine(StorageEngine):
+    storage_class = DatabaseStorageClass
+    schemes = ["bigquery"]
+    natural_format = "table"
+
+    @classmethod
+    def get_api_cls(cls) -> Type[StorageApi]:
+        from dcp.storage.database.engines.bigquery import BigQueryDatabaseStorageApi
+
+        return BigQueryDatabaseStorageApi
+
+
 #############
 # Filesystems
 #############
