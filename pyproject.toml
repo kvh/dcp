@@ -6,14 +6,15 @@ name = "datacopy"
 packages = [
   {include = "dcp"},
 ]
-version = "0.2.0"
+version = "0.2.1"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.3"
 PyYAML = ">= 5.4.1"
 SQLAlchemy = "^1.4.7"
 cleo = "^0.8.1"
-common-model = "^0.4.1"
+clevercsv = "^0.7.4"
+common-model = "^0.5.0"
 loguru = "^0.5.3"
 networkx = "^2.5"
 pandas = "^1.2.3"
