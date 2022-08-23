@@ -6,7 +6,7 @@ name = "datacopy"
 packages = [
   {include = "dcp"},
 ]
-version = "0.1.32"
+version = "0.2.0"
 
 [tool.poetry.dependencies]
 Jinja2 = "^3.0.3"
@@ -36,8 +36,8 @@ pyarrow = "^6.0.1"
 pydeps = "^1.9.0"
 pytest = "^4.6"
 pytest-cov = "^2.8.1"
-sqlalchemy-redshift = {git = "https://github.com/kvh/sqlalchemy-redshift.git", rev = "2a99b23"}
 sqlalchemy-bigquery = "^1.4.4"
+sqlalchemy-redshift = {git = "https://github.com/kvh/sqlalchemy-redshift.git", rev = "2a99b23"}
 
 [tool.poetry.scripts]
 dcp = "dcp.cli:app"
