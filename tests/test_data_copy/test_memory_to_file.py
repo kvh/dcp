@@ -1,23 +1,21 @@
 from __future__ import annotations
 
 import tempfile
-import warnings
-from typing import Type
 
-import pytest
-from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
+from dcp.data_copy.base import CopyRequest
 from dcp.data_copy.copiers.to_file.memory_to_file import RecordsToCsvFile
-from dcp.data_format.formats.database.base import DatabaseTableFormat
 from dcp.data_format.formats.file_system.csv_file import CsvFileFormat
 from dcp.data_format.formats.memory.records import RecordsFormat
-from dcp.data_format.handler import get_handler, get_handler_for_name
-from dcp.storage.base import DatabaseStorageClass, LocalPythonStorageEngine, Storage
-from dcp.storage.database.api import DatabaseApi, DatabaseStorageApi
+from dcp.data_format.handler import get_handler
+from dcp.storage.base import (
+    Storage,
+    ensure_storage_object,
+)
 from dcp.storage.file_system.engines.local import FileSystemStorageApi
 from dcp.storage.memory.engines.python import PythonStorageApi, new_local_python_storage
 from dcp.utils.common import rand_str
 from dcp.utils.data import read_csv
-from tests.utils import conformed_test_records, test_records_schema
+from tests.utils import test_records_schema
 
 
 def test_records_to_file():
@@ -29,16 +27,24 @@ def test_records_to_file():
     name = f"_test_{rand_str()}"
     obj = [{"f1": "hi", "f2": 2}]
     mem_api.put(name, obj)
-    req = CopyRequest(name, mem_s, name, s, CsvFileFormat)
+    from_so = ensure_storage_object(name, storage=mem_s)
+    to_so = ensure_storage_object(
+        name,
+        storage=s,
+        _data_format=CsvFileFormat,
+    )
+    req = CopyRequest(from_so, to_so)
     RecordsToCsvFile().copy(req)
     with fs_api.open(name, newline="") as f:
         recs = list(read_csv(f))
         handler = get_handler(RecordsFormat, mem_s.storage_engine)
+        name = "output"
         mem_api.put(
-            "output",
+            name,
             recs,
         )
-        handler().cast_to_schema("output", mem_s, schema=test_records_schema)
+        so = ensure_storage_object(name, storage=mem_s)
+        handler().cast_to_schema(so, schema=test_records_schema)
         recs = mem_api.get("output")
         assert recs == obj
 

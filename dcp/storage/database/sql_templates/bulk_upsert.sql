@@ -1,14 +1,14 @@
-create temp table "tmp_{{ table_name }}" as
-    select * from "{{ table_name }}" limit 0;
+create temp table {{ tmp_table_name }} as
+    select * from {{ table_name }} limit 0;
 
-insert into tmp_{{ table_name }} (
+insert into {{ tmp_table_name }} (
         {{ columns|column_list }}
     ) values
         %s
 ;
 
 
-update "{{ table_name }}"
+update {{ table_name }}
 set
     {% for col in columns %}
         "{{ col }}" = sub."{{ col }}"
@@ -28,14 +28,14 @@ where
 ;
 
 
-insert into "{{ table_name }}"
-    select * from "tmp_{{ table_name }}"
+insert into {{ table_name }}
+    select * from {{ tmp_table_name }}
     where not exists (
         select "{{ unique_on_column }}"
-        from "{{ table_name }}"
-        where "tmp_{{ table_name }}"."{{ unique_on_column }}"
-            = "{{ table_name }}"."{{ unique_on_column }}"
+        from {{ table_name }}
+        where {{ tmp_table_name }}.{{ unique_on_column }}
+            = {{ table_name }}.{{ unique_on_column }}
     )
 ;
 
-drop table "tmp_{{ table_name }}";
+drop table {{ tmp_table_name }};

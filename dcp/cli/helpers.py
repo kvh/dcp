@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import os
 
-from dcp.data_copy.base import CopyRequest
+from dcp.data_copy.base import CopyRequest, copy
 from dcp.data_format.base import get_format_for_nickname
-from dcp.storage.base import Storage
+from dcp.storage.base import Storage, ensure_storage_object
 
 
 def make_copy_request(
@@ -26,9 +26,8 @@ def make_copy_request(
         pth = os.getcwd()
         from_storage_url = f"file://{pth}"
     return CopyRequest(
-        from_name=from_name,
-        from_storage=Storage(from_storage_url),
-        to_name=to_name,
-        to_storage=to_storage,
-        to_format=to_fmt,
+        from_obj=ensure_storage_object(from_name, storage=Storage(from_storage_url)),
+        to_obj=ensure_storage_object(
+            to_name, storage=to_storage, _data_format=to_fmt, _schema=schema
+        ),
     )

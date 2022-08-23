@@ -1,15 +1,8 @@
 from __future__ import annotations
 
-import typing
-from collections import abc
-from copy import deepcopy
-from itertools import tee
 from typing import (
     TYPE_CHECKING,
-    Any,
-    Dict,
     Generic,
-    Iterator,
     List,
     Optional,
     Type,
@@ -66,6 +59,8 @@ class DataFormatBase(Generic[T]):
 
 
 DataFormat = Type[DataFormatBase]
+
+
 # IterableDataFormat = Type[IterableDataFormatBase]
 
 

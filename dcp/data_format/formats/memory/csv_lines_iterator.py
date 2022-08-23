@@ -38,44 +38,40 @@ class PythonCsvLinesIteratorHandler(FormatHandler):
     for_data_formats = [CsvLinesIteratorFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
-    def get_sample_string(self, name: str, storage: storage.Storage) -> str:
-        obj = storage.get_api().get(name)
+    def get_sample_string(self, so: storage.StorageObject) -> str:
+        obj = so.storage.get_memory_api().get(so)
         assert isinstance(obj, SampleableIterator)
         sample = obj.head(SAMPLE_SIZE_LINES)
         s = "".join(sample)
         return s
 
-    def get_sample_records(self, name: str, storage: storage.Storage) -> Records:
-        obj = storage.get_api().get(name)
+    def get_sample_records(self, so: storage.StorageObject) -> Records:
+        obj = so.storage.get_memory_api().get(so)
         assert isinstance(obj, SampleableIterator)
         sample = obj.head(SAMPLE_SIZE_LINES)
         for r in read_csv(sample):
             yield r
 
-    def infer_data_format(
-        self, name: str, storage: storage.Storage
-    ) -> Optional[DataFormat]:
-        obj = storage.get_api().get(name)
-        if isinstance(obj, SampleableIterator):
-            s = self.get_sample_string(name, storage)
+    def infer_data_format(self, obj: storage.StorageObject) -> Optional[DataFormat]:
+        py_obj = obj.storage.get_memory_api().get(obj)
+        if isinstance(py_obj, SampleableIterator):
+            s = self.get_sample_string(obj)
             if is_maybe_csv(s):
                 return CsvLinesIteratorFormat
         return None
 
     # TODO: get sample
-    def infer_field_names(self, name, storage) -> List[str]:
+    def infer_field_names(self, so: storage.StorageObject) -> List[str]:
         names = []
-        for r in self.get_sample_records(name, storage):
+        for r in self.get_sample_records(so):
             for k in r.keys():  # Ordered as of py 3.7
                 if k not in names:
                     names.append(k)  # Keep order
         return names
 
-    def infer_field_type(
-        self, name: str, storage: storage.Storage, field: str
-    ) -> FieldType:
+    def infer_field_type(self, so: storage.StorageObject, field: str) -> FieldType:
         sample = []
-        for r in self.get_sample_records(name, storage):
+        for r in self.get_sample_records(so):
             if field in r:
                 sample.append(r[field])
             if len(sample) >= self.sample_size:
@@ -84,14 +80,14 @@ class PythonCsvLinesIteratorHandler(FormatHandler):
         return ft
 
     def cast_to_field_type(
-        self, name: str, storage: storage.Storage, field: str, field_type: FieldType
+        self, so: storage.StorageObject, field: str, field_type: FieldType
     ):
         # TODO: no-op? not really types on strings...
         pass
 
-    def create_empty(self, name, storage, schema: Schema):
+    def create_empty(self, so: storage.StorageObject, schema: Schema):
         s = ",".join(schema.field_names()) + "\n"
-        storage.get_api().put(name, (ln for ln in [s]))
+        so.storage.get_memory_api().put(so, (ln for ln in [s]))
 
-    def get_record_count(self, name: str, storage: storage.Storage) -> Optional[int]:
+    def get_record_count(self, so: storage.StorageObject) -> Optional[int]:
         return None

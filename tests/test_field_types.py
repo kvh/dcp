@@ -1,10 +1,11 @@
 import decimal
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import Any, List, Type
 
 import pandas as pd
 import pytest
+import sqlalchemy.types as satypes
 from commonmodel.field_types import (
     DEFAULT_FIELD_TYPE,
     Boolean,
@@ -14,14 +15,17 @@ from commonmodel.field_types import (
     FieldType,
     Float,
     Integer,
+    Interval,
     Json,
     LongText,
     Text,
     Time,
-    all_types,
     ensure_field_type,
+    FieldTypeDefinition,
 )
 from dateutil.tz import tzoffset
+
+from dcp import sqlalchemy_type_to_field_type
 from dcp.data_format.formats.memory.dataframe import pandas_series_to_field_type
 from dcp.data_format.formats.memory.records import (
     ALL_FIELD_TYPE_HELPERS,
@@ -33,8 +37,8 @@ LONG_TEXT = 65536
 
 nullish = [None, "None", "null", "none"]
 bool_ = True
-int_ = 2 ** 16
-big_int = 2 ** 33
+int_ = 2**16
+big_int = 2**33
 float_ = 1.119851925872322
 floatstr = "1.119851925872322"
 decimal_ = decimal.Decimal("109342342.123")
@@ -43,6 +47,7 @@ datestr = "1/1/2020"
 dateisostr = "2020-01-01"
 datetime_ = datetime(2020, 1, 1)
 datetimestr = "2017-02-17T15:09:26-08:00"
+interval = timedelta(days=100)
 timestr = "15:09:26"
 time_ = time(20, 1, 1)
 long_text = "helloworld" * int(LONG_TEXT / 9)
@@ -52,12 +57,12 @@ json_ = {"hello": "world"}
 @dataclass
 class Case:
     obj: Any
-    maybes: List[Type[FieldType]]
-    definitelys: List[Type[FieldType]]
+    maybes: List[FieldTypeDefinition]
+    definitelys: List[FieldTypeDefinition]
 
 
-numeric_types: List[FieldType] = [Integer, Float, Decimal]
-string_types: List[FieldType] = [Text, LongText]
+numeric_types: List[FieldTypeDefinition] = [Integer, Float, Decimal]
+string_types: List[FieldTypeDefinition] = [Text, LongText]
 
 cases = [
     Case(
@@ -120,6 +125,11 @@ cases = [
         maybes=string_types + [Time],
         definitelys=[],
     ),
+    Case(
+        obj=interval,
+        maybes=[Interval],
+        definitelys=[Interval],
+    ),
     Case(obj=long_text, maybes=[LongText], definitelys=[]),
     Case(obj=json_, maybes=[Json], definitelys=[Json]),
 ]
@@ -134,8 +144,8 @@ def test_python_object_field_type_case(case: Case):
             maybes.append(ft)
         if fth().is_definitely(case.obj):
             defs.append(ft)
-    assert set(maybes) == set(case.maybes)
-    assert set(defs) == set(case.definitelys)
+    assert set(maybes) == set(f.name for f in case.maybes)
+    assert set(defs) == set(f.name for f in case.definitelys)
 
 
 sample_records = [
@@ -215,7 +225,7 @@ dt = datetime
 
 
 @pytest.mark.parametrize(
-    "ftype,obj,expected",
+    "ftype_helper,obj,expected",
     [
         (Boolean, "true", True),
         (Boolean, "false", False),
@@ -271,6 +281,7 @@ dt = datetime
         ),
         (DateTime, 1577836800, dt(2020, 1, 1)),
         (DateTime, "Hello world", ERROR),
+        (Interval, timedelta(days=1), timedelta(days=1)),
         (Json, [1, 2], [1, 2]),
         (Json, {"a": 2}, {"a": 2}),
         (Json, '{"1":2}', {"1": 2}),
@@ -294,9 +305,8 @@ dt = datetime
     ],
     ids=lambda x: str(x)[:30],
 )
-def test_value_soft_casting(ftype, obj, expected):
-    if isinstance(ftype, type):
-        ftype = ftype()
+def test_value_soft_casting(ftype_helper, obj, expected):
+    ftype = ftype_helper()
     if expected == ERROR:
         with pytest.raises(Exception):
             cast_python_object_to_field_type(obj, ftype)
@@ -313,3 +323,12 @@ def test_pandas_series_to_field_type():
 @pytest.mark.parametrize("ftype,expected", [("Text(length=55)", Text(length=55))])
 def test_ensure_field_type(ftype, expected):
     assert ensure_field_type(ftype) == expected
+
+
+def test_sqlalchemy_types():
+    assert sqlalchemy_type_to_field_type(satypes.Integer()) == Integer()
+    assert sqlalchemy_type_to_field_type(satypes.VARCHAR()) == Text()
+    assert sqlalchemy_type_to_field_type(satypes.JSON()) == Json()
+    assert sqlalchemy_type_to_field_type(satypes.Numeric(12, 2)) == Decimal(12, 2)
+    # Json(Text())
+    assert sqlalchemy_type_to_field_type(satypes.ARRAY(satypes.String()))

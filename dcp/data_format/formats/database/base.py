@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Type, TypeVar
+import json
+from typing import Any, Dict, List, TypeVar
 
 import sqlalchemy as sa
 import sqlalchemy.types as satypes
@@ -12,14 +13,24 @@ from commonmodel import (
     FieldType,
     Float,
     Integer,
+    Interval,
     Schema,
     Time,
 )
-from commonmodel.field_types import Binary, Decimal, Json, Text
+from commonmodel.field_types import (
+    Binary,
+    Decimal,
+    Json,
+    Text,
+    str_to_field_type,
+    Array,
+)
+from sqlalchemy import TypeDecorator, UnicodeText
 
 import dcp.storage.base as storage
 from dcp.data_format.base import DataFormat, DataFormatBase
 from dcp.data_format.handler import FormatHandler
+from dcp.utils.common import to_json
 
 DatabaseTable = TypeVar("DatabaseTable")
 
@@ -33,31 +44,44 @@ class GenericDatabaseTableHandler(FormatHandler):
     for_data_formats = [DatabaseTableFormat]
     for_storage_classes = [storage.DatabaseStorageClass]
 
-    def infer_data_format(self, name, storage) -> DataFormat:
+    def infer_data_format(self, obj: storage.StorageObject) -> DataFormat:
         return DatabaseTableFormat
 
-    def infer_field_names(self, name, storage) -> List[str]:
-        tble = storage.get_api().get_as_sqlalchemy_table(name)
+    def infer_field_names(self, so: storage.StorageObject) -> List[str]:
+        tble = so.storage.get_database_api().get_as_sqlalchemy_table(so)
         return [c.name for c in tble.columns]
 
-    def infer_field_type(
-        self, name: str, storage: storage.Storage, field: str
-    ) -> FieldType:
-        tble: sa.Table = storage.get_api().get_as_sqlalchemy_table(name)
+    def infer_field_type(self, so: storage.StorageObject, field: str) -> FieldType:
+        tble: sa.Table = so.storage.get_database_api().get_as_sqlalchemy_table(so)
         for c in tble.columns:
             if c.name == field:
                 return sqlalchemy_type_to_field_type(c.type)
         raise ValueError(f"Field does not exist: {field}")
 
     def cast_to_field_type(
-        self, name: str, storage: storage.Storage, field: str, field_type: FieldType
+        self, so: storage.StorageObject, field: str, field_type: FieldType
     ):
         # TODO
         pass
 
-    def create_empty(self, name, storage, schema: Schema):
-        table = schema_as_sqlalchemy_table(schema, name)
-        storage.get_api().create_sqlalchemy_table(table)
+    def create_empty(self, so: storage.StorageObject, schema: Schema):
+        table = schema_as_sqlalchemy_table(schema, so)
+        so.storage.get_database_api().create_sqlalchemy_table(table)
+
+
+class CustomJson(TypeDecorator):
+    impl = UnicodeText
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            value = to_json(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None and isinstance(value, str):
+            value = json.loads(value)
+        return value
 
 
 def field_type_to_sqlalchemy_type(
@@ -71,13 +95,14 @@ def field_type_to_sqlalchemy_type(
         "Date": satypes.Date,
         "Time": satypes.Time,
         "DateTime": satypes.DateTime,
+        "Interval": satypes.Interval,
         "Binary": satypes.BINARY,  # TODO
         "LongBinary": satypes.LargeBinary,
         "Text": satypes.Unicode,  # TODO: size mismatch here
         "LongText": satypes.UnicodeText,
-        "Json": satypes.JSON,
+        "Json": CustomJson,
     }
-    sa_type = types[ft.__class__.__name__]
+    sa_type = types[ft.name]
     if field_type_parameter_defaults:
         params = field_type_parameter_defaults.copy()
         params.update(ft.get_parameters())
@@ -97,18 +122,65 @@ def field_as_sqlalchemy_column(
 
 def schema_as_sqlalchemy_table(
     schema: Schema,
-    name: str,
-    field_type_parameter_defaults: Dict[Type[FieldType], Dict[str, Any]] = None,
+    so: storage.StorageObject,
+    field_type_parameter_defaults: Dict[str, Dict[str, Any]] = None,
 ) -> sa.Table:
     columns: List[sa.Column] = []
     for field in schema.fields:
         c = field_as_sqlalchemy_column(
-            field, (field_type_parameter_defaults or {}).get(type(field.field_type))
+            field, (field_type_parameter_defaults or {}).get(field.field_type.name)
         )
         columns.append(c)
     # TODO: table level constraints
-    sa_table = sa.Table(name, sa.MetaData(), *columns)
+    sa_table = sa.Table(
+        so.full_path.name,
+        sa.MetaData(),
+        *columns,
+        schema=so.full_path.get_last_path_element(),
+    )
     return sa_table
+
+
+all_aliases = {}
+_satype_aliases = {
+    # Sqlalchemy
+    "Boolean": Boolean,
+    "Int": Integer,
+    "Integer": Integer,
+    "BigInteger": Integer,
+    "BigInt": Integer,
+    "SmallInteger": Integer,
+    "SmallInt": Integer,
+    "Decimal": Decimal,
+    "Numeric": Decimal,
+    "Float": Float,
+    "Real": Float,
+    "Double": Float,
+    "Double_Precision": Float,
+    "Date": Date,
+    "Datetime": DateTime,
+    "Timestamp": DateTime,
+    "Time": Time,
+    "Interval": Interval,
+    "Binary": Binary,
+    "Text": Text,
+    "Varchar": Text,
+    "NVarchar": Text,
+    "Unicode": Text,
+    "UnicodeText": Text,
+    "String": Text,
+    "Json": Json,
+    "JSONB": Json,
+    "NullType": Text,  # TODO: What is nulltype?
+    "Array": Json,  # TODO: properly support sql array at some point
+}
+for k, v in _satype_aliases.items():
+    all_aliases[k.upper()] = v
+    all_aliases[k] = v
+
+ignore_args_sa_types = [
+    "array",  # Ignore array sub-type arg
+]
 
 
 def sqlalchemy_type_to_field_type(sa_type: satypes.TypeEngine) -> FieldType:
@@ -116,41 +188,12 @@ def sqlalchemy_type_to_field_type(sa_type: satypes.TypeEngine) -> FieldType:
     Supports additional Sqlalchemy types and arrow types, as well as legacy names
     """
     s = repr(sa_type)
-    satype_aliases = {
-        # Sqlalchemy
-        "Boolean": Boolean,
-        "Int": Integer,
-        "Integer": Integer,
-        "BigInteger": Integer,
-        "Bigint": Integer,
-        "Smallint": Integer,
-        "Decimal": Decimal,
-        "Numeric": Decimal,
-        "Float": Float,
-        "Real": Float,
-        "Double": Float,
-        "Double_Precision": Float,
-        "Date": Date,
-        "Datetime": DateTime,
-        "Timestamp": DateTime,
-        "Time": Time,
-        "Binary": Binary,
-        "Text": Text,
-        "Varchar": Text,
-        "Unicode": Text,
-        "Unicodetext": Text,
-        "Json": Json,
-        "JSONB": Json,
-        "NullType": Text,  # TODO: What is nulltype?
-    }
-    all_aliases = {}
-    for k, v in satype_aliases.items():
-        all_aliases[k.upper()] = v
-        all_aliases[k] = v
-    try:
-        ft = eval(s, {"__builtins__": None}, all_aliases)
-        if isinstance(ft, type):
-            ft = ft()
-        return ft
-    except (AttributeError, TypeError):
-        raise NotImplementedError(s)
+    parts = s.split("(")
+    name = parts[0]
+    cm_type = all_aliases[name]
+    args = ")"
+    if name.lower() not in ignore_args_sa_types:
+        if len(parts) > 1:
+            args = "(".join(parts[1:])
+    cm_str = cm_type.name + "(" + args
+    return str_to_field_type(cm_str)

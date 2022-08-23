@@ -33,16 +33,6 @@ from pandas.core.dtypes.missing import isnull
 T = TypeVar("T")
 
 
-class AttrDict(Dict):
-    __getattr__ = dict.__getitem__
-    __setattr__ = dict.__setitem__
-
-
-class StringEnum(Enum):
-    def __str__(self):
-        return self.value
-
-
 def title_to_snake_case(s: str) -> str:
     s2 = ""
     for i in range(1, len(s)):
@@ -353,7 +343,7 @@ class JSONEncoder(json.JSONEncoder):
             return super().default(o)
 
 
-class DcpJsonEncoder(json.JSONEncoder):
+class DcpJsonEncoder(JSONEncoder):
     def default(self, o: Any) -> str:
         # See "Date Time String Format" in the ECMA-262 specification.
         if isinstance(o, datetime):
@@ -378,7 +368,7 @@ class DcpJsonEncoder(json.JSONEncoder):
             return str(o)
         elif hasattr(o, "to_json"):
             return o.to_json()
-        elif isinstance(o, StringEnum):
+        elif isinstance(o, Enum):
             return str(o)
         else:
             return super().default(o)
@@ -386,6 +376,12 @@ class DcpJsonEncoder(json.JSONEncoder):
 
 def to_json(d: Any) -> str:
     return json.dumps(d, cls=DcpJsonEncoder)
+
+
+def from_json(s: str) -> Any:
+    if isinstance(s, str):
+        return json.loads(s)
+    return s
 
 
 def profile_stmt(stmt: str, globals: Dict, locals: Dict):

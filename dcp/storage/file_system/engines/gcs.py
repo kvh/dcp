@@ -1,14 +1,10 @@
 from __future__ import annotations
-from dcp.storage.file_system.engines.base import FileSystemStorageApi
-import io
 
-import os
-import shutil
-import tempfile
 from contextlib import contextmanager
-from typing import ContextManager, Generator, Iterable, Iterator, Optional, TextIO, Type
+from typing import Iterator, Optional, TextIO
 
-from dcp.storage.base import Storage, StorageApi
+from dcp.storage.base import Storage, StorageObject
+from dcp.storage.file_system.engines.base import FileSystemStorageApi
 
 try:
     from google.cloud import storage as gcs
@@ -22,11 +18,11 @@ except ImportError:
 
 class GoogleCloudStorageApi(FileSystemStorageApi):
     def __init__(self, storage: Storage):
+        super().__init__(storage)
         if gcs is None:
             raise ImportError(
                 "You must install google cloud libraries (gcsfs and google-cloud-storage)"
             )
-        self.storage = storage
         self.client = gcs.Client()
         self.fs = gcsfs.GCSFileSystem()
         self.bucket = self.client.bucket(self.bucket_name)
@@ -55,27 +51,27 @@ class GoogleCloudStorageApi(FileSystemStorageApi):
         return self.fs.open(self.get_path(name), mode, *args, **kwargs)
 
     ### StorageApi implementations ###
-    def exists(self, name: str) -> bool:
-        return self.fs.exists(self.get_path(name))
+    def _exists(self, obj: StorageObject) -> bool:
+        return self.fs.exists(self.get_path(obj.formatted_full_name))
 
-    def remove(self, name: str):
-        pth = self.get_path(name)
+    def _remove(self, obj: StorageObject):
+        pth = self.get_path(obj.formatted_full_name)
         try:
             self.fs.rm(pth)
         except FileNotFoundError:
             pass
 
-    def create_alias(self, name: str, alias: str):
+    def _create_alias(self, obj: StorageObject, alias_obj: StorageObject):
         # Just a copy? I think this is a symlink on GCS backend? Should be since immutable
-        self.copy(name, alias)
+        self.copy(obj.formatted_full_name, alias_obj.formatted_full_name)
 
-    def record_count(self, name: str) -> Optional[int]:
+    def _record_count(self, obj: StorageObject) -> Optional[int]:
         # Not implemented for now
         return None
 
-    def copy(self, name: str, to_name: str):
-        pth = self.get_path(name)
-        to_pth = self.get_path(to_name)
+    def _copy(self, obj: StorageObject, to_obj: StorageObject):
+        pth = self.get_path(obj.formatted_full_name)
+        to_pth = self.get_path(to_obj.formatted_full_name)
         src = self.bucket.blob(pth)
         dst = self.bucket.blob(to_pth)
         self.bucket.copy_blob(src, self.bucket, dst)

@@ -16,9 +16,11 @@ from commonmodel import (
 from commonmodel.field_types import (
     Binary,
     Decimal,
+    Interval,
     LongBinary,
     LongText,
     Text,
+    Json,
 )
 
 import dcp.storage.base as storage
@@ -43,34 +45,32 @@ class ArrowTableHandler(FormatHandler):
     for_data_formats = [ArrowTableFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
-    def infer_data_format(self, name, storage) -> Optional[DataFormat]:
+    def infer_data_format(self, so: storage.StorageObject) -> Optional[DataFormat]:
         if pa is None:
             return None
-        obj = storage.get_api().get(name)
+        obj = so.storage.get_memory_api().get(so)
         if isinstance(obj, pa.Table):
             return ArrowTableFormat
         return None
 
-    def infer_field_names(self, name, storage) -> List[str]:
-        table = storage.get_api().get(name)
+    def infer_field_names(self, so: storage.StorageObject) -> List[str]:
+        table = so.storage.get_memory_api().get(so)
         assert isinstance(table, ArrowTable)
         return [f.name for f in table.schema]
 
-    def infer_field_type(
-        self, name: str, storage: storage.Storage, field: str
-    ) -> FieldType:
-        table: ArrowTable = storage.get_api().get(name)
+    def infer_field_type(self, so: storage.StorageObject, field: str) -> FieldType:
+        table: ArrowTable = so.storage.get_memory_api().get(so)
         return arrow_type_to_field_type(str(table.field(field).type))
 
     def cast_to_field_type(
-        self, name: str, storage: storage.Storage, field: str, field_type: FieldType
+        self, so: storage.StorageObject, field: str, field_type: FieldType
     ):
         # TODO
         pass
 
-    def create_empty(self, name, storage, schema: Schema):
+    def create_empty(self, so: storage.StorageObject, schema: Schema):
         table = pa.Table.from_batches([], schema=schema_to_arrow_schema(schema))
-        storage.get_api().put(name, table)
+        so.storage.get_memory_api().put(so, table)
 
 
 def schema_to_arrow_schema(schema: Schema) -> pa.Schema:
@@ -140,19 +140,20 @@ def arrow_type_to_field_type(arrow_type: str) -> FieldType:
 
 def field_type_to_arrow_type(field_type: FieldType) -> pa.DataType:
     types = {
-        Boolean: pa.bool_,
-        Integer: pa.int64,
-        Float: pa.float64,
-        Decimal: pa.decimal128,
-        Binary: pa.binary,
-        LongBinary: pa.large_binary,
-        Text: pa.utf8,
-        LongText: pa.large_utf8,
-        Time: pa.time64,
-        Date: pa.date32,
-        DateTime: pa.timestamp,
+        "Boolean": pa.bool_,
+        "Integer": pa.int64,
+        "Float": pa.float64,
+        "Decimal": pa.decimal128,
+        "Binary": pa.binary,
+        "LongBinary": pa.large_binary,
+        "Text": pa.utf8,
+        "LongText": pa.large_utf8,
+        "Time": pa.time64,
+        "Date": pa.date32,
+        "DateTime": pa.timestamp,
+        "Json": pa.utf8,
     }
-    pa_type = types[type(field_type)]
+    pa_type = types[field_type.name]
     if pa_type == pa.decimal128:
         pdt = pa_type(**field_type.get_parameters())
     elif pa_type in (pa.time64, pa.timestamp):

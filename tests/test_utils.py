@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime, time, timedelta
+from enum import Enum
 
 import pytest
 from dcp.utils.common import (
     DcpJsonEncoder,
-    StringEnum,
     is_datetime_str,
     snake_to_title_case,
     title_to_snake_case,
@@ -63,7 +63,7 @@ def test_is_datetime_str():
 
 
 def test_json_encoder():
-    class T(StringEnum):
+    class T(str, Enum):
         A = "A"
 
     d = dict(

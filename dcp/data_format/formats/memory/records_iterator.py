@@ -20,6 +20,7 @@ from commonmodel import (
 import dcp.storage.base as storage
 from dcp.data_format.base import DataFormat, DataFormatBase
 from dcp.data_format.handler import FormatHandler
+from dcp.data_format.inference import generate_auto_schema
 
 T = TypeVar("T")
 
@@ -72,27 +73,29 @@ class RecordsIteratorFormat(DataFormatBase[RecordsIterator]):
 
 
 class PythonRecordsIteratorHandler(FormatHandler):
+    """TODO: this is a write-only format at the moment (can't copy FROM this format to another),
+    this is due to iterators being ephemeral objects.
+    """
+
     for_data_formats = [RecordsIteratorFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
-    def infer_data_format(self, name, storage) -> Optional[DataFormat]:
+    def infer_data_format(self, so: storage.StorageObject) -> Optional[DataFormat]:
         return None
 
-    def infer_field_names(self, name, storage) -> List[str]:
+    def infer_field_names(self, so: storage.StorageObject) -> List[str]:
         raise NotImplementedError
 
-    def infer_field_type(
-        self, name: str, storage: storage.Storage, field: str
-    ) -> FieldType:
+    def infer_field_type(self, so: storage.StorageObject, field: str) -> FieldType:
         raise NotImplementedError
 
     def cast_to_field_type(
-        self, name: str, storage: storage.Storage, field: str, field_type: FieldType
+        self, so: storage.StorageObject, field: str, field_type: FieldType
     ):
         raise NotImplementedError
 
-    def create_empty(self, name, storage, schema: Schema):
+    def create_empty(self, so: storage.StorageObject, schema: Schema):
         def f():
             yield from []
 
-        storage.get_api().put(name, RecordsIterator(f()))
+        so.storage.get_memory_api().put(so, RecordsIterator(f()))

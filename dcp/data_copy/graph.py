@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import enum
 import pprint
 import random
@@ -29,7 +30,13 @@ from dcp.data_copy.base import (
 )
 from dcp.data_format.base import ALL_DATA_FORMATS, DataFormat
 from dcp.data_format.handler import FormatHandler
-from dcp.storage.base import ALL_STORAGE_ENGINES, Storage, StorageEngine
+from dcp.storage.base import (
+    ALL_STORAGE_ENGINES,
+    Storage,
+    StorageEngine,
+    FullPath,
+    StorageObject,
+)
 from dcp.utils.common import rand_str, to_json
 from loguru import logger
 
@@ -62,7 +69,7 @@ class CopyPath:
 class CopyResult:
     request: CopyRequest
     copy_path: CopyPath
-    intermediate_created: List[Tuple[str, Storage, DataFormat]]
+    intermediate_created: List[StorageObject]
 
 
 class CopyLookup:
@@ -169,7 +176,7 @@ def get_copy_path(req: CopyRequest) -> Optional[CopyPath]:
         # If converting self, this can mean different things based on if_exists
         # TODO: this vs create an alias?
         # TODO: self-copy is just .append(name1, name2) ??
-        # if req.from_storage == req.to_storage:
+        # if req.from_obj.storage == req.to_obj.storage:
         #     return CopyPath(edges=[])
         copiers = lookup.get_capable_copiers(req.conversion)
         if not copiers:
@@ -191,16 +198,13 @@ def execute_copy_request(req: CopyRequest) -> CopyResult:
 
 
 def execute_copy_path(original_req: CopyRequest, pth: CopyPath):
-    prev_storage = original_req.from_storage
-    next_storage: Optional[Storage] = None
-    prev_name: str = original_req.from_name
-    prev_format: DataFormat = None
+    prev_obj = original_req.from_obj
     n = len(pth.edges)
     # if n == 0:
     #     # TODO: handle copy between identical StorageFormats
     #     # No copy required, BUT may need an alias
     #     if original_req.from_name != original_req.to_name:
-    #         if original_req.from_storage.url != original_req.to_storage.url:
+    #         if original_req.from_obj.storage.url != original_req.to_obj.storage.url:
     #             raise NotImplementedError(
     #                 "Copy between same StorageFormats not supported yet"
     #             )
@@ -212,7 +216,7 @@ def execute_copy_path(original_req: CopyRequest, pth: CopyPath):
         conversion = conversion_edge.conversion
         target_storage_format = conversion.to_storage_format
         next_storage = select_storage(
-            original_req.to_storage,
+            original_req.to_obj.storage,
             original_req.get_available_storages(),
             target_storage_format,
         )
@@ -220,30 +224,33 @@ def execute_copy_path(original_req: CopyRequest, pth: CopyPath):
             f"Copy: {conversion.from_storage_format} -> {conversion.to_storage_format}"
         )
         if i == n - 1:
-            to_name = original_req.to_name
+            next_path = original_req.to_obj.full_path
         else:
-            to_name = f"{original_req.to_name}_{rand_str(6).lower()}"
+            next_path = FullPath(
+                f"{original_req.to_obj.full_path.name}_{rand_str(6).lower()}"
+            )
+        next_to_obj = dataclasses.replace(
+            original_req.to_obj,
+            full_path=next_path,
+            storage=next_storage,
+            _data_format=conversion.to_storage_format.data_format,
+            _schema=original_req.get_to_schema(),
+        )
         edge_req = CopyRequest(
-            from_name=prev_name,
-            from_storage=prev_storage,
-            to_name=to_name,
-            to_storage=next_storage,
-            to_format=conversion.to_storage_format.data_format,
-            schema=original_req.get_schema(),
+            from_obj=prev_obj,
+            to_obj=next_to_obj,
             if_exists=original_req.if_exists,
             delete_intermediate=original_req.delete_intermediate,
         )
         conversion_edge.copier.copy(edge_req)
         if i >= 2:
             if original_req.delete_intermediate:
-                # If not first conversion (we don't want to delete original source)
-                edge_req.from_storage_api.remove(prev_name)
+                # If not first conversion (we don't want to delete original source!)
+                edge_req.from_obj.storage_api.remove(prev_obj)
             else:
                 # If not deleting previous (and not source) than add as created
-                created.append((prev_name, prev_storage, prev_format))
-        prev_name = to_name
-        prev_storage = next_storage
-        prev_format = edge_req.get_to_format()
+                created.append((prev_obj))
+        prev_obj = next_to_obj
     # Add final destination to created
     return CopyResult(request=original_req, copy_path=pth, intermediate_created=created)
 

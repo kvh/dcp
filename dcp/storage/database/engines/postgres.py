@@ -4,7 +4,9 @@ from contextlib import contextmanager
 from io import IOBase
 from typing import Dict, Iterator, List, Optional, Callable
 from commonmodel.base import Schema
+from sqlalchemy.exc import OperationalError
 
+from dcp.storage.base import StorageObject, FullPath, ensure_storage_object
 from dcp.storage.database.api import (
     DatabaseApi,
     DatabaseStorageApi,
@@ -17,9 +19,10 @@ from dcp.storage.database.utils import (
     compile_jinja_sql_template,
 )
 from dcp.utils.common import rand_str
-from dcp.utils.data import conform_records_for_insert
 from loguru import logger
 from sqlalchemy.engine.base import Engine
+
+from dcp.utils.data import conform_records_for_insert
 
 POSTGRES_SUPPORTED = False
 try:
@@ -30,48 +33,6 @@ except ImportError:
 
     def execute_values(*args):
         raise ImportError("Psycopg2 not installed")
-
-
-def bulk_insert(*args, **kwargs):
-    kwargs["update"] = False
-    return bulk_upsert(*args, **kwargs)
-
-
-def bulk_upsert(
-    eng: Engine,
-    table_name: str,
-    records: List[Dict],
-    unique_on_column: str = None,
-    ignore_duplicates: bool = False,
-    update: bool = True,
-    columns: List[str] = None,
-    adapt_objects_to_json: bool = True,
-    page_size: int = 5000,
-    schema: Optional[Schema] = None,
-):
-    if not records:
-        return
-    if update and not unique_on_column:
-        raise Exception("Must specify unique_on_column when updating")
-    if schema:
-        columns = schema.field_names()
-    else:
-        columns = columns_from_records(records)
-    records = conform_records_for_insert(records, columns, adapt_objects_to_json)
-    if update:
-        tmpl = "bulk_upsert.sql"
-    else:
-        tmpl = "bulk_insert.sql"
-    jinja_ctx = {
-        "table_name": table_name,
-        "columns": columns,
-        "records": records,
-        "unique_on_column": unique_on_column,
-        "ignore_duplicates": ignore_duplicates,
-    }
-    sql = compile_jinja_sql_template(tmpl, jinja_ctx)
-    logger.debug("SQL", sql)
-    pg_execute_values(eng, sql, records, page_size=page_size)
 
 
 def pg_execute_values(
@@ -111,22 +72,79 @@ class PostgresDatabaseApi(DatabaseApi):
     def dialect_is_supported(cls) -> bool:
         return POSTGRES_SUPPORTED
 
+    def get_default_storage_path(self) -> list[str]:
+        try:
+            with self.execute_sql_result("select current_schema()") as r:
+                return [list(r)[0][0]]
+        except OperationalError:
+            # Database is offline or unavailable
+            return ["public"]  # Default to postgres default?
+
+    ### Overrides
+
+    def _exists(self, obj: StorageObject) -> bool:
+        """MUST also check for views"""
+        meta_tables = ["information_schema.tables", "information_schema.views"]
+        sql = f"select table_name from %s where table_name = '{obj.full_path.name}'"
+        if obj.full_path.path:
+            assert (
+                len(obj.full_path.path) == 1
+            ), f"Database table path must have length one {obj.full_path}"
+            sql += f" and table_schema = '{obj.full_path.path[0]}'"
+
+        sql = " union all ".join([sql % m for m in meta_tables])
+        with self.execute_sql_result(sql) as res:
+            table_cnt = len(list(res))
+            return table_cnt > 0
+
     def _bulk_insert(
-        self,
-        table_name: str,
-        records: List[Dict],
-        schema: Optional[Schema] = None,
-        **kwargs,
+        self, table: StorageObject, records: list[dict], schema: Optional[Schema] = None
     ):
-        bulk_insert(
-            eng=self.get_engine(),
-            table_name=table_name,
+        self._bulk_insert_postgres(
+            table=table,
             records=records,
             schema=schema,
-            **kwargs,
         )
 
-    def bulk_insert_file(self, name: str, f: IOBase, schema: Optional[Schema] = None):
+    def _bulk_insert_postgres(self, *args, **kwargs):
+        kwargs["update"] = False
+        return self._bulk_upsert(*args, **kwargs)
+
+    def _bulk_upsert(
+        self,
+        table: StorageObject,
+        records: List[Dict],
+        # unique_on_column: str = None,
+        # ignore_duplicates: bool = False,
+        update: bool = True,
+        page_size: int = 5000,
+        schema: Optional[Schema] = None,
+    ):
+        if update:
+            # TODO: we don't use this anywhere? Let's deprecate
+            raise NotImplementedError
+        if not records:
+            return
+        if schema:
+            columns = schema.field_names()
+        else:
+            columns = columns_from_records(records)
+        records = self.conform_records_for_insert(records, columns)
+        tmpl = "bulk_insert.sql"
+        jinja_ctx = {
+            "table_name": table.formatted_full_name,
+            "columns": columns,
+            "records": records,
+            "unique_on_column": "",
+            "ignore_duplicates": False,
+        }
+        sql = compile_jinja_sql_template(tmpl, jinja_ctx)
+        logger.debug("SQL", sql)
+        pg_execute_values(self.get_engine(), sql, records, page_size=page_size)
+
+    def _bulk_insert_file(
+        self, table: StorageObject, f: IOBase, schema: Optional[Schema] = None
+    ):
         cols = ""
         if schema is not None:
             cols = (
@@ -139,7 +157,7 @@ class PostgresDatabaseApi(DatabaseApi):
             with conn.cursor() as curs:
                 # TODO: swap for copy_expert at some point
                 sql = f"""
-                COPY {self.get_quoted_identifier(name)} {cols}
+                COPY {table.formatted_full_name} {cols}
                 FROM STDIN
                 csv header;
                 """

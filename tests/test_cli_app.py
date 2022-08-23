@@ -7,7 +7,7 @@ from dcp.cli.command import DcpCommand
 from dcp.cli.helpers import make_copy_request
 from dcp.data_copy.base import ALL_DATA_COPIERS, CopyRequest
 from dcp.data_format.formats.database.base import DatabaseTableFormat
-from dcp.storage.base import Storage
+from dcp.storage.base import Storage, ensure_storage_object
 
 
 def test_make_copy_request():
@@ -18,11 +18,12 @@ def test_make_copy_request():
     req = make_copy_request(name, to_url)
     pth = os.getcwd()
     assert req == CopyRequest(
-        from_name=name,
-        from_storage=Storage(f"file://{pth}"),
-        to_name=to_name,
-        to_storage=Storage(to_storage),
-        to_format=DatabaseTableFormat,
+        from_obj=ensure_storage_object(name, storage=Storage(f"file://{pth}")),
+        to_obj=ensure_storage_object(
+            to_name,
+            storage=Storage(to_storage),
+            _data_format=DatabaseTableFormat,
+        ),
     )
 
 

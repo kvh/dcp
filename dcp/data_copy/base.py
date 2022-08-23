@@ -1,36 +1,31 @@
 from __future__ import annotations
 
-import random
-from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import (
-    TYPE_CHECKING,
-    Any,
     Callable,
-    Dict,
-    Iterable,
     List,
     Optional,
-    Sequence,
-    Set,
-    Tuple,
     Type,
-    Union,
+    TYPE_CHECKING,
+    Any,
 )
 
-import networkx as nx
 from commonmodel.base import Schema
+
 from dcp.data_copy.costs import DataCopyCost
 from dcp.data_format.base import DataFormat
-from dcp.data_format.handler import (
-    ALL_HANDLERS,
-    FormatHandler,
-    get_handler,
-    get_handler_for_name,
-    infer_format_for_name,
+from dcp.storage.base import (
+    Storage,
+    StorageClass,
+    StorageEngine,
+    StorageObject,
+    FullPath,
 )
-from dcp.storage.base import Storage, StorageApi, StorageClass, StorageEngine
 from dcp.storage.memory.engines.python import DEFAULT_PYTHON_STORAGE
+from dcp.utils.common import rand_str
+
+if TYPE_CHECKING:
+    from dcp.data_copy.graph import CopyResult
 
 
 @dataclass(frozen=True)
@@ -50,71 +45,38 @@ class Conversion:
 
 @dataclass
 class CopyRequest:
-    from_name: str
-    from_storage: Storage
-    to_name: str
-    to_storage: Storage
-    to_format: Optional[DataFormat] = None
-    schema: Optional[Schema] = None
+    from_obj: StorageObject
+    to_obj: StorageObject
     available_storages: Optional[List[Storage]] = None
     if_exists: str = "error"  # in {"error", "append", "replace"}
     delete_intermediate: bool = False
-    _from_format: Optional[DataFormat] = None
-    # handlers: List[Type[FormatHandler]] = ALL_HANDLERS
-
-    @property
-    def from_storage_api(self) -> StorageApi:
-        return self.from_storage.get_api()
-
-    @property
-    def to_storage_api(self) -> StorageApi:
-        return self.to_storage.get_api()
-
-    @property
-    def from_format_handler(self) -> FormatHandler:
-        return get_handler(self.from_format, self.from_storage.storage_engine)()
-
-    @property
-    def to_format_handler(self) -> FormatHandler:
-        return get_handler(self.get_to_format(), self.to_storage.storage_engine)()
-
-    @property
-    def from_format(self) -> DataFormat:
-        if self._from_format:
-            return self._from_format
-        return infer_format_for_name(self.from_name, self.from_storage)
 
     @property
     def conversion(self) -> Conversion:
         return Conversion(
             from_storage_format=StorageFormat(
-                storage_engine=self.from_storage.storage_engine,
-                data_format=self.from_format,
+                storage_engine=self.from_obj.storage.storage_engine,
+                data_format=self.from_obj.get_data_format(),
             ),
             to_storage_format=StorageFormat(
-                storage_engine=self.to_storage.storage_engine,
-                data_format=self.get_to_format(),
+                storage_engine=self.to_obj.storage.storage_engine,
+                data_format=self.to_obj.get_data_format(),
             ),
         )
 
     def get_available_storages(self) -> List[Storage]:
         return list(
             set(
-                [self.from_storage, self.to_storage]
+                [self.from_obj.storage, self.to_obj.storage]
                 + (self.available_storages or [DEFAULT_PYTHON_STORAGE])
             )
         )
 
-    def get_schema(self) -> Schema:
-        if self.schema is None:
-            handler = self.from_format_handler
-            self.schema = handler.infer_schema(self.from_name, self.from_storage)
-        return self.schema
-
-    def get_to_format(self) -> DataFormat:
-        if self.to_format is None:
-            self.to_format = self.to_storage.storage_engine.get_natural_format()
-        return self.to_format
+    def get_to_schema(self) -> Schema:
+        schema = self.to_obj._schema
+        if schema is None:
+            schema = self.from_obj.get_schema()
+        return schema
 
 
 CopierCallabe = Callable[[CopyRequest], None]
@@ -159,24 +121,22 @@ class DataCopierBase:
             self.cast_to_schema(req)
 
     def cast_to_schema(self, req: CopyRequest):
-        req.to_format_handler.cast_to_schema(
-            req.to_name, req.to_storage_api.storage, req.get_schema()
-        )
+        req.to_obj.format_handler.cast_to_schema(req.to_obj, req.get_to_schema())
 
     def check_if_exists(self, req: CopyRequest):
         if req.if_exists == "replace":
             return
-        exists = req.to_storage.get_api().exists(req.to_name)
+        exists = req.to_obj.storage.get_api().exists(req.to_obj)
         if not exists:
             return
         if req.if_exists == "error":
             raise NameExistsError(
-                f"{req.to_name} already exists on {req.to_storage} (if_exists=='error')"
+                f"{req.to_obj.formatted_full_name} already exists on {req.to_obj.storage} (if_exists=='error')"
             )
         elif req.if_exists == "append":
             if not self.supports_append:
                 raise NameExistsError(
-                    f"{req.to_name} already exists on {req.to_storage}, and append not supported (if_exists=='append')"
+                    f"{req.to_obj.formatted_full_name} already exists on {req.to_obj.storage}, and append not supported (if_exists=='append')"
                 )
 
     def can_handle_from(self, from_storage_format: StorageFormat) -> bool:
@@ -217,14 +177,12 @@ class DataCopierBase:
 
 # Helper (belongs somewhere else?)
 def create_empty_if_not_exists(req: CopyRequest):
-    exists = req.to_storage_api.exists(req.to_name)
+    exists = req.to_obj.storage.get_api().exists(req.to_obj)
     if exists and req.if_exists == "replace":
-        req.to_storage_api.remove(req.to_name)
+        req.to_obj.storage.get_api().remove(req.to_obj)
         exists = False
     if not exists:
-        req.to_format_handler.create_empty(
-            req.to_name, req.to_storage_api.storage, req.get_schema()
-        )
+        req.to_obj.format_handler.create_empty(req.to_obj, req.get_to_schema())
 
 
 ALL_DATA_COPIERS = []
@@ -236,11 +194,14 @@ def copy(
     to_name: str,
     to_storage: Storage | str,
     to_format: DataFormat = None,
-    schema: Optional[Schema] = None,
+    to_schema: Optional[Schema] = None,
     available_storages: Optional[List[Storage]] = None,
     if_exists: str = "error",
     delete_intermediate: bool = False,
     from_format: Optional[DataFormat] = None,
+    from_schema: Optional[Schema] = None,
+    from_path: list[str] = None,
+    to_path: list[str] = None,
 ):
     from dcp.data_copy.graph import execute_copy_request
 
@@ -250,15 +211,75 @@ def copy(
         to_storage = Storage(to_storage)
     return execute_copy_request(
         CopyRequest(
-            from_name=from_name,
-            from_storage=from_storage,
-            to_name=to_name,
-            to_storage=to_storage,
-            to_format=to_format,
-            schema=schema,
+            from_obj=StorageObject(
+                storage=from_storage,
+                full_path=FullPath(name=from_name, path=from_path),
+                _data_format=from_format,
+                _schema=from_schema,
+            ),
+            to_obj=StorageObject(
+                storage=to_storage,
+                full_path=FullPath(name=to_name, path=to_path),
+                _data_format=to_format,
+                _schema=to_schema,
+            ),
             available_storages=available_storages,
             if_exists=if_exists,
             delete_intermediate=delete_intermediate,
-            _from_format=from_format,
         )
     )
+
+
+def copy_objects(
+    from_obj: StorageObject,
+    to_obj: StorageObject,
+    available_storages: Optional[List[Storage]] = None,
+    if_exists: str = "error",
+    delete_intermediate: bool = True,
+) -> CopyResult:
+    from dcp.data_copy.graph import execute_copy_request
+
+    return execute_copy_request(
+        CopyRequest(
+            from_obj=from_obj,
+            to_obj=to_obj,
+            available_storages=available_storages,
+            if_exists=if_exists,
+            delete_intermediate=delete_intermediate,
+        )
+    )
+
+
+def copy_python_object(
+    from_python_obj: Any,
+    to_name: str,
+    to_storage: Storage | str,
+    to_format: DataFormat = None,
+    to_schema: Optional[Schema] = None,
+    available_storages: Optional[List[Storage]] = None,
+    if_exists: str = "error",
+    delete_intermediate: bool = False,
+    from_format: Optional[DataFormat] = None,
+    from_schema: Optional[Schema] = None,
+    to_path: list[str] = None,
+):
+    mem_storage = DEFAULT_PYTHON_STORAGE
+    name = rand_str()
+    mem_storage.get_memory_api().put(name, from_python_obj)
+    try:
+        return copy(
+            from_name=name,
+            from_storage=mem_storage,
+            to_name=to_name,
+            to_storage=to_storage,
+            to_format=to_format,
+            to_schema=to_schema,
+            available_storages=available_storages,
+            if_exists=if_exists,
+            delete_intermediate=delete_intermediate,
+            from_format=from_format,
+            from_schema=from_schema,
+            to_path=to_path,
+        )
+    finally:
+        mem_storage.get_memory_api().remove(name)

@@ -25,10 +25,8 @@ class MemoryToFileMixin:
     to_storage_classes = [FileSystemStorageClass]
 
     def append(self, req: CopyRequest):
-        assert isinstance(req.from_storage_api, PythonStorageApi)
-        assert isinstance(req.to_storage_api, FileSystemStorageApi)
-        records = req.from_storage_api.get(req.from_name)
-        with req.to_storage_api.open(req.to_name, "a") as f:
+        records = req.from_obj.storage.get_memory_api().get(req.from_obj)
+        with req.to_obj.storage.get_filesystem_api().open(req.to_obj, "a") as f:
             self.write_object(f, records)
 
     def write_object(self, f: IOBase, obj: Any):

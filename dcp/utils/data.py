@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import csv
+import clevercsv as csv
 import decimal
 import json
 import typing
@@ -24,6 +24,8 @@ from typing import (
     Union,
 )
 
+import sqlalchemy
+
 from dcp.utils.common import DcpJsonEncoder, is_nullish, title_to_snake_case
 from loguru import logger
 from pandas import Timestamp, isnull
@@ -40,16 +42,6 @@ def records_as_dict_of_lists(dl: List[Dict]) -> Dict[str, List]:
             else:
                 series[k] = [v]
     return series
-
-
-class DcpCsvDialect(csv.Dialect):
-    delimiter = ","
-    quotechar = '"'
-    escapechar = "\\"
-    doublequote = True
-    skipinitialspace = False
-    quoting = csv.QUOTE_MINIMAL
-    lineterminator = "\n"
 
 
 def process_raw_value(v: Any) -> Any:
@@ -112,9 +104,9 @@ def sample_lines(lines: Iterator[str], n: int) -> List[str]:
     return sample
 
 
-def infer_csv_dialect(s: str) -> Type[csv.Dialect]:
+def infer_csv_dialect(s: str, delimiters=";,|\t") -> Type[csv.dialect.SimpleDialect]:
     s = s.strip()
-    dialect = csv.Sniffer().sniff(s, delimiters=";,|\t")
+    dialect = csv.Sniffer().sniff(s, delimiters=delimiters)
     return dialect
 
 
@@ -167,9 +159,8 @@ def write_csv(
     file_like: IO,
     columns: List[str] = None,
     append: bool = False,
-    dialect=DcpCsvDialect,
 ):
-    writer = csv.writer(file_like, dialect=dialect)
+    writer = csv.writer(file_like)
     if not columns:
         columns = list(records[0].keys())  # Assumes all records have same keys...
     if not append:
@@ -193,10 +184,15 @@ def conform_records_for_insert(
     columns: List[str],
     adapt_objects_to_json: bool = True,
     conform_datetimes: bool = True,
+    replace_nones: bool = False,
+    as_dicts: bool = False,
 ):
     rows = []
     for r in records:
-        row = []
+        if as_dicts:
+            row = {}
+        else:
+            row = []
         for c in columns:
             o = r.get(c)
             # TODO: this is some magic buried down here. no bueno
@@ -205,7 +201,13 @@ def conform_records_for_insert(
             if conform_datetimes:
                 if isinstance(o, Timestamp):
                     o = o.to_pydatetime()
-            row.append(o)
+            if replace_nones:
+                if o is None:
+                    o = sqlalchemy.null()
+            if as_dicts:
+                row[c] = o
+            else:
+                row.append(o)
         rows.append(row)
     return rows
 

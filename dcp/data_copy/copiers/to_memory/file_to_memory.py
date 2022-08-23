@@ -10,8 +10,6 @@ from dcp.data_format.formats.file_system.json_lines_file import JsonLinesFileFor
 from dcp.data_format.formats.memory.arrow_table import ArrowTable, ArrowTableFormat
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
 from dcp.storage.base import FileSystemStorageClass, MemoryStorageClass
-from dcp.storage.file_system.engines.local import FileSystemStorageApi
-from dcp.storage.memory.engines.python import PythonStorageApi
 from dcp.utils.data import read_csv
 
 try:
@@ -30,13 +28,15 @@ class FileToMemoryMixin:
     to_storage_classes = [MemoryStorageClass]
 
     def append(self, req: CopyRequest):
-        assert isinstance(req.from_storage_api, FileSystemStorageApi)
-        assert isinstance(req.to_storage_api, PythonStorageApi)
-        existing = req.to_storage_api.get(req.to_name)
-        with req.from_storage_api.open(req.from_name) as f:
+        existing = req.to_obj.storage.get_memory_api().get(
+            req.to_obj.formatted_full_name
+        )
+        with req.from_obj.storage.get_filesystem_api().open(
+            req.from_obj.formatted_full_name
+        ) as f:
             new = self.read_to_object(f)
         final = self.concat(existing, new)
-        req.to_storage_api.put(req.to_name, final)
+        req.to_obj.storage.get_memory_api().put(req.to_obj.formatted_full_name, final)
 
     def concat(self, existing, new):
         raise NotImplementedError

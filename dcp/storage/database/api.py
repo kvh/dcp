@@ -4,21 +4,40 @@ from io import IOBase
 import json
 import os
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Callable, Dict, Iterator, Optional, Tuple, Any
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    Iterator,
+    Optional,
+    Tuple,
+    Any,
+    List,
+    Set,
+)
 
 import sqlalchemy
 import sqlparse
 from commonmodel.base import Schema
+from sqlalchemy.exc import OperationalError, ProgrammingError
+
 from dcp.data_format.formats.memory.records import Records
-from dcp.storage.base import StorageApi
+from dcp.storage.base import (
+    StorageApi,
+    Storage,
+    StorageObject,
+    FullPath,
+    ensure_storage_object,
+)
 from dcp.storage.database.utils import columns_from_records
 from dcp.utils.common import DcpJsonEncoder
-from dcp.utils.data import conform_records_for_insert
 from loguru import logger
 from sqlalchemy import MetaData
-from sqlalchemy.engine import Connection, Engine, Result
+from sqlalchemy.engine import Connection, Engine, Result, Inspector
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.ddl import CreateTable
+
+from dcp.utils.data import conform_records_for_insert
 
 if TYPE_CHECKING:
     pass
@@ -46,15 +65,16 @@ def get_engine_key(url: str, serializer_class_name: str) -> str:
     return f"{url}_{serializer_class_name}"
 
 
-def get_engine(url: str, json_serializer: Callable = default_json_serializer) -> sqlalchemy.engine.Engine:
+def get_engine(
+    url: str, json_serializer: Callable = default_json_serializer
+) -> sqlalchemy.engine.Engine:
     key = get_engine_key(url, repr(json_serializer))
     if key in _sa_engines:
         return _sa_engines[key]
-    eng = sqlalchemy.create_engine(
-        url,
-        json_serializer=json_serializer,
-        echo=False,
-    )
+    kwargs = dict(echo=False)
+    if json_serializer:
+        kwargs["json_serializer"] = json_serializer
+    eng = sqlalchemy.create_engine(url, **kwargs)
     _sa_engines[key] = eng
     return eng
 
@@ -66,10 +86,9 @@ class DatabaseApi:
         json_serializer: Callable = None,
     ):
         self.url = url
+        self.storage = Storage(url)
         self.json_serializer = (
-            json_serializer
-            if json_serializer is not None
-            else default_json_serializer
+            json_serializer if json_serializer is not None else default_json_serializer
         )
         self.eng: Optional[sqlalchemy.engine.Engine] = None
 
@@ -89,9 +108,10 @@ class DatabaseApi:
         return self.get_engine().dialect.identifier_preparer.quote(identifier)
 
     def get_placeholder_char(self) -> str:
-        if self.url.startswith("mysql"):
-            return "%s"
         return "?"
+
+    def get_default_storage_path(self) -> list[str]:
+        raise NotImplementedError
 
     @contextmanager
     def connection(self) -> Iterator[Connection]:
@@ -99,9 +119,15 @@ class DatabaseApi:
             yield conn
 
     def clean_sql(self, sql: str) -> str:
-        return sqlparse.format(sql, strip_comments=True).strip()
+        sql = sqlparse.format(sql, strip_comments=True).strip()
+        return self._dbapi_escape_sql(sql)
+
+    def _dbapi_escape_sql(self, sql: str) -> str:
+        # Escape % because they are treated as string formatting chars by dbapi
+        return sql.replace("%", "%%")
 
     def execute_sql(self, sql: str) -> Result:
+        """Executes all statements in `sql` string"""
         logger.debug("Executing SQL:")
         logger.debug(sql)
         with self.connection() as conn:
@@ -114,6 +140,7 @@ class DatabaseApi:
         logger.debug("Executing SQL:")
         logger.debug(sql)
         with self.connection() as conn:
+            sql = self.clean_sql(sql)
             res = conn.execute(sql)
             yield res
 
@@ -133,51 +160,83 @@ class DatabaseApi:
     #     return name
 
     ### StorageApi implementations ###
-    def create_alias(self, from_stmt: str, alias: str):
-        self.remove_alias(alias)
+
+    def _create_alias(self, obj: StorageObject, alias_obj: StorageObject):
+        self._remove_alias(alias_obj)
         self.execute_sql(
-            f"create view {self._q(alias)} as select * from {self._q(from_stmt)}"
+            f"create view {alias_obj.formatted_full_name} as select * from {obj.formatted_full_name}"
         )
 
-    def remove_alias(self, alias: str):
-        self.execute_sql(f"drop view if exists {self._q(alias)}")
+    def _remove_alias(self, obj: StorageObject):
+        self.execute_sql(f"drop view if exists {obj.formatted_full_name}")
 
-    def exists(self, table_name: str) -> bool:
-        with self.execute_sql_result(
-            f"select * from information_schema.tables where table_name = '{table_name}'") as res:
-            table_cnt = len(list(res))
-            return table_cnt > 0
+    def _exists(self, obj: StorageObject) -> bool:
+        # Hacky fallback, dialects should implement their own versions
+        try:
+            self.execute_sql(f"select * from {obj.formatted_full_name} limit 0")
+            return True
+        except (OperationalError, ProgrammingError) as x:
+            s = str(x).lower()
+            if "does not exist" in s or "no such" in s or "doesn't exist" in s:
+                return False
+            raise x
 
-    def count(self, table_name: str) -> int:
+    def _record_count(self, obj: StorageObject) -> Optional[int]:
+        return self.count(obj)
+
+    def count(self, obj: StorageObject) -> int:
         with self.execute_sql_result(
-            f"select count(*) from {self._q(table_name)}"
+            f"select count(*) from {obj.formatted_full_name}"
         ) as res:
             row = res.fetchone()
         return row[0]
 
-    record_count = count
-
-    def copy(self, name: str, to_name: str):
+    def _copy(self, obj: StorageObject, to_obj: StorageObject):
         self.execute_sql(
-            f"create table {self._q(to_name)} as select * from {self._q(name)}"
+            f"create table {to_obj.formatted_full_name} as select * from {obj.formatted_full_name}"
         )
 
-    def remove(self, name: str):
-        self.execute_sql(f"drop table if exists {self._q(name)} cascade")
+    def _remove(self, obj: StorageObject):
+        self.execute_sql(f"drop table if exists {obj.formatted_full_name} cascade")
 
-    def rename_table(self, table_name: str, new_name: str):
+    def format_full_path(self, full_path: FullPath) -> str:
+        return ".".join(self._q(p) for p in full_path.as_list())
+
+    ### END StorageApi implementations ###
+
+    def rename_table(
+        self,
+        table: str | FullPath | StorageObject,
+        new_table: str | FullPath | StorageObject,
+    ):
+        obj = ensure_storage_object(table, storage=self.storage)
+        to_obj = ensure_storage_object(new_table, storage=Storage(self.url))
         self.execute_sql(
-            f"alter table {self._q(table_name)} rename to {self._q(new_name)}"
+            f"alter table {obj.formatted_full_name} rename to {to_obj.formatted_full_name}"
         )
+
+    def get_schemas_and_table_names(self) -> Dict[str, Set[str]]:
+        inspector: Inspector = sqlalchemy.inspect(self.get_engine())
+        schemas_to_tables = {}
+        for schema in inspector.get_schema_names():
+            schemas_to_tables[schema] = set(inspector.get_table_names(schema))
+        return schemas_to_tables
 
     def clean_sub_sql(self, sql: str) -> str:
         return sql.strip(" ;")
 
-    def insert_sql(self, sess: Session, name: str, sql: str, schema: Schema):
+    def insert_sql(
+        self,
+        sess: Session,
+        table: str | FullPath | StorageObject,
+        sql: str,
+        schema: Schema,
+    ):
+        obj = ensure_storage_object(table, self.storage)
         sql = self.clean_sub_sql(sql)
         columns = "\n,".join(self._q(f.name) for f in schema.fields)
         insert_sql = f"""
-        insert into {self._q(name)} (
+        insert into {obj.formatted_full_name} (
             {columns}
         )
         select
@@ -190,12 +249,13 @@ class DatabaseApi:
 
     def create_table_from_sql(
         self,
-        name: str,
+        table: str | FullPath | StorageObject,
         sql: str,
     ):
+        obj = ensure_storage_object(table, self.storage)
         sql = self.clean_sub_sql(sql)
         create_sql = f"""
-        create table {self._q(name)} as
+        create table {obj.formatted_full_name} as
         select
         *
         from (
@@ -204,17 +264,24 @@ class DatabaseApi:
         """
         self.execute_sql(create_sql)
 
-    def get_as_sqlalchemy_table(self, name: str) -> sqlalchemy.Table:
-        if (self.url, name) not in _sa_table_cache:
+    def get_as_sqlalchemy_table(
+        self,
+        table: str | FullPath | StorageObject,
+    ) -> sqlalchemy.Table:
+        table = ensure_storage_object(table, self.storage)
+        full_name = table.formatted_full_name
+        # Use caching since this is a very expensive operation in some instances
+        if (self.url, full_name) not in _sa_table_cache:
             sa_table = sqlalchemy.Table(
-                name,
+                table.full_path.name,
                 MetaData(),
                 # self.get_sqlalchemy_metadata(),
                 autoload=True,
                 autoload_with=self.get_engine(),
+                schema=table.full_path.get_last_path_element(),
             )
-            _sa_table_cache[(self.url, name)] = sa_table
-        return _sa_table_cache[(self.url, name)]
+            _sa_table_cache[(self.url, full_name)] = sa_table
+        return _sa_table_cache[(self.url, full_name)]
 
     def create_sqlalchemy_table(self, table: sqlalchemy.Table):
         # table.metadata = self.get_sqlalchemy_metadata()
@@ -222,33 +289,67 @@ class DatabaseApi:
         stmt = CreateTable(table).compile(dialect=self.get_engine().dialect)
         self.execute_sql(str(stmt))
 
-    def bulk_insert_file(self, name: str, f: IOBase, schema: Optional[Schema] = None):
-        # TODO: file format details...
+    def bulk_insert_file(
+        self,
+        table: str | FullPath | StorageObject,
+        f: IOBase,
+        schema: Optional[Schema] = None,
+    ):
+        table = ensure_storage_object(table, storage=self.storage)
+        self._bulk_insert_file(table, f, schema)
+
+    def _bulk_insert_file(
+        self, table: StorageObject, f: IOBase, schema: Optional[Schema] = None
+    ):
         raise NotImplementedError
 
     def bulk_insert_records(
-        self, name: str, records: Records, schema: Optional[Schema] = None
+        self,
+        table: str | FullPath | StorageObject,
+        records: Records,
+        schema: Optional[Schema] = None,
     ):
+        table = ensure_storage_object(table, self.storage)
         # Create table whether or not there is anything to insert (side-effect consistency)
         # TODO: is it right to create the table? Seems useful to have an "empty" datablock, for instance.
-        assert self.exists(name)
+        assert self._exists(table)
         # self.ensure_table(name, schema=schema)
         if not records:
             return
-        self._bulk_insert(name, records, schema)
+        self._bulk_insert(table, records, schema)
+
+    def conform_records_for_insert(
+        self,
+        records: List[Dict],
+        columns: List[str],
+        adapt_objects_to_json: bool = True,
+        conform_datetimes: bool = True,
+        replace_nones: bool = False,
+        as_dicts: bool = False,
+    ):
+        return conform_records_for_insert(
+            records,
+            columns,
+            adapt_objects_to_json,
+            conform_datetimes,
+            replace_nones,
+            as_dicts,
+        )
 
     def _bulk_insert(
-        self, table_name: str, records: Records, schema: Optional[Schema] = None
+        self, table: StorageObject, records: Records, schema: Optional[Schema] = None
     ):
+        if schema is None:
+            schema = table.get_schema()
         if schema:
             columns = schema.field_names()
         else:
             columns = columns_from_records(records)
-        records = conform_records_for_insert(records, columns)
+        records = self.conform_records_for_insert(records, columns)
         quoted_cols = [self.get_quoted_identifier(c) for c in columns]
         placeholders = [self.get_placeholder_char()] * len(columns)
         sql = f"""
-        INSERT INTO {self._q(table_name)} (
+        INSERT INTO {table.formatted_full_name} (
             {','.join(quoted_cols)}
         ) VALUES ({','.join(placeholders)})
         """

@@ -16,7 +16,7 @@ from typing import (
     Union,
 )
 
-from dcp.storage.base import Storage, StorageApi
+from dcp.storage.base import Storage, StorageApi, StorageObject, FullPath
 
 
 def raw_line_count(f: Union[str, IOBase]) -> int:
@@ -39,53 +39,63 @@ def get_tmp_local_file_url() -> str:
 
 
 class FileSystemStorageApi(StorageApi):
-    def __init__(self, storage: Storage):
-        self.storage = storage
-
     @contextmanager
-    def open(self, name: str, *args, **kwargs) -> Iterator[TextIO]:
+    def open(
+        self, name: str | FullPath | StorageObject, *args, **kwargs
+    ) -> Iterator[TextIO]:
         with open(self.get_path(name), *args, **kwargs) as f:
             yield f
 
-    def open_name(self, name: str, *args, **kwargs) -> TextIO:
+    def open_name(
+        self, name: str | FullPath | StorageObject, *args, **kwargs
+    ) -> TextIO:
         return open(self.get_path(name), *args, **kwargs)
 
-    def get_path(self, name: str) -> str:
+    def get_path(self, name: str | FullPath | StorageObject) -> str:
+        if isinstance(name, StorageObject):
+            name = name.full_path
+        if isinstance(name, FullPath):
+            name = os.path.join(*name.as_list())
         dir = self.storage.url.split("://")[1]
         return os.path.join(dir, name)
 
     ### StorageApi implementations ###
-    def exists(self, name: str) -> bool:
-        return os.path.exists(self.get_path(name))
+    def format_full_path(self, full_path: FullPath) -> str:
+        return os.path.join(*full_path.as_list())
 
-    def remove(self, name: str):
-        pth = self.get_path(name)
+    def _exists(self, obj: StorageObject) -> bool:
+        return os.path.exists(self.get_path(obj))
+
+    def _remove(self, obj: StorageObject):
+        pth = self.get_path(obj)
         try:
             os.remove(pth)
         except FileNotFoundError:
             pass
 
-    def create_alias(self, name: str, alias: str):
-        pth = self.get_path(name)
-        alias_pth = self.get_path(alias)
+    def _create_alias(self, obj: StorageObject, alias_obj: StorageObject):
+        pth = self.get_path(obj)
+        alias_pth = self.get_path(alias_obj)
         self.remove(alias_pth)
         os.symlink(pth, alias_pth)
 
-    def remove_alias(self, alias: str):
-        self.remove(alias)
+    def _remove_alias(self, obj: StorageObject):
+        self.remove(obj)
 
-    def record_count(self, name: str) -> Optional[int]:
+    def _record_count(self, obj: StorageObject) -> Optional[int]:
         # TODO: this depends on format... hmmm, i guess let upstream handle for now
-        pth = self.get_path(name)
+        pth = self.get_path(obj)
         return raw_line_count(pth)
 
-    def copy(self, name: str, to_name: str):
-        pth = self.get_path(name)
-        to_pth = self.get_path(to_name)
+    def _copy(self, obj: StorageObject, to_obj: StorageObject):
+        pth = self.get_path(obj)
+        to_pth = self.get_path(to_obj)
         shutil.copy(pth, to_pth)
 
     def write_lines_to_file(
-        self, name: str, lines: Iterable[str],  # TODO: support bytes?
+        self,
+        name: str,
+        lines: Iterable[str],  # TODO: support bytes?
     ):
         with self.open(name, "w") as f:
             f.writelines(ln + "\n" for ln in lines)

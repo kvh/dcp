@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import asdict
-from io import StringIO
-from typing import Any, Callable
+from typing import Any
 
 import pytest
-from commonmodel.field_types import DEFAULT_FIELD_TYPE, Date, DateTime, Integer, Text
-from dcp import data_format
+from commonmodel.field_types import DEFAULT_FIELD_TYPE, Date, Integer, Text
+from pandas.core.frame import DataFrame
+from pandas.core.series import Series
+
 from dcp.data_format.base import (
     ALL_DATA_FORMATS,
     DataFormat,
@@ -15,11 +15,14 @@ from dcp.data_format.base import (
 )
 from dcp.data_format.formats.database.base import DatabaseTableFormat
 from dcp.data_format.handler import get_handler
-from dcp.storage.base import Storage, StorageClass, StorageEngine
+from dcp.storage.base import (
+    Storage,
+    StorageClass,
+    StorageEngine,
+    ensure_storage_object,
+)
 from dcp.storage.database.utils import get_tmp_sqlite_db_url
 from dcp.utils.pandas import assert_dataframes_are_almost_equal
-from pandas.core.frame import DataFrame
-from pandas.core.series import Series
 from tests.utils import test_data_format_objects, test_records, test_records_schema
 
 
@@ -44,23 +47,24 @@ def assert_objects_equal(o1: Any, o2: Any):
         assert o1 == o2
 
 
-@pytest.mark.parametrize("fmt,obj", test_data_format_objects)
-def test_memory_handlers(fmt: DataFormat, obj: Any):
+@pytest.mark.parametrize("fmt,py_obj", test_data_format_objects)
+def test_memory_handlers(fmt: DataFormat, py_obj: Any):
     s = Storage("python://test")
     name = "_test"
-    s.get_api().put(name, obj())
+    s.get_memory_api().put(name, py_obj())
+    obj = ensure_storage_object(name, storage=s)
     handler = get_handler(fmt, s.storage_engine)
-    assert list(handler().infer_field_names(name, s)) == list(test_records[0].keys())
-    assert handler().infer_field_type(name, s, "f1") == Text()
-    assert handler().infer_field_type(name, s, "f2") == Integer()
-    assert handler().infer_field_type(name, s, "f3") == DEFAULT_FIELD_TYPE
-    assert handler().infer_field_type(name, s, "f4") == Date()
-    assert handler().infer_field_type(name, s, "f5") == DEFAULT_FIELD_TYPE
+    assert list(handler().infer_field_names(obj)) == list(test_records[0].keys())
+    assert handler().infer_field_type(obj, "f1") == Text()
+    assert handler().infer_field_type(obj, "f2") == Integer()
+    assert handler().infer_field_type(obj, "f3") == DEFAULT_FIELD_TYPE
+    assert handler().infer_field_type(obj, "f4") == Date()
+    assert handler().infer_field_type(obj, "f5") == DEFAULT_FIELD_TYPE
 
-    handler().cast_to_field_type(name, s, "f4", Text())
-    handler().cast_to_field_type(name, s, "f4", Date())
-    round_trip_object = s.get_api().get(name)
-    assert_objects_equal(round_trip_object, obj())
+    handler().cast_to_field_type(obj, "f4", Text())
+    handler().cast_to_field_type(obj, "f4", Date())
+    round_trip_object = s.get_memory_api().get(name)
+    assert_objects_equal(round_trip_object, py_obj())
 
 
 def test_database_handler():
@@ -68,17 +72,18 @@ def test_database_handler():
     s = Storage(dburl)
     name = "_test"
     handler = get_handler(DatabaseTableFormat, s.storage_engine)
-    handler().create_empty(name, s, test_records_schema)
-    s.get_api().bulk_insert_records(name, test_records, test_records_schema)
-    assert list(handler().infer_field_names(name, s)) == list(test_records[0].keys())
-    assert handler().infer_field_type(name, s, "f1") == Text()
-    assert handler().infer_field_type(name, s, "f2") == Integer()
-    assert handler().infer_field_type(name, s, "f3") == DEFAULT_FIELD_TYPE
-    assert handler().infer_field_type(name, s, "f4") == Date()
-    assert handler().infer_field_type(name, s, "f5") == DEFAULT_FIELD_TYPE
+    obj = ensure_storage_object(name, storage=s)
+    handler().create_empty(obj, test_records_schema)
+    s.get_database_api().bulk_insert_records(obj, test_records, test_records_schema)
+    assert list(handler().infer_field_names(obj)) == list(test_records[0].keys())
+    assert handler().infer_field_type(obj, "f1") == Text()
+    assert handler().infer_field_type(obj, "f2") == Integer()
+    assert handler().infer_field_type(obj, "f3") == DEFAULT_FIELD_TYPE
+    assert handler().infer_field_type(obj, "f4") == Date()
+    assert handler().infer_field_type(obj, "f5") == DEFAULT_FIELD_TYPE
 
     # TODO
     # handler().cast_to_field_type(name, s, "f4", Date())
     # handler().cast_to_field_type(name, s, "f4", Text())
-    # round_trip_object = s.get_api().get(name)
+    # round_trip_object = s.get_memory_api().get(name)
     # assert_objects_equal(round_trip_object, obj())

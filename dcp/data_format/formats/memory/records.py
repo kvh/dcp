@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import decimal
 import traceback
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import Any, Dict, Iterable, List, Optional, Type, Union
 
 import pandas as pd
@@ -23,6 +23,9 @@ from commonmodel.field_types import (
     LongText,
     Text,
     ensure_field_type,
+    Interval,
+    FieldTypeLike,
+    FieldTypeDefinition,
 )
 from dateutil import parser
 from loguru import logger
@@ -53,11 +56,11 @@ class PythonRecordsHandler(FormatHandler):
     for_data_formats = [RecordsFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
-    def infer_data_format(self, name, storage) -> Optional[DataFormat]:
-        obj = storage.get_api().get(name)
-        if isinstance(obj, list):
-            if len(obj) > 0:
-                if isinstance(obj[0], dict):
+    def infer_data_format(self, so: storage.StorageObject) -> Optional[DataFormat]:
+        py_obj = so.storage.get_memory_api().get(so)
+        if isinstance(py_obj, list):
+            if len(py_obj) > 0:
+                if isinstance(py_obj[0], dict):
                     return RecordsFormat
                 else:
                     return None
@@ -66,8 +69,8 @@ class PythonRecordsHandler(FormatHandler):
         return None
 
     # TODO: get sample
-    def infer_field_names(self, name, storage) -> List[str]:
-        records = storage.get_api().get(name)
+    def infer_field_names(self, so: storage.StorageObject) -> List[str]:
+        records = so.storage.get_memory_api().get(so)
         assert isinstance(records, list)
         if not records:
             return []
@@ -79,10 +82,8 @@ class PythonRecordsHandler(FormatHandler):
             # names |= set(r.keys())
         return list(names)
 
-    def infer_field_type(
-        self, name: str, storage: storage.Storage, field: str
-    ) -> FieldType:
-        records = storage.get_api().get(name)
+    def infer_field_type(self, so: storage.StorageObject, field: str) -> FieldType:
+        records = so.storage.get_memory_api().get(so)
         sample = []
         for r in records:
             if field in r:
@@ -93,35 +94,35 @@ class PythonRecordsHandler(FormatHandler):
         return ft
 
     def cast_to_field_type(
-        self, name: str, storage: storage.Storage, field: str, field_type: FieldType
+        self, so: storage.StorageObject, field: str, field_type: FieldType
     ):
-        records = storage.get_api().get(name)
+        records = so.storage.get_memory_api().get(so)
         for r in records:
             if field in r:
                 r[field] = cast_python_object_to_field_type(r[field], field_type)
-        storage.get_api().put(name, records)
+        so.storage.get_memory_api().put(so, records)
 
-    def create_empty(self, name, storage, schema: Schema):
-        storage.get_api().put(name, [])
-
-
-ALL_FIELD_TYPE_HELPERS: Dict[Type[FieldType], Type[FieldTypeHelper]] = {}
+    def create_empty(self, so: storage.StorageObject, schema: Schema):
+        so.storage.get_memory_api().put(so, [])
 
 
-def get_helper(ft: Union[FieldType, Type[FieldType]]) -> FieldTypeHelper:
+ALL_FIELD_TYPE_HELPERS: Dict[str, Type[FieldTypeHelper]] = {}
+
+
+def get_helper(ft: FieldTypeLike) -> FieldTypeHelper:
     if isinstance(ft, FieldType):
-        ft = ft.__class__
+        ft = ft.name
     return ALL_FIELD_TYPE_HELPERS[ft]()
 
 
 class FieldTypeHelper:
-    field_type: Type[FieldType]
+    field_type: FieldTypeDefinition
     python_type: type
     cardinality_rank: int
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        ALL_FIELD_TYPE_HELPERS[cls.field_type] = cls
+        ALL_FIELD_TYPE_HELPERS[cls.field_type.name] = cls
 
     def is_maybe(self, obj: Any) -> bool:
         return False
@@ -144,11 +145,11 @@ def _detect_field_type_fast(obj: Any) -> Optional[FieldType]:
     for fth in ALL_FIELD_TYPE_HELPERS.values():
         fth = fth()
         if fth.is_definitely(obj):
-            return ensure_field_type(fth.field_type)
+            return fth.field_type()
     for fth in ALL_FIELD_TYPE_HELPERS.values():
         fth = fth()
         if fth.is_maybe(obj):
-            return ensure_field_type(fth.field_type)
+            return fth.field_type()
     # I don't think we should get here ever? Some random object type
     logger.error(obj)
     return DEFAULT_FIELD_TYPE
@@ -186,20 +187,20 @@ detect_field_type = _detect_field_type_fast
 
 
 def select_field_type(objects: Iterable[Any]) -> FieldType:
-    types = set()
+    types = {}
     for o in objects:
         # Choose the minimum compatible type
         typ = detect_field_type(o)
         if typ is None:
             continue
-        types.add(typ)
+        types[typ.name] = typ
     if not types:
         # We detected no types, column is all null-like, or there is no data
         logger.warning("No field types detected")
         return DEFAULT_FIELD_TYPE
     # Now we must choose the HIGHEST cardinality, to accomodate ALL values
     # (the maximum minimum type)
-    return max(types, key=lambda x: get_helper(x).cardinality_rank)
+    return max(types.values(), key=lambda x: get_helper(x).cardinality_rank)
 
 
 def cast_python_object_to_field_type(
@@ -496,6 +497,26 @@ class TimeHelper(FieldTypeHelper):
         if is_nullish(obj):
             return None
         return ensure_time(obj)
+
+
+class IntervalHelper(FieldTypeHelper):
+    field_type = Interval
+    python_type = timedelta
+    cardinality_rank = 1
+
+    def is_maybe(self, obj: Any) -> bool:
+        if isinstance(obj, timedelta):
+            return True
+        return False
+
+    def cast(self, obj: Any, strict: bool = False) -> Any:
+        if strict:
+            if not isinstance(obj, timedelta):
+                raise TypeError(obj)
+            return obj
+        if is_nullish(obj):
+            return None
+        return obj
 
 
 class JsonHelper(FieldTypeHelper):

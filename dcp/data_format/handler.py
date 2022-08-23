@@ -13,43 +13,8 @@ from dcp.storage.base import (
     Storage,
     StorageClass,
     StorageEngine,
+    StorageObject,
 )
-
-
-class ErrorBehavior(Enum):
-    FAIL = "FAIL"
-    RELAX_TYPE = "RELAX_TYPE"
-    SET_NULL = "SET_NULL"
-
-
-class CastFieldOperation:
-    operator: Callable
-    error_behavior: ErrorBehavior
-
-    def apply(self, name, storage, field: Field):
-        raise NotImplementedError
-
-    def on_error(self, name, storage, field: Field):
-        raise NotImplementedError
-
-
-# class PythonOperator:
-#     operator: Callable
-
-
-# # class SqlOperator:
-#     operator: Query
-
-
-class CastSchemaOperation:
-    field_operations: Dict[str, CastFieldOperation]
-
-    def apply(self, name, storage, schema: Schema):
-        raise NotImplementedError
-
-    def on_error(self, name, storage, schema: Schema):
-        raise NotImplementedError
-
 
 ALL_HANDLERS: List[Type[FormatHandler]] = []
 
@@ -74,37 +39,35 @@ class FormatHandler:
     # def __init__(self, storage: Storage):
     #     self.storage = storage
 
-    def infer_data_format(self, name: str, storage: Storage) -> Optional[DataFormat]:
+    def infer_data_format(self, so: StorageObject) -> Optional[DataFormat]:
         raise NotImplementedError
 
-    def infer_field_names(self, name: str, storage: Storage) -> Iterable[str]:
+    def infer_field_names(self, obj: StorageObject) -> Iterable[str]:
         raise NotImplementedError
 
-    def infer_field_type(self, name: str, storage: Storage, field: str) -> FieldType:
+    def infer_field_type(self, obj: StorageObject, field: str) -> FieldType:
         # For python storage and dataframe: map pd.dtypes -> ftypes
         # For python storage and records: infer py object type
         # For postgres storage and table: map sa types -> ftypes
         # For S3 storage and csv: infer csv types (use arrow?)
         raise NotImplementedError
 
-    def infer_schema(self, name: str, storage: Storage) -> Schema:
+    def infer_schema(self, obj: StorageObject) -> Schema:
         fields = [
-            Field(name=n, field_type=self.infer_field_type(name, storage, n))
-            for n in self.infer_field_names(name, storage)
+            Field(name=n, field_type=self.infer_field_type(obj, n))
+            for n in self.infer_field_names(obj)
         ]
         schema = generate_auto_schema(fields=fields)
         return schema
 
-    def cast_to_field_type(
-        self, name: str, storage: Storage, field: str, field_type: FieldType
-    ):
+    def cast_to_field_type(self, obj: StorageObject, field: str, field_type: FieldType):
         raise NotImplementedError
 
-    def cast_to_schema(self, name: str, storage: Storage, schema: Schema):
+    def cast_to_schema(self, obj: StorageObject, schema: Schema):
         for field in schema.fields:
-            self.cast_to_field_type(name, storage, field.name, field.field_type)
+            self.cast_to_field_type(obj, field.name, field.field_type)
 
-    def create_empty(self, name: str, storage: Storage, schema: Schema):
+    def create_empty(self, obj: StorageObject, schema: Schema):
         """
         Throws error if exists
         """
@@ -119,10 +82,10 @@ class FormatHandler:
         # For S3 storage and csv:
         raise NotImplementedError
 
-    def get_record_count(self, name: str, storage: Storage) -> Optional[int]:
+    def get_record_count(self, obj: StorageObject) -> Optional[int]:
         # Will come directly from storage engine most of time, except python memory implemented here
-        if storage.storage_engine == LocalPythonStorageEngine:
-            obj = storage.get_api().get(name)
+        if obj.storage.storage_engine == LocalPythonStorageEngine:
+            obj = obj.storage.get_memory_api().get(obj.formatted_full_name)
             return len(obj)
         raise NotImplementedError
 
@@ -133,10 +96,7 @@ class FormatHandler:
     #     raise NotImplementedError
 
 
-# Too complex, messy
-# Just roll up iterators as chunks in-memory
-# With an "emphemeral node" or something
-# So python function can return static object or generator, and generator is stream of data blocks
+# Too complex, messy; let a higher level layer handle buffering and iterators
 # class IterableFormatHandler(FormatHandler):
 #     for_data_formats: List[IterableDataFormat]
 #     for_storage_engines = [LocalPythonStorageEngine]
@@ -155,7 +115,7 @@ class FormatHandler:
 
 #     @contextmanager
 #     def get_first_inner_object(self, name: str, storage: Storage):
-#         obj = storage.get_api().get(name)
+#         obj = so.storage.get_memory_api().get(so)
 #         assert isinstance(obj, SampleableIterator)
 #         inner_obj = obj.get_first()
 #         inner_name = name + "__inner__"
@@ -163,7 +123,7 @@ class FormatHandler:
 #             yield inner_name
 
 #     def infer_data_format(self, name: str, storage: Storage) -> Optional[DataFormat]:
-#         obj = storage.get_api().get(name)
+#         obj = so.storage.get_memory_api().get(so)
 #         if isinstance(obj, SampleableIterator):
 #             with self.get_first_inner_object(name, storage) as inner_name:
 #                 handler = self.get_inner_handler(storage)
@@ -184,7 +144,7 @@ class FormatHandler:
 #     def cast_to_field_type(
 #         self, name: str, storage: Storage, field: str, field_type: FieldType
 #     ):
-#         obj = storage.get_api().get(name)
+#         obj = so.storage.get_memory_api().get(so)
 #         for inner_obj for obj in
 #         return (self.get_inner_handler(storage).cast_to_field_type())
 
@@ -231,21 +191,21 @@ def get_handler(
     )
 
 
-def infer_format_for_name(name: str, storage: Storage) -> DataFormat:
-    format_handlers = get_handlers_for_storage(storage)
+def infer_format(obj: StorageObject) -> DataFormat:
+    format_handlers = get_handlers_for_storage(obj.storage)
     for handler in format_handlers:
-        fmt = handler().infer_data_format(name, storage)
+        fmt = handler().infer_data_format(obj)
         if fmt is not None:
             return fmt
-    msg = f"Could not infer format of object '{name}' on storage {storage}"
-    if storage.storage_engine is LocalPythonStorageEngine:
-        obj = storage.get_api().get(name)
-        msg = f"Could not infer format of object '{name}' `{obj}`"
+    msg = f"Could not infer format of object '{obj.formatted_full_name}' on storage {obj.storage}"
+    if obj.storage.storage_engine is LocalPythonStorageEngine:
+        py_obj = obj.storage.get_memory_api().get(obj.formatted_full_name)
+        msg = f"Could not infer format of object '{obj.formatted_full_name}' `{py_obj}`"
     raise NotImplementedError(msg)
 
 
-def get_handler_for_name(name: str, storage: Storage) -> Type[FormatHandler]:
-    return get_handler(infer_format_for_name(name, storage), storage.storage_engine)
+def get_handler_for_name(obj: StorageObject) -> Type[FormatHandler]:
+    return get_handler(infer_format(obj), obj.storage.storage_engine)
 
 
 def get_handlers_for_storage(storage: Storage) -> List[Type[FormatHandler]]:
@@ -260,12 +220,3 @@ def get_handlers_for_storage(storage: Storage) -> List[Type[FormatHandler]]:
 
 def infer_schema_for_name(name: str, storage: Storage) -> Schema:
     return get_handler_for_name(name, storage)().infer_schema(name, storage)
-
-
-# def apply_schema_translation_for_name(name: str, storage: Storage, translation: SchemaTranslation):
-#     get_handler_for_name(name, storage)().apply_schema_translation(name, storage, translation)
-
-
-# def infer_data_format(name: str, storage: Storage) -> Optional[DataFormat]:
-#     # TODO
-#     raise NotImplementedError

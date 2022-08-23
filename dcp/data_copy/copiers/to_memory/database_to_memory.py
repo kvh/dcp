@@ -1,14 +1,10 @@
-from typing import Iterator, Dict
+from sqlalchemy.engine import Result
 
-from commonmodel.base import Schema
 from dcp.data_copy.base import CopyRequest, DataCopierBase
 from dcp.data_copy.costs import (
-    FormatConversionCost,
-    MemoryToMemoryCost,
     NetworkToMemoryCost,
 )
 from dcp.data_format.formats.database.base import DatabaseTableFormat
-from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 from dcp.data_format.formats.memory.records import Records, RecordsFormat
 from dcp.data_format.formats.memory.records_iterator import (
     RecordsIterator,
@@ -17,12 +13,8 @@ from dcp.data_format.formats.memory.records_iterator import (
 from dcp.storage.base import (
     DatabaseStorageClass,
     MemoryStorageClass,
-    StorageApi,
 )
-from dcp.storage.database.api import DatabaseStorageApi
 from dcp.storage.database.utils import result_proxy_to_records
-from dcp.storage.memory.engines.python import PythonStorageApi
-from sqlalchemy.engine import Result
 
 
 class DatabaseToMemoryMixin:
@@ -30,15 +22,14 @@ class DatabaseToMemoryMixin:
     to_storage_classes = [MemoryStorageClass]
 
     def append(self, req: CopyRequest):
-        assert isinstance(req.from_storage_api, DatabaseStorageApi)
-        assert isinstance(req.to_storage_api, PythonStorageApi)
-        existing = req.to_storage_api.get(req.to_name)
-        quoted_from_name = req.from_storage_api.get_quoted_identifier(req.from_name)
-        select_sql = f"select * from {quoted_from_name}"
-        with req.from_storage_api.execute_sql_result(select_sql) as r:
+        existing = req.to_obj.storage.get_memory_api().get(req.to_obj)
+        select_sql = f"select * from {req.from_obj.formatted_full_name}"
+        with req.from_obj.storage.get_database_api().execute_sql_result(
+            select_sql
+        ) as r:
             new = self.result_to_object(r)
         final = self.concat(existing, new)
-        req.to_storage_api.put(req.to_name, final)
+        req.to_obj.storage.get_memory_api().put(req.to_obj, final)
 
     def concat(self, existing, new):
         raise NotImplementedError
@@ -68,12 +59,9 @@ class DatabaseTableToRecordsIterator(DatabaseToMemoryMixin, DataCopierBase):
     requires_schema_cast = False
 
     def append(self, req: CopyRequest):
-        assert isinstance(req.from_storage_api, DatabaseStorageApi)
-        assert isinstance(req.to_storage_api, PythonStorageApi)
-        existing = req.to_storage_api.get(req.to_name)
-        quoted_from_name = req.from_storage_api.get_quoted_identifier(req.from_name)
-        select_sql = f"select * from {quoted_from_name}"
-        conn = req.from_storage_api.get_engine().connect()
+        existing = req.to_obj.storage.get_memory_api().get(req.to_obj)
+        select_sql = f"select * from {req.from_obj.formatted_full_name}"
+        conn = req.from_obj.storage.get_database_api().get_engine().connect()
         res = conn.execute(select_sql)
 
         def c():
@@ -92,7 +80,7 @@ class DatabaseTableToRecordsIterator(DatabaseToMemoryMixin, DataCopierBase):
 
         new = RecordsIterator(f(), c)
         final = existing.concat(new)
-        req.to_storage_api.put(req.to_name, final)
+        req.to_obj.storage.get_memory_api().put(req.to_obj, final)
 
 
 # @datacopier(

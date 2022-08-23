@@ -7,7 +7,10 @@ from dcp.data_copy.costs import (
     MemoryToMemoryCost,
 )
 from dcp.data_format.formats.memory.arrow_table import ArrowTable, ArrowTableFormat
-from dcp.data_format.formats.memory.database_cursor import DatabaseCursorFormat, DatabaseCursor
+from dcp.data_format.formats.memory.database_cursor import (
+    DatabaseCursorFormat,
+    DatabaseCursor,
+)
 from dcp.data_format.formats.memory.dataframe import DataFrameFormat
 from dcp.data_format.formats.memory.dataframe_iterator import (
     DataFrameIterator,
@@ -36,12 +39,10 @@ class MemoryDataCopierMixin:
     to_storage_classes = [MemoryStorageClass]
 
     def append(self, req: CopyRequest):
-        assert isinstance(req.from_storage_api, PythonStorageApi)
-        assert isinstance(req.to_storage_api, PythonStorageApi)
-        new = req.from_storage_api.get(req.from_name)
-        existing = req.to_storage_api.get(req.to_name)
+        new = req.from_obj.storage.get_memory_api().get(req.from_obj)
+        existing = req.to_obj.storage.get_memory_api().get(req.to_obj)
         final = self.concat(existing, new)
-        req.to_storage_api.put(req.to_name, final)
+        req.to_obj.storage.get_memory_api().put(req.to_obj, final)
 
     def concat(self, existing, new):
         raise NotImplementedError
@@ -79,7 +80,7 @@ class DataframeToDataframe(MemoryDataCopierMixin, DataCopierBase):
     requires_schema_cast = False
 
     def concat(self, existing: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
-        return pd.concat([existing, df])
+        return pd.concat([existing, new])
 
 
 class RecordsToRecords(MemoryDataCopierMixin, DataCopierBase):
@@ -93,6 +94,7 @@ class RecordsToRecords(MemoryDataCopierMixin, DataCopierBase):
 
 
 ### Iterators
+
 
 class RecordsIteratorToDataframeIterator(MemoryDataCopierMixin, DataCopierBase):
     from_data_formats = [RecordsIteratorFormat]
@@ -108,19 +110,19 @@ class RecordsIteratorToDataframeIterator(MemoryDataCopierMixin, DataCopierBase):
 
 ### Database
 
+
 class DatabaseCursorToRecordsIterator(MemoryDataCopierMixin, DataCopierBase):
     from_data_formats = [DatabaseCursorFormat]
     to_data_formats = [RecordsIteratorFormat]
     cost = MemoryToMemoryCost + FormatConversionCost
     requires_schema_cast = False
 
-    def concat(
-        self, existing: RecordsIterator, new: ResultProxy
-    ) -> DataFrameIterator:
+    def concat(self, existing: RecordsIterator, new: ResultProxy) -> DataFrameIterator:
         def f():
             keys = new.keys()
             for row in new:
                 yield dict(zip(keys, row))
+
         return existing.concat(RecordsIterator(f(), new.close))
 
 
@@ -140,7 +142,7 @@ class DatabaseCursorToRecordsIterator(MemoryDataCopierMixin, DataCopierBase):
 #     itr = (dataframe_to_records(df, req.get_schema()) for df in records_object)
 #     to_records_object = as_records(itr, data_format=RecordsIteratorFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
-#     req.to_storage_api.put(req.to_name, to_records_object)
+#     req.to_obj.storage.get_memory_api().put(req.to_obj.formatted_full_name, to_records_object)
 
 
 # @datacopier(
@@ -159,7 +161,7 @@ class DatabaseCursorToRecordsIterator(MemoryDataCopierMixin, DataCopierBase):
 #     itr = (pd.DataFrame(records) for records in records_object)
 #     to_records_object = as_records(itr, data_format=DataFrameIteratorFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
-#     req.to_storage_api.put(req.to_name, to_records_object)
+#     req.to_obj.storage.get_memory_api().put(req.to_obj.formatted_full_name, to_records_object)
 
 
 # @datacopier(
@@ -180,7 +182,7 @@ class DatabaseCursorToRecordsIterator(MemoryDataCopierMixin, DataCopierBase):
 #         all_records.extend(records)
 #     to_records_object = as_records(all_records, data_format=RecordsFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
-#     req.to_storage_api.put(req.to_name, to_records_object)
+#     req.to_obj.storage.get_memory_api().put(req.to_obj.formatted_full_name, to_records_object)
 
 
 # @datacopier(
@@ -201,7 +203,7 @@ class DatabaseCursorToRecordsIterator(MemoryDataCopierMixin, DataCopierBase):
 #         all_dfs.append(df)
 #     to_records_object = as_records(pd.concat(all_dfs), data_format=DataFrameFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
-#     req.to_storage_api.put(req.to_name, to_records_object)
+#     req.to_obj.storage.get_memory_api().put(req.to_obj.formatted_full_name, to_records_object)
 
 
 # @datacopier(
@@ -217,8 +219,8 @@ class DatabaseCursorToRecordsIterator(MemoryDataCopierMixin, DataCopierBase):
 #     csv_lines = req.from_storage_api.get(req.from_name)
 #     records = list(read_csv(csv_lines))
 #     create_empty_if_not_exists(req)
-#     existing_records = req.to_storage_api.get(req.to_name)
-#     req.to_storage_api.put(req.to_name, existing_records + records)
+#     existing_records = req.to_obj.storage.get_memory_api().get(req.to_obj.formatted_full_name)
+#     req.to_obj.storage.get_memory_api().put(req.to_obj.formatted_full_name, existing_records + records)
 #     # Must cast because csv does a poor job of preserving logical types
 #     req.to_format_handler.cast_to_schema(
 #         req.to_name, req.to_storage_api.storage, req.get_schema()
@@ -237,11 +239,11 @@ class DatabaseCursorToRecordsIterator(MemoryDataCopierMixin, DataCopierBase):
 #     assert isinstance(req.to_storage_api, PythonStorageApi)
 #     records = req.from_storage_api.get(req.from_name)
 #     create_empty_if_not_exists(req)
-#     csv_lines = req.to_storage_api.get(req.to_name)
+#     csv_lines = req.to_obj.storage.get_memory_api().get(req.to_obj.formatted_full_name)
 #     f = StringIO()
 #     write_csv(records, f, append=True)
 #     f.seek(0)
-#     req.to_storage_api.put(req.to_name, chain(csv_lines, (ln for ln in f)))
+#     req.to_obj.storage.get_memory_api().put(req.to_obj.formatted_full_name, chain(csv_lines, (ln for ln in f)))
 #     # Casting does no good for a csv (no concept of types)
 #     # req.to_format_handler.cast_to_schema(
 #     #     req.to_name, req.to_storage_api.storage, req.get_schema()
@@ -269,7 +271,7 @@ class DatabaseCursorToRecordsIterator(MemoryDataCopierMixin, DataCopierBase):
 #     )
 #     to_records_object = as_records(itr, data_format=RecordsIteratorFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
-#     req.to_storage_api.put(req.to_name, to_records_object)
+#     req.to_obj.storage.get_memory_api().put(req.to_obj.formatted_full_name, to_records_object)
 
 
 # @datacopier(
@@ -288,7 +290,7 @@ class DatabaseCursorToRecordsIterator(MemoryDataCopierMixin, DataCopierBase):
 #     itr = (read_csv(chunk) for chunk in with_header(records_object))
 #     to_records_object = as_records(itr, data_format=RecordsIteratorFormat, schema=req.get_schema())
 #     to_records_object = to_records_object.conform_to_schema()
-#     req.to_storage_api.put(req.to_name, to_records_object)
+#     req.to_obj.storage.get_memory_api().put(req.to_obj.formatted_full_name, to_records_object)
 
 
 #########

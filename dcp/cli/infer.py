@@ -24,6 +24,6 @@ class InferCommand(Command):
         d = json.loads(s)
         s = Storage("python://infer")
         n = "_infer"
-        s.get_api().put(n, [d])
+        s.get_memory_api().put(n, [d])
         schema = PythonRecordsHandler().infer_schema(n, s)
         print(yaml.dump(schema.dict()))

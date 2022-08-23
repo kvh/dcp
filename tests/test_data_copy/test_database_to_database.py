@@ -12,14 +12,24 @@ import pytest
 from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
 from dcp.data_copy.copiers.to_database.memory_to_database import RecordsToDatabaseTable
 from dcp.data_format.formats.database.base import DatabaseTableFormat
-from dcp.storage.base import DatabaseStorageClass, LocalPythonStorageEngine, Storage
+from dcp.storage.base import (
+    DatabaseStorageClass,
+    LocalPythonStorageEngine,
+    Storage,
+    ensure_storage_object,
+)
 from dcp.storage.database.api import DatabaseApi, DatabaseStorageApi
 from dcp.storage.memory.engines.python import PythonStorageApi, new_local_python_storage
 from tests.utils import conformed_test_records, test_records, test_records_schema
 
 
 @pytest.mark.parametrize(
-    "url", ["sqlite://", "postgresql://localhost", "mysql://",],
+    "url",
+    [
+        "sqlite://",
+        "postgresql://localhost",
+        "mysql://",
+    ],
 )
 def test_db_to_db(url):
     s: Storage = Storage.from_url(url)
@@ -32,14 +42,18 @@ def test_db_to_db(url):
     with api_cls.temp_local_database() as from_url:
         name = "_test"
         from_s = Storage.from_url(from_url)
-        from_api: DatabaseStorageApi = from_s.get_api()
+        from_api: DatabaseStorageApi = from_s.get_database_api()
         from_api.execute_sql(f"create table {name} as select 1 a, 2 b")
         to_name = "_test_to"
 
         # Test within same database
-        req = CopyRequest(
-            name, from_s, to_name, from_s, DatabaseTableFormat,  # test_records_schema
+        from_so = ensure_storage_object(name, storage=from_s)
+        to_so = ensure_storage_object(
+            to_name,
+            storage=from_s,
+            _data_format=DatabaseTableFormat,
         )
+        req = CopyRequest(from_so, to_so)
         DatabaseTableToDatabaseTable().copy(req)
         with from_api.execute_sql_result(f"select * from {to_name}") as res:
             if url.startswith("sqlite"):
@@ -50,10 +64,14 @@ def test_db_to_db(url):
         # Test between separate dbs
         with api_cls.temp_local_database() as to_url:
             to_s = Storage.from_url(to_url)
-            to_api: DatabaseStorageApi = to_s.get_api()
-            req = CopyRequest(
-                name, from_s, to_name, to_s, DatabaseTableFormat,  # test_records_schema
+            to_api: DatabaseStorageApi = to_s.get_database_api()
+            from_so = ensure_storage_object(name, storage=from_s)
+            to_so = ensure_storage_object(
+                to_name,
+                storage=to_s,
+                _data_format=DatabaseTableFormat,
             )
+            req = CopyRequest(from_so, to_so)
             if url.startswith("post"):
                 PostgresTableToPostgresTable().copy(req)
             else:
@@ -63,4 +81,3 @@ def test_db_to_db(url):
                     assert [dict(r) for r in res] == [{"a": "1", "b": "2"}]
                 else:
                     assert [dict(r) for r in res] == [{"a": 1, "b": 2}]
-

@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union, cast
 from urllib.parse import urlparse
+
+from commonmodel import Schema
 
 if TYPE_CHECKING:
     from dcp.data_format.base import DataFormat
-
+    from dcp import (
+        FormatHandler,
+        DatabaseStorageApi,
+        FileSystemStorageApi,
+        PythonStorageApi,
+    )
 
 ALL_STORAGE_CLASSES = []
 ALL_STORAGE_ENGINES = []
@@ -217,6 +224,21 @@ class Storage:
     def get_api(self) -> StorageApi:
         return self.storage_engine.get_api_cls()(self)
 
+    def get_database_api(self) -> DatabaseStorageApi:
+        from dcp import DatabaseStorageApi
+
+        return cast(DatabaseStorageApi, self.storage_engine.get_api_cls()(self))
+
+    def get_filesystem_api(self) -> FileSystemStorageApi:
+        from dcp import FileSystemStorageApi
+
+        return cast(FileSystemStorageApi, self.storage_engine.get_api_cls()(self))
+
+    def get_memory_api(self) -> PythonStorageApi:
+        from dcp import PythonStorageApi
+
+        return cast(PythonStorageApi, self.storage_engine.get_api_cls()(self))
+
     @property
     def storage_engine(self) -> Type[StorageEngine]:
         parsed = urlparse(self.url)
@@ -236,25 +258,132 @@ class NameDoesNotExistError(Exception):
 
 
 class StorageApi:
+    storage: Storage
+
     def __init__(self, storage: Storage):
         self.storage = storage
 
-    def exists(self, name: str) -> bool:
+    def exists(self, full_name: str | FullPath | StorageObject) -> bool:
+        return self._exists(ensure_storage_object(full_name, storage=self.storage))
+
+    def _exists(self, obj: StorageObject) -> bool:
         raise NotImplementedError
 
-    def remove(self, name: str):
+    def remove(self, full_name: str | FullPath | StorageObject):
+        self._remove(ensure_storage_object(full_name, storage=self.storage))
+
+    def _remove(self, obj: StorageObject):
         raise NotImplementedError
 
-    def record_count(self, name: str) -> Optional[int]:
+    def record_count(self, full_name: str | FullPath | StorageObject) -> Optional[int]:
+        return self._record_count(
+            ensure_storage_object(full_name, storage=self.storage)
+        )
+
+    def _record_count(self, obj: StorageObject) -> Optional[int]:
         raise NotImplementedError
 
-    def copy(self, name: str, to_name: str):
+    def copy(
+        self,
+        full_name: str | FullPath | StorageObject,
+        to_full_name: str | FullPath | StorageObject,
+    ):
+        self._copy(
+            ensure_storage_object(full_name, storage=self.storage),
+            ensure_storage_object(to_full_name, storage=self.storage),
+        )
+
+    def _copy(self, obj: StorageObject, to_obj: StorageObject):
         raise NotImplementedError
 
     def create_alias(
-        self, name: str, alias: str
+        self,
+        full_name: str | FullPath | StorageObject,
+        alias_full_name: str | FullPath | StorageObject,
     ):  # TODO: rename to overwrite_alias or set_alias?
+        self._create_alias(
+            ensure_storage_object(full_name, storage=self.storage),
+            ensure_storage_object(alias_full_name, storage=self.storage),
+        )
+
+    def _create_alias(self, obj: StorageObject, alias_obj: StorageObject):
         raise NotImplementedError
 
-    def remove_alias(self, alias: str):
+    def remove_alias(
+        self,
+        alias_full_name: str | FullPath | StorageObject,
+    ):
+        self._remove_alias(ensure_storage_object(alias_full_name, storage=self.storage))
+
+    def _remove_alias(self, obj: StorageObject):
         raise NotImplementedError
+
+    def format_full_path(self, full_path: FullPath) -> str:
+        raise NotImplementedError
+
+
+@dataclass(frozen=True)
+class FullPath:
+    name: str
+    path: list[str] | None = None
+
+    def as_list(self) -> list[str]:
+        return (self.path or []) + [self.name]
+
+    def get_last_path_element(self) -> str | None:
+        if self.path:
+            return self.path[-1]
+        return None
+
+
+@dataclass
+class StorageObject:
+    storage: Storage
+    full_path: FullPath
+    _data_format: DataFormat | None = None
+    _schema: Schema | None = None
+
+    @property
+    def formatted_full_name(self) -> str:
+        return self.storage.get_api().format_full_path(self.full_path)
+
+    @property
+    def storage_api(self) -> StorageApi:
+        return self.storage.get_api()
+
+    @property
+    def format_handler(self) -> FormatHandler:
+        from dcp import get_handler
+
+        return get_handler(self.get_data_format(), self.storage.storage_engine)()
+
+    def get_data_format(self) -> DataFormat | None:
+        from dcp import infer_format
+
+        if not self._data_format:
+            try:
+                self._data_format = infer_format(self)
+            except:
+                pass
+        return self._data_format
+
+    def get_schema(self, infer: bool = True) -> Schema | None:
+        if not self._schema and infer:
+            self._schema = self.format_handler.infer_schema(self)
+        return self._schema
+
+
+def ensure_storage_object(
+    full_name: str | FullPath | StorageObject, storage: Storage = None, **kwargs
+) -> StorageObject:
+    if isinstance(full_name, StorageObject):
+        return full_name
+    if isinstance(full_name, str):
+        full_name = FullPath(name=full_name)
+    return StorageObject(storage=storage, full_path=full_name, **kwargs)
+
+
+# @dataclass(frozen=True)
+# class StorageObjectWithMetadata(StorageObject):
+#     data_format: DataFormat | None = None
+#     schema: Schema | None = None

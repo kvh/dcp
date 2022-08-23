@@ -1,24 +1,27 @@
 from __future__ import annotations
 
-import warnings
-from copy import deepcopy
-from typing import Type
 import tempfile
-from dcp.data_copy.copiers.to_database.file_to_database import CsvFileToDatabaseTable
-from dcp.storage.file_system.engines.base import FileSystemStorageApi
+import warnings
+from typing import Type
 
 import pytest
-from dcp.data_copy.base import Conversion, CopyRequest, StorageFormat
-from dcp.data_copy.copiers.to_database.memory_to_database import RecordsToDatabaseTable
+
+from dcp.data_copy.base import CopyRequest
+from dcp.data_copy.copiers.to_database.file_to_database import CsvFileToDatabaseTable
 from dcp.data_format.formats.database.base import DatabaseTableFormat
-from dcp.storage.base import DatabaseStorageClass, LocalPythonStorageEngine, Storage
-from dcp.storage.database.api import DatabaseApi, DatabaseStorageApi
-from dcp.storage.memory.engines.python import PythonStorageApi, new_local_python_storage
+from dcp.storage.base import (
+    Storage,
+    ensure_storage_object,
+)
+from dcp.storage.database.api import DatabaseApi
+from dcp.storage.file_system.engines.base import FileSystemStorageApi
 from tests.utils import (
     conformed_test_records,
     csv_lines,
     test_records,
     test_records_schema,
+    test_records_json_str,
+    conformed_test_records_json_str,
 )
 
 
@@ -33,10 +36,10 @@ from tests.utils import (
 def test_file_to_db(url):
     dr = tempfile.gettempdir()
     from_s: Storage = Storage.from_url(f"file://{dr}")
-    fs_api: FileSystemStorageApi = from_s.get_api()
+    fs_api: FileSystemStorageApi = from_s.get_filesystem_api()
     to_s: Storage = Storage.from_url(url)
     api_cls: Type[DatabaseApi] = to_s.storage_engine.get_api_cls()
-    if not to_s.get_api().dialect_is_supported():
+    if not to_s.get_database_api().dialect_is_supported():
         warnings.warn(
             f"Skipping tests for database engine {s.storage_engine.__name__} (client library not installed)"
         )
@@ -48,14 +51,19 @@ def test_file_to_db(url):
     with api_cls.temp_local_database() as db_url:
         name = "_test"
         db_s = Storage.from_url(db_url)
-        db_api: DatabaseStorageApi = db_s.get_api()
+        db_api = db_s.get_database_api()
         # Records
-        req = CopyRequest(
-            name, from_s, name, db_s, DatabaseTableFormat, test_records_schema
+        from_so = ensure_storage_object(name, storage=from_s)
+        to_so = ensure_storage_object(
+            name,
+            storage=db_s,
+            _data_format=DatabaseTableFormat,
+            _schema=test_records_schema,
         )
+        req = CopyRequest(from_so, to_so)
         CsvFileToDatabaseTable().copy(req)
         with db_api.execute_sql_result(f"select * from {name}") as res:
             if url.startswith("sqlite"):
-                assert [dict(r) for r in res] == test_records
+                assert [dict(r) for r in res] == test_records_json_str
             else:
-                assert [dict(r) for r in res] == conformed_test_records
+                assert [dict(r) for r in res] == conformed_test_records_json_str

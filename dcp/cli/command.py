@@ -27,11 +27,11 @@ class DcpCommand(Command):
         req: CopyRequest = make_copy_request(from_url, to_url, fmt=to_format)
 
         self.line(
-            f"Copying `{req.from_name}` "
-            f"on {req.from_storage.storage_engine.__name__} "
-            f"({req.from_storage.url}) "
-            f"to `{req.to_name}` "
-            f"on {req.to_storage.storage_engine.__name__} "
-            f"({req.to_storage.url})"
+            f"Copying `{req.from_obj.formatted_full_name}` "
+            f"on {req.from_obj.storage.storage_engine.__name__} "
+            f"({req.from_obj.storage.url}) "
+            f"to `{req.to_obj.formatted_full_name}` "
+            f"on {req.to_obj.storage.storage_engine.__name__} "
+            f"({req.to_obj.storage.url})"
         )
         execute_copy_request(req)

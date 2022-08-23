@@ -22,9 +22,7 @@ class MemoryToDatabaseMixin:
     to_storage_classes = [DatabaseStorageClass]
 
     def append(self, req: CopyRequest):
-        assert isinstance(req.from_storage_api, PythonStorageApi)
-        assert isinstance(req.to_storage_api, DatabaseStorageApi)
-        obj = req.from_storage_api.get(req.from_name)
+        obj = req.from_obj.storage.get_memory_api().get(req.from_obj)
         self.insert_object(req, obj)
 
     def insert_object(self, req: CopyRequest, obj: Any):
@@ -38,7 +36,9 @@ class RecordsToDatabaseTable(MemoryToDatabaseMixin, DataCopierBase):
     requires_schema_cast = False
 
     def insert_object(self, req: CopyRequest, obj: Records):
-        req.to_storage_api.bulk_insert_records(req.to_name, obj, req.schema)
+        req.to_obj.storage.get_database_api().bulk_insert_records(
+            req.to_obj, obj, req.get_to_schema()
+        )
 
 
 # @datacopier(
@@ -58,4 +58,4 @@ class RecordsToDatabaseTable(MemoryToDatabaseMixin, DataCopierBase):
 #         req.to_name, req.to_storage_api.storage, req.get_schema()
 #     )
 #     for records in mdr.records_object:
-#         req.to_storage_api.bulk_insert_records(req.to_name, records)
+#         req.to_obj.storage.get_database_api().bulk_insert_records(req.to_name, records)

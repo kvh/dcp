@@ -3,6 +3,9 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import Dict, Iterator, List
 
+import sqlalchemy
+from sqlalchemy.engine import Inspector
+
 from dcp.storage.database.api import (
     DatabaseApi,
     DatabaseStorageApi,
@@ -22,9 +25,25 @@ except ImportError:
 
 
 class MysqlDatabaseApi(DatabaseApi):
+    def get_placeholder_char(self) -> str:
+        return "%s"
+
     @classmethod
     def dialect_is_supported(cls) -> bool:
         return MYSQL_SUPPORTED
+
+    def get_default_storage_path(self) -> list[str]:
+        db = self.get_engine().url.database
+        if db:
+            return [self.get_engine().url.database]
+        return []
+
+    def get_schemas_and_table_names(self) -> dict[str, set[str]]:
+        inspector: Inspector = sqlalchemy.inspect(self.get_engine())
+        dbname = self.get_default_storage_path()[0]
+        schemas_to_tables = {}
+        schemas_to_tables[dbname] = set(inspector.get_table_names())
+        return schemas_to_tables
 
     @classmethod
     @contextmanager

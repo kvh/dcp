@@ -39,35 +39,32 @@ class DatabaseCursorHandler(FormatHandler):
     for_data_formats = [DatabaseCursorFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
-    def infer_data_format(self, name, storage) -> Optional[DataFormat]:
-        obj = storage.get_api().get(name)
+    def infer_data_format(self, so: storage.StorageObject) -> Optional[DataFormat]:
+        obj = so.storage.get_memory_api().get(so)
         if isinstance(obj, ResultProxy):
             return DatabaseCursorFormat
         return None
 
-    def infer_field_names(self, name, storage) -> List[str]:
-        cur = storage.get_api().get(name)
+    def infer_field_names(self, so: storage.StorageObject) -> List[str]:
+        cur = so.storage.get_memory_api().get(so)
         return list(cur.keys())
 
-    def infer_field_type(
-        self, name: str, storage: storage.Storage, field: str
-    ) -> FieldType:
+    def infer_field_type(self, so: storage.StorageObject, field: str) -> FieldType:
         # TODO: this only works for ORM queries
-        cur = storage.get_api().get(name)
+        cur = so.storage.get_memory_api().get(so)
         types = {col.name: col.type for col in cur.context.compiled.statement.columns}
         return sqlalchemy_type_to_field_type(types[field])
 
-    def infer_schema(self, name: str, storage: Storage) -> Schema:
+    def infer_schema(self, so: storage.StorageObject) -> Schema:
         fields = []
         schema = generate_auto_schema(fields=fields)
         return schema
-    
+
     def cast_to_field_type(
-        self, name: str, storage: storage.Storage, field: str, field_type: FieldType
+        self, so: storage.StorageObject, field: str, field_type: FieldType
     ):
         # TODO
         pass
 
-    def create_empty(self, name, storage, schema: Schema):
-        storage.get_api().put(name, DatabaseCursor(None))
-
+    def create_empty(self, so: storage.StorageObject, schema: Schema):
+        so.storage.get_memory_api().put(so, DatabaseCursor(None))

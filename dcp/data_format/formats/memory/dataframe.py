@@ -13,10 +13,19 @@ from commonmodel import (
     FieldType,
     Float,
     Integer,
+    Interval,
     Schema,
     Time,
 )
-from commonmodel.field_types import Binary, Decimal, Json, LongBinary, LongText, Text
+from commonmodel.field_types import (
+    Binary,
+    Decimal,
+    Json,
+    LongBinary,
+    LongText,
+    Text,
+    FieldTypeDefinition,
+)
 from dateutil import parser
 from dcp.data_format.base import DataFormat, DataFormatBase
 from dcp.data_format.formats.memory.records import (
@@ -38,39 +47,37 @@ class PythonDataframeHandler(FormatHandler):
     for_data_formats = [DataFrameFormat]
     for_storage_engines = [storage.LocalPythonStorageEngine]
 
-    def infer_data_format(self, name, storage) -> Optional[DataFormat]:
-        obj = storage.get_api().get(name)
+    def infer_data_format(self, so: storage.StorageObject) -> Optional[DataFormat]:
+        obj = so.storage.get_memory_api().get(so)
         if isinstance(obj, pd.DataFrame):
             return DataFrameFormat
         return None
 
-    def infer_field_names(self, name, storage) -> List[str]:
-        return storage.get_api().get(name).columns
+    def infer_field_names(self, so: storage.StorageObject) -> List[str]:
+        return so.storage.get_memory_api().get(so).columns
 
-    def infer_field_type(
-        self, name: str, storage: storage.Storage, field: str
-    ) -> FieldType:
-        df = storage.get_api().get(name)
+    def infer_field_type(self, so: storage.StorageObject, field: str) -> FieldType:
+        df = so.storage.get_memory_api().get(so)
         cast(DataFrame, df)
         series = df[field]
         ft = pandas_series_to_field_type(series)
         return ft
 
     def cast_to_field_type(
-        self, name: str, storage: storage.Storage, field: str, field_type: FieldType
+        self, so: storage.StorageObject, field: str, field_type: FieldType
     ):
-        df = storage.get_api().get(name)
+        df = so.storage.get_memory_api().get(so)
         cast(DataFrame, df)
         if field in df.columns:
             df[field] = cast_series_to_field_type(df[field], field_type)
-        storage.get_api().put(name, df)  # Unnecessary?
+        so.storage.get_memory_api().put(so, df)  # Unnecessary?
 
-    def create_empty(self, name, storage, schema: Schema):
+    def create_empty(self, so: storage.StorageObject, schema: Schema):
         df = DataFrame()
         for field in schema.fields:
             pd_type = field_type_to_pandas_dtype(field.field_type)
             df[field.name] = pd.Series(dtype=pd_type)
-        storage.get_api().put(name, df)
+        so.storage.get_memory_api().put(so, df)
 
     def supports(self, field_type) -> bool:
         raise NotImplementedError
@@ -108,6 +115,8 @@ def pandas_series_to_field_type(series: pd.Series) -> FieldType:
         return Date()
     elif dtype == "time":
         return Time()
+    elif dtype.startswith("interval"):
+        return Interval()
     elif dtype == "complex":
         raise ValueError("Complex number datatype not supported")
     elif dtype == "empty":
@@ -121,21 +130,22 @@ def pandas_series_to_field_type(series: pd.Series) -> FieldType:
 
 
 def field_type_to_pandas_dtype(ft: FieldType) -> str:
-    lookup: Dict[Type[FieldType], str] = {
-        Boolean: "boolean",
-        Integer: "Int64",
-        Float: "float64",
-        Decimal: "float64",
-        Binary: "bytes",  # TODO: is this a thing?
-        LongBinary: "bytes",
-        Text: "string",
-        LongText: "string",
-        Date: "datetime64[ns]",
-        Time: "time",
-        DateTime: "datetime64[ns]",
-        Json: "object",
+    lookup: Dict[str, str] = {
+        "Boolean": "boolean",
+        "Integer": "Int64",
+        "Float": "float64",
+        "Decimal": "float64",
+        "Binary": "bytes",  # TODO: is this a thing?
+        "LongBinary": "bytes",
+        "Text": "string",
+        "LongText": "string",
+        "Date": "datetime64[ns]",
+        "Time": "time",
+        "DateTime": "datetime64[ns]",
+        "Interval": "interval",
+        "Json": "object",
     }
-    return lookup.get(ft.__class__, "object")
+    return lookup.get(ft.name, "object")
 
 
 def cast_series_to_field_type(s: pd.Series, field_type: FieldType) -> pd.Series:

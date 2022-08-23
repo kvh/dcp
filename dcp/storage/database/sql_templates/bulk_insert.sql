@@ -1,4 +1,4 @@
-INSERT INTO "{{ table_name }}" (
+INSERT INTO {{ table_name }} (
     {{ columns|column_list }}
 ) VALUES
     %s
